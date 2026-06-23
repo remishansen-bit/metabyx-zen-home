@@ -1,5 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Sunrise, Moon, Sparkles, Leaf, Wind, Droplets, ChevronRight } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Sunrise, Moon, Sparkles, Leaf, ChevronRight } from "lucide-react";
+import { useMemo } from "react";
+import { todaysAllBranches, todaysOpenBranches, useMetabyx } from "@/lib/store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -13,28 +15,27 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const branches = [
-  {
-    icon: Leaf,
-    title: "Nourish",
-    detail: "Log your first meal",
-    meta: "2 of 3 mindful bites",
-  },
-  {
-    icon: Wind,
-    title: "Breath",
-    detail: "4·7·8 reset, 3 minutes",
-    meta: "Best before noon",
-  },
-  {
-    icon: Droplets,
-    title: "Hydration",
-    detail: "320 ml to your target",
-    meta: "On track",
-  },
-];
+const greetingFor = (d: Date) => {
+  const h = d.getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+};
+
+const dateLabel = (d: Date) =>
+  d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
 
 function Index() {
+  const state = useMetabyx();
+  const open = useMemo(() => todaysOpenBranches(state), [state]);
+  const todays = useMemo(() => todaysAllBranches(state), [state]);
+  const now = new Date();
+  const greeting = greetingFor(now);
+  const bmr = state.lastBmr;
+  const prev = state.bmrHistory.at(-2)?.value;
+  const delta = typeof prev === "number" ? bmr - prev : 0;
+  const progress = todays.length === 0 ? 0 : todays.filter((b) => b.status === "metabolized").length / todays.length;
+  const ringPct = Math.max(0.08, progress > 0 ? progress : bmr / 100);
   return (
     <div className="min-h-screen w-full flex justify-center px-4 py-6 sm:py-10">
       {/* Phone frame */}
@@ -63,13 +64,13 @@ function Index() {
           <header className="flex items-start justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-                Tuesday · Sept 9
+                {dateLabel(now)}
               </p>
               <h1
                 className="mt-2 text-3xl font-light leading-tight text-foreground"
                 style={{ fontFamily: "Fraunces, serif" }}
               >
-                Good morning,
+                {greeting},
                 <br />
                 <span className="text-gold italic">Adrien</span>
               </h1>
@@ -106,7 +107,8 @@ function Index() {
                     stroke="url(#goldStroke)"
                     strokeWidth="2.5"
                     strokeLinecap="round"
-                    strokeDasharray={`${0.72 * 2 * Math.PI * 46} ${2 * Math.PI * 46}`}
+                    strokeDasharray={`${ringPct * 2 * Math.PI * 46} ${2 * Math.PI * 46}`}
+                    style={{ transition: "stroke-dasharray 700ms ease" }}
                   />
                   <defs>
                     <linearGradient id="goldStroke" x1="0" y1="0" x2="1" y2="1">
@@ -123,13 +125,19 @@ function Index() {
                   className="mt-1 text-6xl font-light text-foreground"
                   style={{ fontFamily: "Fraunces, serif" }}
                 >
-                  72
+                  {bmr}
                 </p>
-                <p className="mt-1 text-xs text-gold">+4 vs yesterday</p>
+                <p className="mt-1 text-xs text-gold">
+                  {delta === 0 ? "Steady" : `${delta > 0 ? "+" : ""}${delta} since last check-in`}
+                </p>
               </div>
             </div>
             <p className="mt-5 max-w-[16rem] text-center text-sm text-muted-foreground">
-              Your metabolic rhythm is steady. A short reset will lift you further.
+              {todays.length === 0
+                ? "No branches noticed yet. A morning check-in begins your day."
+                : open.length === 0
+                  ? "Every branch metabolized. Rest well tonight."
+                  : "Your metabolic rhythm is steady. A short reset will lift you further."}
             </p>
           </section>
 
@@ -142,37 +150,53 @@ function Index() {
               >
                 Today's open branches
               </h2>
-              <span className="text-xs text-muted-foreground">3 of 5</span>
+              <span className="text-xs text-muted-foreground">
+                {open.length} of {todays.length}
+              </span>
             </div>
 
-            <ul className="flex flex-col gap-3">
-              {branches.map(({ icon: Icon, title, detail, meta }) => (
-                <li
-                  key={title}
-                  className="glass group flex items-center gap-4 rounded-2xl px-4 py-3.5 transition-colors hover:bg-[oklch(1_0_0/0.04)]"
-                >
-                  <div
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                    style={{
-                      background: "oklch(0.82 0.14 82 / 0.12)",
-                      border: "1px solid oklch(0.82 0.14 82 / 0.25)",
-                    }}
+            {open.length === 0 ? (
+              <Link
+                to="/morning"
+                className="glass flex items-center justify-between rounded-2xl px-4 py-5"
+              >
+                <div>
+                  <p className="text-sm font-medium text-foreground">Nothing noticed yet</p>
+                  <p className="text-xs text-muted-foreground">
+                    {todays.length === 0
+                      ? "Begin with a morning check-in"
+                      : "All branches metabolized today"}
+                  </p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-gold" />
+              </Link>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {open.slice(0, 4).map((b) => (
+                  <li
+                    key={b.id}
+                    className="glass group flex items-center gap-4 rounded-2xl px-4 py-3.5"
                   >
-                    <Icon className="h-4.5 w-4.5 text-gold" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground">{title}</p>
-                    <p className="truncate text-xs text-muted-foreground">{detail}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="hidden text-[10px] uppercase tracking-wider text-muted-foreground sm:inline">
-                      {meta}
+                    <div
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                      style={{
+                        background: "oklch(0.82 0.14 82 / 0.12)",
+                        border: "1px solid oklch(0.82 0.14 82 / 0.25)",
+                      }}
+                    >
+                      <Leaf className="h-4 w-4 text-gold" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">{b.title}</p>
+                      <p className="truncate text-xs text-muted-foreground">{b.detail}</p>
+                    </div>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      {b.category}
                     </span>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                  </div>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           {/* Actions */}
@@ -196,16 +220,22 @@ function Index() {
             </button>
 
             <div className="grid grid-cols-2 gap-3">
-              <button className="glass rounded-2xl px-4 py-4 text-left transition-colors hover:bg-[oklch(1_0_0/0.06)]">
+              <Link
+                to="/morning"
+                className="glass rounded-2xl px-4 py-4 text-left transition-colors hover:bg-[oklch(1_0_0/0.06)]"
+              >
                 <Sunrise className="mb-2 h-5 w-5 text-gold" />
                 <p className="text-sm font-medium text-foreground">Morning</p>
                 <p className="text-xs text-muted-foreground">Check-in</p>
-              </button>
-              <button className="glass rounded-2xl px-4 py-4 text-left transition-colors hover:bg-[oklch(1_0_0/0.06)]">
+              </Link>
+              <Link
+                to="/evening"
+                className="glass rounded-2xl px-4 py-4 text-left transition-colors hover:bg-[oklch(1_0_0/0.06)]"
+              >
                 <Moon className="mb-2 h-5 w-5 text-gold" />
                 <p className="text-sm font-medium text-foreground">Evening</p>
                 <p className="text-xs text-muted-foreground">Reflection</p>
-              </button>
+              </Link>
             </div>
           </section>
 
