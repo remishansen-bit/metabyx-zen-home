@@ -122,6 +122,7 @@ function Index() {
                   ? "Every branch metabolized. Rest well tonight."
                   : "Your metabolic rhythm is steady. A short reset will lift you further."}
             </p>
+            <BmrSparkline history={state.bmrHistory} current={bmr} />
           </section>
 
           {/* Branches */}
