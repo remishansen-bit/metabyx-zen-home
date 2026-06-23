@@ -1623,7 +1623,7 @@ export function VoiceRecorder({
                 </span>
               </div>
             {/* Pitch / stability chip + supportive cue */}
-            {pitch.hz != null && (
+            {showPitch && pitch.hz != null && (
               <div
                 role="status"
                 aria-label={`Tonehøyde ${Math.round(pitch.hz)} hertz, stabilitet ${Math.round(smoothedStability * 100)} prosent`}
