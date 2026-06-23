@@ -10,7 +10,8 @@ export function VoiceRecorder({
   ariaLabel = "Snakk inn tekst",
 }: VoiceRecorderProps) {
   const [state, setState] = useState<VoiceRecorderState>("idle");
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
+
   const transcriptRef = useRef("");
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
