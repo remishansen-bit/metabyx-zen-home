@@ -849,6 +849,26 @@ function ClosePhase({
           style={{ fontFamily: "Fraunces, serif" }}
         />
       </div>
+
+      {/* Optional richer voice recorder: live waveform, pitch + emotion cues,
+          editable transcript before it lands in the textarea above. */}
+      <details className="glass rounded-2xl px-4 py-3">
+        <summary className="flex cursor-pointer items-center justify-between text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+          <span>Speak the new story aloud</span>
+          <span className="text-gold">+ Voice</span>
+        </summary>
+        <div className="mt-3">
+          <VoiceRecorder
+            language="en-US"
+            compact
+            showHistory={false}
+            ariaLabel="Record the closing story"
+            onTranscription={(text) =>
+              setNewStory((prev) => (prev ? `${prev.trim()} ${text}` : text))
+            }
+          />
+        </div>
+      </details>
       {children}
     </section>
   );
