@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowLeft,
   ArrowRight,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { VoiceInputButton } from "@/components/voice-input-button";
+import { suggestPaths } from "@/lib/gcmp.functions";
 import {
   metabolizeBranch,
   todaysOpenBranches,
@@ -38,6 +40,13 @@ type Path = {
   title: string;
   blurb: string;
   guidance: string[];
+};
+
+type Suggestion = {
+  id: Path["id"];
+  title: string;
+  description: string;
+  firstStep: string;
 };
 
 const PATHS: Path[] = [
@@ -112,6 +121,7 @@ function SessionPage() {
   const router = useRouter();
   const state = useMetabyx();
   const openToday = useMemo(() => todaysOpenBranches(state), [state]);
+  const suggest = useServerFn(suggestPaths);
 
   const [phase, setPhase] = useState<Phase>(0);
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(
@@ -123,11 +133,18 @@ function SessionPage() {
   const [pathId, setPathId] = useState<Path["id"] | null>(null);
   const [pathDone, setPathDone] = useState(false);
   const [newStory, setNewStory] = useState("");
+  const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null);
+  const [suggestIntro, setSuggestIntro] = useState<string>("");
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [suggestError, setSuggestError] = useState<string | null>(null);
+  const [suggestedFor, setSuggestedFor] = useState<string>("");
 
   const activeBranch: Branch | undefined = openToday.find(
     (b) => b.id === selectedBranchId,
   );
   const path = PATHS.find((p) => p.id === pathId) ?? null;
+  const activeSuggestion =
+    suggestions?.find((s) => s.id === pathId) ?? null;
 
   // Pre-fill what-if from selected branch
   useEffect(() => {
@@ -136,6 +153,44 @@ function SessionPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBranchId]);
+
+  // Fetch personalized paths when entering Phase 3
+  useEffect(() => {
+    if (phase !== 2) return;
+    const sig = JSON.stringify({
+      w: whatIf.trim(),
+      f: Array.from(frictions).sort(),
+      n: frictionNote.trim(),
+    });
+    if (sig === suggestedFor) return;
+    if (!whatIf.trim()) return;
+    let cancelled = false;
+    setSuggestLoading(true);
+    setSuggestError(null);
+    suggest({
+      data: {
+        whatIf: whatIf.trim(),
+        frictions: Array.from(frictions),
+        frictionNote: frictionNote.trim(),
+      },
+    })
+      .then((res) => {
+        if (cancelled) return;
+        setSuggestions(res.paths);
+        setSuggestIntro(res.intro);
+        setSuggestedFor(sig);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSuggestError("Could not reach guidance — choose any path that draws you.");
+      })
+      .finally(() => {
+        if (!cancelled) setSuggestLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [phase, whatIf, frictions, frictionNote, suggest, suggestedFor]);
 
   function next() {
     setPhase((p) => (Math.min(4, p + 1) as Phase));
@@ -219,9 +274,23 @@ function SessionPage() {
             setNote={setFrictionNote}
           />
         )}
-        {phase === 2 && <PathsPhase pathId={pathId} onPick={setPathId} />}
+        {phase === 2 && (
+          <PathsPhase
+            pathId={pathId}
+            onPick={setPathId}
+            suggestions={suggestions}
+            intro={suggestIntro}
+            loading={suggestLoading}
+            error={suggestError}
+          />
+        )}
         {phase === 3 && path && (
-          <WalkPhase path={path} done={pathDone} onDone={() => setPathDone(true)} />
+          <WalkPhase
+            path={path}
+            suggestion={activeSuggestion}
+            done={pathDone}
+            onDone={() => setPathDone(true)}
+          />
         )}
         {phase === 4 && (
           <ClosePhase
