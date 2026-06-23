@@ -2,6 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Moon } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
+import { VoiceRecorder } from "@/components/voice-recorder";
 import { metabolizeBranch, todaysAllBranches, useMetabyx, type Branch } from "@/lib/store";
 
 export const Route = createFileRoute("/evening")({
@@ -164,6 +165,26 @@ function EveningPage() {
               className="mt-2 w-full resize-none bg-transparent text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
             />
           </div>
+
+          {/* Voice reflection: full transcription preview before it is
+              appended to the reflection above. */}
+          <details className="glass rounded-2xl px-4 py-3">
+            <summary className="flex cursor-pointer items-center justify-between text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+              <span>Speak the reflection aloud</span>
+              <span className="text-gold">+ Voice</span>
+            </summary>
+            <div className="mt-3">
+              <VoiceRecorder
+                language="en-US"
+                compact
+                showHistory={false}
+                ariaLabel="Record the evening reflection"
+                onTranscription={(t) =>
+                  setReflection(reflection ? `${reflection.trim()} ${t}` : t)
+                }
+              />
+            </div>
+          </details>
 
           <div className="flex gap-3">
             <button
