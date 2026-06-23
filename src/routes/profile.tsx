@@ -1,8 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { User, Sparkles, Bell, ShieldCheck, Heart, TrendingUp, Flame, Target } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import {
+  User,
+  Settings as SettingsIcon,
+  ChevronRight,
+  TrendingUp,
+  Flame,
+  Target,
+  Sparkles,
+} from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { useMetabyx } from "@/lib/store";
+import { RequireAuth, useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -11,7 +21,11 @@ export const Route = createFileRoute("/profile")({
       { name: "description", content: "Your metabolic rhythm over time." },
     ],
   }),
-  component: ProfilePage,
+  component: () => (
+    <RequireAuth>
+      <ProfilePage />
+    </RequireAuth>
+  ),
 });
 
 function startOfDay(t: number) {
@@ -24,6 +38,10 @@ const DAYS = 14;
 
 function ProfilePage() {
   const state = useMetabyx();
+  const auth = useAuth();
+  const displayName =
+    auth.profile?.display_name ?? auth.user?.email?.split("@")[0] ?? "Friend";
+  const archetype = auth.profile?.archetype;
 
   const series = useMemo(() => {
     const out: { t: number; day: string; value: number | null }[] = [];
@@ -117,11 +135,17 @@ function ProfilePage() {
             className="text-2xl font-light text-foreground"
             style={{ fontFamily: "Fraunces, serif" }}
           >
-            Adrien
+            {displayName}
           </h1>
-          <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-            BMR Tracker · 14 days
-          </p>
+          {archetype ? (
+            <p className="mt-1 inline-flex items-center gap-1 text-xs text-gold">
+              <Sparkles className="h-3 w-3" /> {archetype}
+            </p>
+          ) : (
+            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+              BMR Tracker · 14 days
+            </p>
+          )}
         </div>
       </header>
 
@@ -251,32 +275,33 @@ function ProfilePage() {
 
       {/* Preferences */}
       <section className="flex flex-col gap-2">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Preferences</p>
-        {[
-          { icon: Bell, label: "Daily reminders", hint: "Morning & evening" },
-          { icon: Sparkles, label: "AI refinement", hint: "Gemini 3 Flash" },
-          { icon: ShieldCheck, label: "Privacy", hint: "Stored on this device" },
-          { icon: Heart, label: "About METABYX", hint: "v1.0 · with care" },
-        ].map(({ icon: Icon, label, hint }) => (
-          <button
-            key={label}
-            className="glass flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all hover:bg-[oklch(1_0_0/0.06)]"
+        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Account</p>
+        <Link
+          to="/settings"
+          className="glass flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all hover:bg-[oklch(1_0_0/0.06)]"
+        >
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-xl"
+            style={{
+              background: "oklch(0.82 0.14 82 / 0.12)",
+              border: "1px solid oklch(0.82 0.14 82 / 0.22)",
+            }}
           >
-            <div
-              className="flex h-9 w-9 items-center justify-center rounded-xl"
-              style={{
-                background: "oklch(0.82 0.14 82 / 0.12)",
-                border: "1px solid oklch(0.82 0.14 82 / 0.22)",
-              }}
-            >
-              <Icon className="h-4 w-4 text-gold" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">{label}</p>
-              <p className="text-xs text-muted-foreground">{hint}</p>
-            </div>
-          </button>
-        ))}
+            <SettingsIcon className="h-4 w-4 text-gold" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">Preferences & settings</p>
+            <p className="text-xs text-muted-foreground">
+              Reminders, AI model, theme, privacy
+            </p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </Link>
+        {auth.user?.email && (
+          <p className="px-2 text-center text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+            signed in as {auth.user.email}
+          </p>
+        )}
       </section>
     </PhoneFrame>
   );

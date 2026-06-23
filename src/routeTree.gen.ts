@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SessionRouteImport } from './routes/session'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -22,6 +23,11 @@ import { Route as BranchIdRouteImport } from './routes/branch.$id'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SessionRoute = SessionRouteImport.update({
   id: '/session',
   path: '/session',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
+  '/settings': typeof SettingsRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
+  '/settings': typeof SettingsRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
+  '/settings': typeof SettingsRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/profile'
     | '/session'
+    | '/settings'
     | '/api/transcribe'
     | '/api/tts'
     | '/branch/$id'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/profile'
     | '/session'
+    | '/settings'
     | '/api/transcribe'
     | '/api/tts'
     | '/branch/$id'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/profile'
     | '/session'
+    | '/settings'
     | '/api/transcribe'
     | '/api/tts'
     | '/branch/$id'
@@ -181,6 +193,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   ProfileRoute: typeof ProfileRoute
   SessionRoute: typeof SessionRoute
+  SettingsRoute: typeof SettingsRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   ApiTtsRoute: typeof ApiTtsRoute
   BranchIdRoute: typeof BranchIdRoute
@@ -188,6 +201,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/session': {
       id: '/session'
       path: '/session'
@@ -285,6 +305,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   ProfileRoute: ProfileRoute,
   SessionRoute: SessionRoute,
+  SettingsRoute: SettingsRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
   ApiTtsRoute: ApiTtsRoute,
   BranchIdRoute: BranchIdRoute,
