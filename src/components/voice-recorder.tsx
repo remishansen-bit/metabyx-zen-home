@@ -293,12 +293,17 @@ export function VoiceRecorder({
       if (isSpeech && now - lastPitchAtRef.current > 200) {
         lastPitchAtRef.current = now;
         const ctxAudio = audioCtxRef.current;
-        if (ctxAudio && pitchBufRef.current) {
-          analyser.getFloatTimeDomainData(pitchBufRef.current);
-          const hz = estimatePitchAutocorrelation(
-            pitchBufRef.current,
-            ctxAudio.sampleRate,
-          );
+        if (ctxAudio) {
+          if (!pitchBufRef.current) {
+            // Backing store typed as ArrayBuffer (not SharedArrayBuffer)
+            // to satisfy Web Audio API typings.
+            pitchBufRef.current = new Float32Array(
+              new ArrayBuffer(analyser.fftSize * 4),
+            );
+          }
+          const buf = pitchBufRef.current as Float32Array<ArrayBuffer>;
+          analyser.getFloatTimeDomainData(buf);
+          const hz = estimatePitchAutocorrelation(buf, ctxAudio.sampleRate);
           if (hz !== null) {
             // Maintain a sliding window of recent pitch samples for stability.
             const hist = pitchHistoryRef.current;
