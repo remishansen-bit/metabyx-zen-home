@@ -177,19 +177,50 @@ export function todaysAllBranches(state: MetabyxState): Branch[] {
 export function importMetabyxJson(raw: unknown): {
   importedBranches: number;
   importedHistory: number;
+  mergedBranches: number;
+  skippedBranches: number;
+  totalBranches: number;
 } {
-  if (!raw || typeof raw !== "object") throw new Error("Not a Metabyx export");
-  const payload = raw as Partial<MetabyxState> & { app?: string };
-  if (payload.app && payload.app !== "metabyx") throw new Error("Wrong app");
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("This file isn't a Metabyx export.");
+  }
+  const payload = raw as Partial<MetabyxState> & { app?: string; version?: number };
+  if (payload.app && payload.app !== "metabyx") {
+    throw new Error("This file was exported by a different app.");
+  }
+  if (!("branches" in payload) && !("bmrHistory" in payload)) {
+    throw new Error("No branches or BMR history found in this file.");
+  }
+  if (payload.version && payload.version > 1) {
+    throw new Error(
+      `This export is from a newer version (v${payload.version}). Update the app first.`,
+    );
+  }
   const incomingBranches = Array.isArray(payload.branches) ? payload.branches : [];
   const incomingHistory = Array.isArray(payload.bmrHistory) ? payload.bmrHistory : [];
   const state = read();
   const byId = new Map<string, Branch>();
   for (const b of state.branches) byId.set(b.id, b);
+  const validCats = new Set(["mind", "body", "relationship", "work", "spirit"]);
+  let merged = 0;
+  let skipped = 0;
   for (const b of incomingBranches) {
-    if (!b || typeof b !== "object" || !b.id) continue;
+    if (
+      !b ||
+      typeof b !== "object" ||
+      typeof (b as Branch).id !== "string" ||
+      typeof (b as Branch).title !== "string" ||
+      typeof (b as Branch).createdAt !== "number" ||
+      !validCats.has((b as Branch).category)
+    ) {
+      skipped += 1;
+      continue;
+    }
     const existing = byId.get(b.id);
-    if (!existing || (b.createdAt ?? 0) >= existing.createdAt) byId.set(b.id, b);
+    if (!existing || (b.createdAt ?? 0) >= existing.createdAt) {
+      byId.set(b.id, b);
+      merged += 1;
+    }
   }
   const branches = [...byId.values()].sort((a, b) => b.createdAt - a.createdAt);
   const history = [...state.bmrHistory, ...incomingHistory]
@@ -207,6 +238,9 @@ export function importMetabyxJson(raw: unknown): {
   return {
     importedBranches: incomingBranches.length,
     importedHistory: incomingHistory.length,
+    mergedBranches: merged,
+    skippedBranches: skipped,
+    totalBranches: branches.length,
   };
 }
 

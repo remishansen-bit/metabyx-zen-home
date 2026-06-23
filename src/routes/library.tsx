@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookHeart, Leaf, CheckCircle2, Search, ChevronRight, X, Download, Upload, LifeBuoy } from "lucide-react";
+import { BookHeart, Leaf, CheckCircle2, Search, ChevronRight, X, Download, Upload, LifeBuoy, FileText } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { useMetabyx, importMetabyxJson, type Branch } from "@/lib/store";
+import { exportLibraryPdf } from "@/lib/library-pdf";
 
 export const Route = createFileRoute("/library")({
   head: () => ({
@@ -110,6 +111,15 @@ function LibraryPage() {
           >
             <Download className="h-4 w-4 text-foreground" />
           </button>
+          <button
+            type="button"
+            onClick={() => exportLibraryPdf(state)}
+            disabled={total === 0}
+            aria-label="Export library as PDF"
+            className="glass flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 disabled:opacity-40"
+          >
+            <FileText className="h-4 w-4 text-foreground" />
+          </button>
           <div className="glass flex h-11 w-11 items-center justify-center rounded-full">
             <BookHeart className="h-4 w-4 text-gold" />
           </div>
@@ -126,18 +136,30 @@ function LibraryPage() {
           e.target.value = "";
           if (!file) return;
           try {
+            if (file.size > 5 * 1024 * 1024) {
+              throw new Error("File is larger than 5 MB.");
+            }
             const text = await file.text();
-            const parsed = JSON.parse(text);
-            const { importedBranches, importedHistory } = importMetabyxJson(parsed);
-            setImportMsg(
-              `Restored ${importedBranches} branch${importedBranches === 1 ? "" : "es"} · ${importedHistory} BMR points`,
-            );
+            let parsed: unknown;
+            try {
+              parsed = JSON.parse(text);
+            } catch {
+              throw new Error("File isn't valid JSON.");
+            }
+            const r = importMetabyxJson(parsed);
+            const parts = [
+              `Merged ${r.mergedBranches} of ${r.importedBranches} branch${r.importedBranches === 1 ? "" : "es"}`,
+              `${r.importedHistory} BMR point${r.importedHistory === 1 ? "" : "s"}`,
+            ];
+            if (r.skippedBranches > 0) parts.push(`${r.skippedBranches} skipped`);
+            parts.push(`library now ${r.totalBranches}`);
+            setImportMsg(parts.join(" · "));
           } catch (err) {
             setImportMsg(
               err instanceof Error ? `Could not import: ${err.message}` : "Could not import that file",
             );
           }
-          window.setTimeout(() => setImportMsg(null), 4000);
+          window.setTimeout(() => setImportMsg(null), 6000);
         }}
       />
       {importMsg && (
