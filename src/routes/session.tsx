@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowLeft,
@@ -437,7 +437,7 @@ function IdentifyPhase({
   onSelectBranch: (id: string | null) => void;
   whatIf: string;
   setWhatIf: (v: string) => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <section className="flex flex-col gap-5">
@@ -783,7 +783,7 @@ function ClosePhase({
   whatIf: string;
   newStory: string;
   setNewStory: (v: string) => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <section className="flex flex-col gap-5">
