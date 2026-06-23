@@ -1344,6 +1344,23 @@ export function VoiceRecorder({
       </div>
       )}
 
+      {/* Keyboard shortcuts hint — visible during recording & review so users
+          know how to confirm or cancel without reaching for the mouse. */}
+      {(isRecording || isReview) && (
+        <p className="mt-2 hidden items-center gap-2 text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70 sm:flex">
+          <Keyboard aria-hidden className="h-3 w-3" />
+          <span>
+            <kbd className="rounded bg-white/10 px-1 py-0.5">Esc</kbd>{" "}
+            {isRecording ? "avbryt" : "lukk"}
+            <span className="mx-1.5 text-foreground/30">·</span>
+            <kbd className="rounded bg-white/10 px-1 py-0.5">⌘</kbd>/
+            <kbd className="rounded bg-white/10 px-1 py-0.5">Ctrl</kbd>+
+            <kbd className="rounded bg-white/10 px-1 py-0.5">Enter</kbd>{" "}
+            {isRecording ? "godta" : "bruk"}
+          </span>
+        </p>
+      )}
+
       {/* Recording history — replay & revisit previously accepted transcripts. */}
       {showHistory && state === "idle" && history.length > 0 && (
         <div className="mt-3 border-t border-white/5 pt-3">
