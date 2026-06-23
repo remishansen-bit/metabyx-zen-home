@@ -11,6 +11,7 @@ import {
   PenLine,
 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
+import { VoiceInputButton } from "@/components/voice-input-button";
 import {
   metabolizeBranch,
   todaysOpenBranches,
@@ -351,6 +352,9 @@ function IdentifyPhase({
           className="w-full resize-none bg-transparent text-base leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
           style={{ fontFamily: "Fraunces, serif" }}
         />
+        <div className="mt-2 flex justify-end">
+          <VoiceInputButton value={whatIf} onChange={setWhatIf} />
+        </div>
       </div>
     </section>
   );
@@ -400,9 +404,12 @@ function FrictionPhase({
       </div>
 
       <div className="glass rounded-2xl p-4">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          Anything else?
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Anything else?
+          </p>
+          <VoiceInputButton value={note} onChange={setNote} compact />
+        </div>
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -602,7 +609,10 @@ function ClosePhase({
           boxShadow: "var(--shadow-gold)",
         }}
       >
-        <p className="text-[10px] uppercase tracking-[0.3em] text-gold">The new story</p>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-gold">The new story</p>
+          <VoiceInputButton value={newStory} onChange={setNewStory} compact />
+        </div>
         <textarea
           value={newStory}
           onChange={(e) => setNewStory(e.target.value)}
