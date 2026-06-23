@@ -1207,6 +1207,39 @@ export function VoiceRecorder({
                   {speaking ? "Snakker" : "Lytter"}
                 </span>
               </div>
+            {/* Pitch / stability chip + supportive cue */}
+            {pitch.hz != null && (
+              <div
+                role="status"
+                aria-label={`Tonehøyde ${Math.round(pitch.hz)} hertz, stabilitet ${Math.round(pitch.stability * 100)} prosent`}
+                className="hidden flex-col items-end gap-0.5 sm:flex"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span
+                    aria-hidden
+                    className="inline-block h-1 w-10 overflow-hidden rounded-full bg-white/8"
+                    style={{ background: "oklch(1 0 0 / 0.08)" }}
+                  >
+                    <span
+                      className="block h-full rounded-full transition-[width,background] duration-300"
+                      style={{
+                        width: `${Math.round(pitch.stability * 100)}%`,
+                        background:
+                          "linear-gradient(90deg, oklch(0.72 0.13 265 / 0.7), oklch(0.88 0.14 82 / 0.9))",
+                      }}
+                    />
+                  </span>
+                  <span className="font-mono text-[10px] tabular-nums text-foreground/70">
+                    {Math.round(pitch.hz)} Hz
+                  </span>
+                </div>
+                {pitchCue(pitch) && (
+                  <span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">
+                    {pitchCue(pitch)}
+                  </span>
+                )}
+              </div>
+            )}
               <span
                 className="font-mono text-[11px] tabular-nums text-gold/90"
                 style={
