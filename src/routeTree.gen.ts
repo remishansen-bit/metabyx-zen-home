@@ -15,6 +15,7 @@ import { Route as MorningRouteImport } from './routes/morning'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as EveningRouteImport } from './routes/evening'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BranchRouteImport } from './routes/branch.'
 
 const SessionRoute = SessionRouteImport.update({
   id: '/session',
@@ -46,6 +47,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BranchRoute = BranchRouteImport.update({
+  id: '/branch/',
+  path: '/branch/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/morning': typeof MorningRoute
   '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
+  '/branch/': typeof BranchRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/morning': typeof MorningRoute
   '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
+  '/branch': typeof BranchRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +79,7 @@ export interface FileRoutesById {
   '/morning': typeof MorningRoute
   '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
+  '/branch/': typeof BranchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,8 +90,16 @@ export interface FileRouteTypes {
     | '/morning'
     | '/profile'
     | '/session'
+    | '/branch/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/evening' | '/library' | '/morning' | '/profile' | '/session'
+  to:
+    | '/'
+    | '/evening'
+    | '/library'
+    | '/morning'
+    | '/profile'
+    | '/session'
+    | '/branch'
   id:
     | '__root__'
     | '/'
@@ -91,6 +108,7 @@ export interface FileRouteTypes {
     | '/morning'
     | '/profile'
     | '/session'
+    | '/branch/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -100,6 +118,7 @@ export interface RootRouteChildren {
   MorningRoute: typeof MorningRoute
   ProfileRoute: typeof ProfileRoute
   SessionRoute: typeof SessionRoute
+  BranchRoute: typeof BranchRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -146,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/branch/': {
+      id: '/branch/'
+      path: '/branch'
+      fullPath: '/branch/'
+      preLoaderRoute: typeof BranchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -156,6 +182,7 @@ const rootRouteChildren: RootRouteChildren = {
   MorningRoute: MorningRoute,
   ProfileRoute: ProfileRoute,
   SessionRoute: SessionRoute,
+  BranchRoute: BranchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
