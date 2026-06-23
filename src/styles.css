@@ -167,25 +167,48 @@
 @utility glass {
   background: linear-gradient(
     135deg,
-    oklch(1 0 0 / 0.08),
-    oklch(1 0 0 / 0.02)
+    oklch(1 0 0 / 0.10),
+    oklch(1 0 0 / 0.03)
   );
-  backdrop-filter: blur(24px) saturate(140%);
-  border: 1px solid oklch(1 0 0 / 0.1);
-  box-shadow: var(--shadow-glass);
+  backdrop-filter: blur(32px) saturate(160%);
+  border: 1px solid oklch(1 0 0 / 0.12);
+  box-shadow:
+    0 8px 32px -8px oklch(0 0 0 / 0.55),
+    inset 0 1px 0 oklch(1 0 0 / 0.12),
+    inset 0 -1px 0 oklch(0 0 0 / 0.25);
 }
 
 @utility glass-strong {
   background: linear-gradient(
     135deg,
-    oklch(1 0 0 / 0.12),
-    oklch(1 0 0 / 0.04)
+    oklch(1 0 0 / 0.16),
+    oklch(1 0 0 / 0.05)
   );
-  backdrop-filter: blur(32px) saturate(160%);
-  border: 1px solid oklch(1 0 0 / 0.14);
-  box-shadow: var(--shadow-glass);
+  backdrop-filter: blur(44px) saturate(180%);
+  border: 1px solid oklch(1 0 0 / 0.18);
+  box-shadow:
+    0 20px 60px -20px oklch(0 0 0 / 0.7),
+    inset 0 1px 0 oklch(1 0 0 / 0.16),
+    inset 0 -1px 0 oklch(0 0 0 / 0.3);
 }
 
 @utility text-gold {
   color: var(--gold);
+}
+
+@utility animate-rise {
+  animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
 }
