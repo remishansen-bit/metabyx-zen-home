@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, MicOff as MicOffIcon, RotateCcw, Keyboard } from "lucide-react";
 
 type Props = {
   value: string;
@@ -7,6 +7,8 @@ type Props = {
   lang?: string;
   className?: string;
   compact?: boolean;
+  /** Called when user taps "Skriv i stedet" to fall back to typing. */
+  onFallbackToType?: () => void;
 };
 
 export function VoiceInputButton({
@@ -15,9 +17,11 @@ export function VoiceInputButton({
   lang = "nb-NO",
   className = "",
   compact = false,
+  onFallbackToType,
 }: Props) {
   const [isListening, setIsListening] = useState(false);
   const [supported, setSupported] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
   const baseRef = useRef("");
 
@@ -48,6 +52,7 @@ export function VoiceInputButton({
       setSupported(false);
       return;
     }
+    setError(null);
     const recognition = new SR();
     recognition.lang = lang;
     recognition.interimResults = true;
@@ -65,7 +70,19 @@ export function VoiceInputButton({
       const spoken = (finalText + interim).trim();
       if (spoken) onChange(baseRef.current + spoken);
     };
-    recognition.onerror = () => setIsListening(false);
+    recognition.onerror = (e: any) => {
+      setIsListening(false);
+      const code = e?.error ?? "unknown";
+      const msg =
+        code === "not-allowed" || code === "service-not-allowed"
+          ? "Mikrofontilgang er blokkert. Tillat mikrofonen, eller skriv i stedet."
+          : code === "no-speech"
+            ? "Hørte ingen stemme. Prøv igjen, eller skriv i stedet."
+            : code === "network"
+              ? "Mistet nettverket. Prøv en gang til."
+              : "Stemmeopptak feilet. Prøv igjen, eller skriv i stedet.";
+      setError(msg);
+    };
     recognition.onend = () => setIsListening(false);
 
     recognitionRef.current = recognition;
@@ -74,48 +91,82 @@ export function VoiceInputButton({
       setIsListening(true);
     } catch {
       setIsListening(false);
+      setError("Kunne ikke starte opptak. Prøv igjen.");
     }
   }
 
-  if (!supported) return null;
+  if (!supported) {
+    return (
+      <div
+        className={`glass inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] text-muted-foreground ${className}`}
+        title="Stemmegjenkjenning støttes ikke i denne nettleseren"
+      >
+        <MicOffIcon className="h-3 w-3" />
+        <span>Skriv i stedet</span>
+      </div>
+    );
+  }
 
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      aria-label={isListening ? "Stopp opptak" : "Snakk inn tekst"}
-      className={`glass inline-flex items-center gap-1.5 rounded-full transition-all active:scale-95 ${
-        compact ? "px-2.5 py-1 text-[10px]" : "px-3 py-1.5 text-[11px]"
-      } ${
-        isListening
-          ? "ring-1 ring-[oklch(0.82_0.14_82/0.7)]"
-          : "opacity-80 hover:opacity-100"
-      } ${className}`}
-      style={
-        isListening
-          ? {
-              background:
-                "linear-gradient(135deg, oklch(0.82 0.14 82 / 0.18), oklch(0.82 0.14 82 / 0.04))",
-              boxShadow: "var(--shadow-gold)",
-            }
-          : undefined
-      }
-    >
-      {isListening ? (
-        <>
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[oklch(0.82_0.14_82/0.7)]" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-gold" />
-          </span>
-          <MicOff className="h-3 w-3 text-gold" />
-          <span className="uppercase tracking-wider text-gold">Lytter…</span>
-        </>
-      ) : (
-        <>
-          <Mic className="h-3 w-3 text-foreground" />
-          <span className="uppercase tracking-wider text-foreground">Snakk</span>
-        </>
+    <div className={`flex flex-col items-end gap-1 ${className}`}>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={isListening ? "Stopp opptak" : error ? "Prøv stemmeopptak igjen" : "Snakk inn tekst"}
+        className={`glass inline-flex items-center gap-1.5 rounded-full transition-all active:scale-95 ${
+          compact ? "px-2.5 py-1 text-[10px]" : "px-3 py-1.5 text-[11px]"
+        } ${
+          isListening
+            ? "ring-1 ring-[oklch(0.82_0.14_82/0.7)]"
+            : "opacity-80 hover:opacity-100"
+        }`}
+        style={
+          isListening
+            ? {
+                background:
+                  "linear-gradient(135deg, oklch(0.82 0.14 82 / 0.18), oklch(0.82 0.14 82 / 0.04))",
+                boxShadow: "var(--shadow-gold)",
+              }
+            : undefined
+        }
+      >
+        {isListening ? (
+          <>
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[oklch(0.82_0.14_82/0.7)]" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-gold" />
+            </span>
+            <MicOff className="h-3 w-3 text-gold" />
+            <span className="uppercase tracking-wider text-gold">Lytter…</span>
+          </>
+        ) : error ? (
+          <>
+            <RotateCcw className="h-3 w-3 text-foreground" />
+            <span className="uppercase tracking-wider text-foreground">Prøv igjen</span>
+          </>
+        ) : (
+          <>
+            <Mic className="h-3 w-3 text-foreground" />
+            <span className="uppercase tracking-wider text-foreground">Snakk</span>
+          </>
+        )}
+      </button>
+
+      {error && !isListening && (
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground animate-fade-in">
+          <span className="max-w-[180px] text-right leading-snug">{error}</span>
+          {onFallbackToType && (
+            <button
+              type="button"
+              onClick={onFallbackToType}
+              className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-foreground/80 hover:bg-white/10"
+            >
+              <Keyboard className="h-3 w-3" />
+              Skriv
+            </button>
+          )}
+        </div>
       )}
-    </button>
+    </div>
   );
 }

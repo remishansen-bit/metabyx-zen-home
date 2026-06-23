@@ -20,6 +20,7 @@ import {
   metabolizeBranch,
   todaysOpenBranches,
   useMetabyx,
+  logEmotionEvent,
   type Branch,
 } from "@/lib/store";
 
@@ -226,6 +227,17 @@ function SessionPage() {
         .then((res) => {
           setEmotionByPhase((m) => ({ ...m, [phase]: res }));
           setEmotionAnalyzedFor((m) => ({ ...m, [phase]: text }));
+          try {
+            logEmotionEvent({
+              phase,
+              primaryEmotion: res.primaryEmotion,
+              intensity: res.intensity,
+              tears: res.distress.cryingOrTears,
+              tearsConfidence: res.distress.confidence,
+              summary: res.summary,
+              sourceText: text.slice(0, 280),
+            });
+          } catch {}
         })
         .catch(() => {
           setEmotionError((m) => ({
@@ -313,6 +325,7 @@ function SessionPage() {
               emotion={emotionByPhase[0] ?? null}
               loading={emotionLoading[0]}
               error={emotionError[0]}
+              phase={0}
             />
           </IdentifyPhase>
         )}
@@ -357,6 +370,7 @@ function SessionPage() {
               emotion={emotionByPhase[4] ?? null}
               loading={emotionLoading[4]}
               error={emotionError[4]}
+              phase={4}
             />
           </ClosePhase>
         )}
