@@ -9,7 +9,7 @@ export function PhoneFrame({
   hideTabBar?: boolean;
 }) {
   return (
-    <div className="min-h-screen w-full flex justify-center px-4 py-6 sm:py-10">
+    <div className="min-h-dvh w-full flex justify-center px-4 py-6 sm:py-10">
       <div className="relative w-full max-w-[420px] overflow-hidden rounded-[40px] glass-strong">
         <div
           aria-hidden
