@@ -175,6 +175,50 @@ export function VoiceRecorder({
     } catch {}
   }, []);
 
+  // Load persisted UI prefs (reduced-motion override + pitch display) so the
+  // recorder always opens in the same calm configuration the user picked last.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem("metabyx.vr.prefs");
+      if (!raw) return;
+      const v = JSON.parse(raw) as {
+        reducedMotionPref?: "auto" | "on" | "off";
+        showPitch?: boolean;
+      };
+      if (v.reducedMotionPref === "on" || v.reducedMotionPref === "off" || v.reducedMotionPref === "auto") {
+        setReducedMotionPref(v.reducedMotionPref);
+      }
+      if (typeof v.showPitch === "boolean") setShowPitch(v.showPitch);
+    } catch {}
+  }, []);
+
+  // Re-apply reduced-motion whenever the override changes (the mount-time
+  // matchMedia listener captures the initial value only).
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const effective =
+      reducedMotionPref === "on"
+        ? true
+        : reducedMotionPref === "off"
+          ? false
+          : mq.matches;
+    setReducedMotion(effective);
+    reducedMotionRef.current = effective;
+  }, [reducedMotionPref]);
+
+  // Persist UI prefs.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        "metabyx.vr.prefs",
+        JSON.stringify({ reducedMotionPref, showPitch }),
+      );
+    } catch {}
+  }, [reducedMotionPref, showPitch]);
+
   // Keep refs in sync with state.
   useEffect(() => {
     thresholdRef.current = userThreshold;
