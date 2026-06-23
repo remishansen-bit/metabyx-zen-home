@@ -52,6 +52,13 @@ export function VoiceRecorder({
   const [draft, setDraft] = useState("");
   const [speaking, setSpeaking] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
+  // User override for reduced-motion: 'auto' follows OS preference; 'on'/'off'
+  // force the calm mode regardless. Persisted to localStorage.
+  const [reducedMotionPref, setReducedMotionPref] =
+    useState<"auto" | "on" | "off">("auto");
+  // Whether to show the live pitch / stability chip. Persisted across reloads
+  // so the user keeps the same calm UI on every session.
+  const [showPitch, setShowPitch] = useState(true);
   // Live volume (0..1), throttled — drives the small VAD bars.
   const [volume, setVolume] = useState(0);
   // EMA-smoothed pitch stability shown to the user — raw values are jumpy.
@@ -168,6 +175,50 @@ export function VoiceRecorder({
     } catch {}
   }, []);
 
+  // Load persisted UI prefs (reduced-motion override + pitch display) so the
+  // recorder always opens in the same calm configuration the user picked last.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem("metabyx.vr.prefs");
+      if (!raw) return;
+      const v = JSON.parse(raw) as {
+        reducedMotionPref?: "auto" | "on" | "off";
+        showPitch?: boolean;
+      };
+      if (v.reducedMotionPref === "on" || v.reducedMotionPref === "off" || v.reducedMotionPref === "auto") {
+        setReducedMotionPref(v.reducedMotionPref);
+      }
+      if (typeof v.showPitch === "boolean") setShowPitch(v.showPitch);
+    } catch {}
+  }, []);
+
+  // Re-apply reduced-motion whenever the override changes (the mount-time
+  // matchMedia listener captures the initial value only).
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const effective =
+      reducedMotionPref === "on"
+        ? true
+        : reducedMotionPref === "off"
+          ? false
+          : mq.matches;
+    setReducedMotion(effective);
+    reducedMotionRef.current = effective;
+  }, [reducedMotionPref]);
+
+  // Persist UI prefs.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        "metabyx.vr.prefs",
+        JSON.stringify({ reducedMotionPref, showPitch }),
+      );
+    } catch {}
+  }, [reducedMotionPref, showPitch]);
+
   // Keep refs in sync with state.
   useEffect(() => {
     thresholdRef.current = userThreshold;
@@ -186,8 +237,15 @@ export function VoiceRecorder({
     if (typeof window !== "undefined" && window.matchMedia) {
       const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
       const apply = () => {
-        setReducedMotion(mq.matches);
-        reducedMotionRef.current = mq.matches;
+        const osPref = mq.matches;
+        const effective =
+          reducedMotionPref === "on"
+            ? true
+            : reducedMotionPref === "off"
+              ? false
+              : osPref;
+        setReducedMotion(effective);
+        reducedMotionRef.current = effective;
       };
       apply();
       mq.addEventListener?.("change", apply);
@@ -829,6 +887,24 @@ export function VoiceRecorder({
     }
   }, [pitch.hz, smoothedStability, state, announce]);
 
+  // Gently announce emotion summaries when the parent supplies one in the
+  // review step. Low-confidence tearfulness gets a calmer, slower message
+  // rather than an alarming "crying detected" cue.
+  useEffect(() => {
+    if (state !== "review" || !emotion) return;
+    const tearsConf = emotion.tearfulness?.confidence ?? 0;
+    const lowConfTears = emotion.tearfulness?.value && tearsConf < 0.5;
+    if (lowConfTears) {
+      announce("Tonen er litt uklar — pust rolig, ordene dine holder");
+      return;
+    }
+    if (emotion.summary) {
+      announce(`Følelse: ${emotion.summary}`);
+    } else if (emotion.primaryEmotion) {
+      announce(`Følelse oppdaget: ${emotion.primaryEmotion}`);
+    }
+  }, [state, emotion, announce]);
+
   // Sample ambient noise for ~1.4s and set the VAD threshold just above it.
   // The mic must be open — we briefly start a stream if needed and tear it
   // down afterwards. Updates `noiseFloor` and `userThreshold` together.
@@ -1427,6 +1503,81 @@ export function VoiceRecorder({
                       className="accent-[oklch(0.72_0.13_265)]"
                     />
                   </label>
+                  {/* Calm-mode + pitch display toggles. Persisted so the
+                      recorder always opens in the same configuration. */}
+                  <div className="mt-1 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
+                    <div className="flex min-w-0 flex-col">
+                      <span className="text-[10px] text-muted-foreground">Rolig modus</span>
+                      <span className="text-[9px] text-muted-foreground/70">
+                        Demper animasjoner og bølgen.
+                      </span>
+                    </div>
+                    <div
+                      role="radiogroup"
+                      aria-label="Rolig modus"
+                      className="inline-flex overflow-hidden rounded-full text-[10px]"
+                      style={{ border: "1px solid oklch(1 0 0 / 0.1)" }}
+                    >
+                      {(["auto", "on", "off"] as const).map((opt) => {
+                        const on = reducedMotionPref === opt;
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            role="radio"
+                            aria-checked={on}
+                            onClick={() => setReducedMotionPref(opt)}
+                            className="px-2 py-1 capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
+                            style={
+                              on
+                                ? {
+                                    background:
+                                      "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.28), oklch(0.72 0.13 265 / 0.22))",
+                                    color: "oklch(0.95 0.02 90)",
+                                  }
+                                : { color: "oklch(0.7 0.02 265)" }
+                            }
+                          >
+                            {opt === "auto" ? "Auto" : opt === "on" ? "På" : "Av"}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <label className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                    <span className="flex min-w-0 flex-col">
+                      <span>Vis tonehøyde</span>
+                      <span className="text-[9px] text-muted-foreground/70">
+                        Hz + stabilitetsmåler under opptak.
+                      </span>
+                    </span>
+                    <span className="relative inline-block h-4 w-7 shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={showPitch}
+                        onChange={(e) => setShowPitch(e.target.checked)}
+                        aria-label="Vis tonehøyde under opptak"
+                        className="peer absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                      />
+                      <span
+                        aria-hidden
+                        className="block h-4 w-7 rounded-full transition-colors"
+                        style={{
+                          background: showPitch
+                            ? "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.55), oklch(0.72 0.13 265 / 0.4))"
+                            : "oklch(1 0 0 / 0.08)",
+                          border: "1px solid oklch(1 0 0 / 0.12)",
+                        }}
+                      />
+                      <span
+                        aria-hidden
+                        className="absolute top-0.5 left-0.5 block h-3 w-3 rounded-full bg-white shadow-sm transition-transform"
+                        style={{
+                          transform: showPitch ? "translateX(12px)" : "translateX(0)",
+                        }}
+                      />
+                    </span>
+                  </label>
                 </div>
               )}
             </div>
@@ -1490,7 +1641,7 @@ export function VoiceRecorder({
                 </span>
               </div>
             {/* Pitch / stability chip + supportive cue */}
-            {pitch.hz != null && (
+            {showPitch && pitch.hz != null && (
               <div
                 role="status"
                 aria-label={`Tonehøyde ${Math.round(pitch.hz)} hertz, stabilitet ${Math.round(smoothedStability * 100)} prosent`}

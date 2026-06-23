@@ -122,6 +122,7 @@ function Index() {
                   ? "Every branch metabolized. Rest well tonight."
                   : "Your metabolic rhythm is steady. A short reset will lift you further."}
             </p>
+            <BmrSparkline history={state.bmrHistory} current={bmr} />
           </section>
 
           {/* Branches */}
@@ -223,5 +224,61 @@ function Index() {
             </div>
           </section>
     </PhoneFrame>
+  );
+}
+
+/**
+ * Tiny SVG sparkline of the recent BMR history. Calm, gold gradient that
+ * matches the BMR ring. Hidden when there is no trend yet.
+ */
+function BmrSparkline({
+  history,
+  current,
+}: {
+  history: { t: number; value: number }[];
+  current: number;
+}) {
+  const points = [...history.slice(-12).map((p) => p.value), current];
+  if (points.length < 3) return null;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const span = Math.max(4, max - min);
+  const w = 220;
+  const h = 44;
+  const stepX = w / (points.length - 1);
+  const yFor = (v: number) => h - 4 - ((v - min) / span) * (h - 12);
+  const path = points
+    .map((v, i) => `${i === 0 ? "M" : "L"}${(i * stepX).toFixed(1)},${yFor(v).toFixed(1)}`)
+    .join(" ");
+  const area = `${path} L${w.toFixed(1)},${h} L0,${h} Z`;
+  const last = points[points.length - 1];
+  const first = points[0];
+  const delta = last - first;
+  return (
+    <div className="mt-4 flex w-full max-w-[15rem] flex-col items-center gap-1.5">
+      <svg
+        viewBox={`0 0 ${w} ${h}`}
+        className="h-11 w-full"
+        role="img"
+        aria-label={`BMR-trend siste ${points.length} avlesninger, ${delta >= 0 ? "stigende" : "synkende"}`}
+      >
+        <defs>
+          <linearGradient id="bmrSparkFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="oklch(0.88 0.14 82)" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="oklch(0.88 0.14 82)" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="bmrSparkStroke" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="oklch(0.72 0.16 70)" />
+            <stop offset="100%" stopColor="oklch(0.92 0.1 86)" />
+          </linearGradient>
+        </defs>
+        <path d={area} fill="url(#bmrSparkFill)" />
+        <path d={path} stroke="url(#bmrSparkStroke)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={(points.length - 1) * stepX} cy={yFor(last)} r="2.2" fill="oklch(0.92 0.1 86)" />
+      </svg>
+      <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+        Trend · {points.length} avlesninger · {delta >= 0 ? "+" : ""}{delta}
+      </p>
+    </div>
   );
 }
