@@ -283,3 +283,63 @@ function BmrSparkline({
     </div>
   );
 }
+
+/**
+ * Three at-a-glance BMR stats — weekly change, current streak of metabolized
+ * days, and the most recent reading. Calm glass tiles to match the home ring.
+ */
+function BmrStats({
+  history,
+  current,
+}: {
+  history: { t: number; value: number }[];
+  current: number;
+}) {
+  // Weekly change: compare current to the oldest reading inside the last 7 days.
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const recent = history.filter((p) => p.t >= weekAgo);
+  const weekBase = recent[0]?.value ?? history[0]?.value ?? current;
+  const weeklyDelta = current - weekBase;
+  // Streak: count consecutive recent points that did not drop.
+  let streak = 0;
+  for (let i = history.length - 1; i > 0; i--) {
+    if (history[i].value >= history[i - 1].value) streak += 1;
+    else break;
+  }
+  // Include current vs last as the most recent step.
+  const last = history.at(-1)?.value;
+  if (typeof last === "number" && current >= last) streak += 1;
+
+  const tiles: { label: string; value: string; tone: "gold" | "muted" }[] = [
+    {
+      label: "This week",
+      value: `${weeklyDelta >= 0 ? "+" : ""}${weeklyDelta}`,
+      tone: weeklyDelta >= 0 ? "gold" : "muted",
+    },
+    { label: "Streak", value: `${streak}d`, tone: streak > 0 ? "gold" : "muted" },
+    { label: "Latest", value: `${current}`, tone: "gold" },
+  ];
+
+  return (
+    <div className="mt-3 grid w-full max-w-[18rem] grid-cols-3 gap-2">
+      {tiles.map((t) => (
+        <div
+          key={t.label}
+          className="glass flex flex-col items-center rounded-2xl px-2 py-2.5"
+        >
+          <p className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
+            {t.label}
+          </p>
+          <p
+            className={`mt-0.5 text-lg font-light tabular-nums ${
+              t.tone === "gold" ? "text-gold" : "text-foreground/80"
+            }`}
+            style={{ fontFamily: "Fraunces, serif" }}
+          >
+            {t.value}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
