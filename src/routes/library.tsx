@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { BookHeart, Leaf, CheckCircle2, Search, ChevronRight, X } from "lucide-react";
+import { BookHeart, Leaf, CheckCircle2, Search, ChevronRight, X, Download } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { useMetabyx, type Branch } from "@/lib/store";
 
@@ -83,8 +83,19 @@ function LibraryPage() {
             Quietly <span className="text-gold italic">remembered</span>
           </h1>
         </div>
-        <div className="glass flex h-11 w-11 items-center justify-center rounded-full">
-          <BookHeart className="h-4 w-4 text-gold" />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => exportLibrary(state)}
+            disabled={total === 0}
+            aria-label="Export library as JSON"
+            className="glass flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 disabled:opacity-40"
+          >
+            <Download className="h-4 w-4 text-foreground" />
+          </button>
+          <div className="glass flex h-11 w-11 items-center justify-center rounded-full">
+            <BookHeart className="h-4 w-4 text-gold" />
+          </div>
         </div>
       </header>
 
