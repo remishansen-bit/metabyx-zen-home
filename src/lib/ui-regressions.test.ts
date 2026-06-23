@@ -71,3 +71,51 @@ describe("VoiceInputButton low-confidence updates are screen-reader polite", () 
     expect(voiceBtn).toMatch(/aria-label=/);
   });
 });
+
+describe("global toast surface (sonner) is mounted once at the root", () => {
+  const root = read("src/routes/__root.tsx");
+  it("imports and renders the Toaster inside RootComponent", () => {
+    expect(root).toMatch(/from "..\/components\/ui\/sonner"/);
+    expect(root).toMatch(/<Toaster[\s\S]*\/>/);
+  });
+  it("uses calm defaults (top-center, modest duration)", () => {
+    expect(root).toMatch(/position="top-center"/);
+    expect(root).toMatch(/duration=\{3500\}/);
+  });
+});
+
+describe("global feedback helper wires the four key flows", () => {
+  it("re-uses notify for library import / export / pdf / share / save", () => {
+    const lib = read("src/routes/library.tsx");
+    const branch = read("src/routes/branch.$id.tsx");
+    const session = read("src/routes/session.tsx");
+    for (const src of [lib, branch, session]) {
+      expect(src).toMatch(/from "@\/lib\/feedback"/);
+    }
+    expect(lib).toMatch(/notify\.(loading|done|failed|saved|error)/);
+    expect(branch).toMatch(/notify\.(saved|error|info)/);
+    expect(session).toMatch(/notify\.(saved|error)/);
+  });
+});
+
+describe("Phase 5 recap voice-over fails gracefully", () => {
+  const session = read("src/routes/session.tsx");
+  const stream = read("src/lib/tts-stream.ts");
+
+  it("starts only from a user gesture (no auto-play on mount)", () => {
+    // The play function is wired to onClick — there is no effect that calls
+    // streamTts on render, which is what keeps it autoplay-safe and
+    // friendly to prefers-reduced-motion users.
+    expect(session).not.toMatch(/useEffect\([^)]*streamTts/);
+    expect(session).toMatch(/onClick=\{playState === "playing" \? stop : play\}/);
+  });
+
+  it("surfaces the server's error message instead of a generic status code", () => {
+    expect(stream).toMatch(/payload\?\.error/);
+    expect(session).toMatch(/notify\.error\("Voice-over unavailable"/);
+  });
+
+  it("ignores user-initiated aborts so stopping playback isn't an error", () => {
+    expect(session).toMatch(/AbortError/);
+  });
+});
