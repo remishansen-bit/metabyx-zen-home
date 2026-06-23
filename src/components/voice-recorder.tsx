@@ -52,6 +52,13 @@ export function VoiceRecorder({
   const [draft, setDraft] = useState("");
   const [speaking, setSpeaking] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
+  // User override for reduced-motion: 'auto' follows OS preference; 'on'/'off'
+  // force the calm mode regardless. Persisted to localStorage.
+  const [reducedMotionPref, setReducedMotionPref] =
+    useState<"auto" | "on" | "off">("auto");
+  // Whether to show the live pitch / stability chip. Persisted across reloads
+  // so the user keeps the same calm UI on every session.
+  const [showPitch, setShowPitch] = useState(true);
   // Live volume (0..1), throttled — drives the small VAD bars.
   const [volume, setVolume] = useState(0);
   // EMA-smoothed pitch stability shown to the user — raw values are jumpy.
@@ -186,8 +193,15 @@ export function VoiceRecorder({
     if (typeof window !== "undefined" && window.matchMedia) {
       const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
       const apply = () => {
-        setReducedMotion(mq.matches);
-        reducedMotionRef.current = mq.matches;
+        const osPref = mq.matches;
+        const effective =
+          reducedMotionPref === "on"
+            ? true
+            : reducedMotionPref === "off"
+              ? false
+              : osPref;
+        setReducedMotion(effective);
+        reducedMotionRef.current = effective;
       };
       apply();
       mq.addEventListener?.("change", apply);
