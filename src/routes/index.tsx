@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Sunrise, Moon, Sparkles, Leaf, ChevronRight } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { todaysAllBranches, todaysOpenBranches, useMetabyx } from "@/lib/store";
 
 export const Route = createFileRoute("/")({
@@ -27,10 +27,12 @@ const dateLabel = (d: Date) =>
 
 function Index() {
   const state = useMetabyx();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const open = useMemo(() => todaysOpenBranches(state), [state]);
   const todays = useMemo(() => todaysAllBranches(state), [state]);
-  const now = new Date();
-  const greeting = greetingFor(now);
+  const now = mounted ? new Date() : null;
+  const greeting = now ? greetingFor(now) : "Welcome";
   const bmr = state.lastBmr;
   const prev = state.bmrHistory.at(-2)?.value;
   const delta = typeof prev === "number" ? bmr - prev : 0;
@@ -64,7 +66,7 @@ function Index() {
           <header className="flex items-start justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-                {dateLabel(now)}
+                {now ? dateLabel(now) : "Today"}
               </p>
               <h1
                 className="mt-2 text-3xl font-light leading-tight text-foreground"
@@ -201,7 +203,8 @@ function Index() {
 
           {/* Actions */}
           <section className="flex flex-col gap-3">
-            <button
+            <Link
+              to="/session"
               className="relative overflow-hidden rounded-2xl px-5 py-4 text-left transition-transform active:scale-[0.99]"
               style={{
                 background: "var(--gradient-gold)",
@@ -217,7 +220,7 @@ function Index() {
                 </div>
                 <ChevronRight className="h-5 w-5" />
               </div>
-            </button>
+            </Link>
 
             <div className="grid grid-cols-2 gap-3">
               <Link
