@@ -56,6 +56,13 @@ export function VoiceRecorder({
   const [volume, setVolume] = useState(0);
   // EMA-smoothed pitch stability shown to the user — raw values are jumpy.
   const [smoothedStability, setSmoothedStability] = useState(0);
+  // Auto-measured ambient noise floor (RMS, 0..1). Used by calibration.
+  const [noiseFloor, setNoiseFloor] = useState<number | null>(null);
+  const [calibrating, setCalibrating] = useState(false);
+  // Throttled aria-live announcements (speaking changes, low confidence).
+  const [liveMessage, setLiveMessage] = useState("");
+  const lastLiveAtRef = useRef(0);
+  const lastLiveMsgRef = useRef("");
   // User-tunable VAD (persisted). Falls back to props.
   const [userThreshold, setUserThreshold] = useState<number>(silenceThreshold);
   const [userSilenceMs, setUserSilenceMs] = useState<number>(silenceTimeoutMs);
@@ -731,26 +738,131 @@ export function VoiceRecorder({
 
   // Root-level keyboard shortcuts: Esc cancels recording / closes review;
   // Cmd/Ctrl+Enter accepts the draft in review.
+  //
+  // Hardened so typing in the review textarea is never hijacked:
+  //   - Esc always cancels/closes, even from inside the textarea.
+  //   - Plain Enter is left alone (textarea inserts a newline).
+  //   - Cmd/Ctrl + Enter accepts — modifier is required, so IME composition
+  //     and normal typing pass through untouched.
+  //   - We also ignore the event while an IME composition is active (so
+  //     pressing Enter to commit Norwegian dead-keys never accepts by accident).
   const onRootKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // `isComposing` is true mid-IME; skip all shortcuts in that case.
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+
     if (state === "recording") {
       if (e.key === "Escape") {
         e.preventDefault();
+        e.stopPropagation();
         cancel();
-      } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      } else if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key === "Enter") {
         e.preventDefault();
+        e.stopPropagation();
         stop();
       }
     } else if (state === "review") {
       if (e.key === "Escape") {
         e.preventDefault();
+        e.stopPropagation();
         setDraft("");
         setState("idle");
-      } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      } else if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key === "Enter") {
         e.preventDefault();
+        e.stopPropagation();
         acceptDraft();
       }
     }
   };
+
+  // Push a short SR-only announcement, throttled and deduped so the live
+  // region doesn't spam screen readers as VAD flips on/off rapidly.
+  const announce = useCallback((msg: string) => {
+    const now = performance.now();
+    if (msg === lastLiveMsgRef.current) return;
+    if (now - lastLiveAtRef.current < 900) return;
+    lastLiveMsgRef.current = msg;
+    lastLiveAtRef.current = now;
+    setLiveMessage(msg);
+  }, []);
+
+  // Announce speaking transitions during recording.
+  useEffect(() => {
+    if (state !== "recording") return;
+    announce(speaking ? "Stemme oppdaget" : "Stille — venter på stemme");
+  }, [speaking, state, announce]);
+
+  // Announce low pitch-confidence fallback.
+  useEffect(() => {
+    if (state !== "recording") return;
+    if (pitch.hz != null && smoothedStability < 0.2) {
+      announce("Lav konfidens på tonehøyde — venter på tydeligere stemme");
+    }
+  }, [pitch.hz, smoothedStability, state, announce]);
+
+  // Sample ambient noise for ~1.4s and set the VAD threshold just above it.
+  // The mic must be open — we briefly start a stream if needed and tear it
+  // down afterwards. Updates `noiseFloor` and `userThreshold` together.
+  const calibrateNoiseFloor = useCallback(async () => {
+    if (calibrating || state === "recording" || state === "processing") return;
+    setCalibrating(true);
+    setErrorMsg(null);
+    let localStream: MediaStream | null = null;
+    let localCtx: AudioContext | null = null;
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const AC =
+        (window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext })
+          .AudioContext ??
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AC) throw new Error("AudioContext ikke tilgjengelig");
+      localCtx = new AC();
+      const source = localCtx.createMediaStreamSource(localStream);
+      const analyser = localCtx.createAnalyser();
+      analyser.fftSize = 1024;
+      source.connect(analyser);
+      const buf = new Uint8Array(new ArrayBuffer(analyser.fftSize));
+      const samples: number[] = [];
+      const started = performance.now();
+      await new Promise<void>((resolve) => {
+        const tick = () => {
+          analyser.getByteTimeDomainData(buf);
+          let sum = 0;
+          for (let i = 0; i < buf.length; i++) {
+            const v = (buf[i] - 128) / 128;
+            sum += v * v;
+          }
+          samples.push(Math.sqrt(sum / buf.length));
+          if (performance.now() - started < 1400) {
+            requestAnimationFrame(tick);
+          } else {
+            resolve();
+          }
+        };
+        tick();
+      });
+      // Use 90th percentile to ignore short spikes, then add headroom.
+      samples.sort((a, b) => a - b);
+      const p90 = samples[Math.floor(samples.length * 0.9)] ?? 0;
+      const floor = Math.max(0.003, Math.min(0.04, p90));
+      const threshold = Math.max(0.008, Math.min(0.08, floor * 1.8));
+      setNoiseFloor(floor);
+      setUserThreshold(threshold);
+      thresholdRef.current = threshold;
+      announce(
+        `Kalibrert. Bakgrunnsstøy ${(floor * 100).toFixed(1)} prosent, terskel satt til ${(threshold * 100).toFixed(1)} prosent.`,
+      );
+    } catch (err) {
+      const msg = describeMicError(err);
+      setErrorMsg(msg);
+      onError?.(msg);
+    } finally {
+      try {
+        await localCtx?.close();
+      } catch {}
+      localStream?.getTracks().forEach((t) => t.stop());
+      setCalibrating(false);
+    }
+  }, [calibrating, state, announce, onError]);
 
   // Memoized human label for the speaking indicator (also used by SR).
   const vadStatusLabel = useMemo(
@@ -810,6 +922,10 @@ export function VoiceRecorder({
       </span>
       <span className="sr-only" role="alert" aria-live="assertive">
         {isError && errorMsg ? errorMsg : ""}
+      </span>
+      {/* Dedicated live region for throttled, deduped VAD + pitch updates. */}
+      <span className="sr-only" aria-live="polite" aria-atomic="true">
+        {liveMessage}
       </span>
 
       {/* Ambient breathing glow during record */}
@@ -1173,6 +1289,44 @@ export function VoiceRecorder({
                       Lavere = fanger opp svakere stemme.
                     </span>
                   </label>
+                  {/* Noise-floor calibration: samples ambient RMS for ~1.4s
+                      and sets the threshold just above it. */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 flex-col">
+                      <span className="text-[10px] text-muted-foreground">
+                        Bakgrunnsstøy
+                      </span>
+                      <span className="text-[9px] text-muted-foreground/70">
+                        {noiseFloor != null
+                          ? `Målt: ${(noiseFloor * 100).toFixed(1)}%`
+                          : "Ikke kalibrert ennå"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void calibrateNoiseFloor()}
+                      disabled={calibrating}
+                      aria-label="Kalibrer bakgrunnsstøy ved å være stille i ett sekund"
+                      className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium text-foreground transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.28), oklch(0.72 0.13 265 / 0.22))",
+                        border: "1px solid oklch(1 0 0 / 0.12)",
+                      }}
+                    >
+                      {calibrating ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Lytter…
+                        </>
+                      ) : (
+                        <>
+                          <Settings2 className="h-3 w-3" />
+                          Kalibrer
+                        </>
+                      )}
+                    </button>
+                  </div>
                   <label className="flex flex-col gap-1 text-[10px] text-muted-foreground">
                     <span className="flex items-center justify-between">
                       <span>Stillhet før auto-stopp</span>
