@@ -11,10 +11,25 @@ export type Branch = {
   rating?: number; // 1..5
 };
 
+export type EmotionEvent = {
+  id: string;
+  t: number;
+  phase: number; // 0..4 (GCMP phase index)
+  primaryEmotion:
+    | "sadness" | "anxiety" | "anger" | "guilt" | "shame" | "fear"
+    | "grief" | "hope" | "relief" | "tenderness" | "neutral";
+  intensity: "low" | "medium" | "high";
+  tears: boolean;
+  tearsConfidence: number;
+  summary: string;
+  sourceText?: string;
+};
+
 export type MetabyxState = {
   branches: Branch[];
   lastBmr: number;
   bmrHistory: { t: number; value: number }[];
+  emotionEvents?: EmotionEvent[];
   lastMorningAt?: number;
   lastEveningAt?: number;
 };
@@ -26,6 +41,7 @@ const defaultState: MetabyxState = {
   branches: [],
   lastBmr: 68,
   bmrHistory: [],
+  emotionEvents: [],
 };
 
 function read(): MetabyxState {
@@ -126,6 +142,21 @@ export function metabolizeBranch(id: string, rating: number, reflection: string)
   next.lastBmr = computeBmr(next);
   next.bmrHistory = [...state.bmrHistory.slice(-30), { t: Date.now(), value: next.lastBmr }];
   write(next);
+}
+
+export function logEmotionEvent(event: Omit<EmotionEvent, "id" | "t">) {
+  const state = read();
+  const ev: EmotionEvent = {
+    ...event,
+    id: crypto.randomUUID(),
+    t: Date.now(),
+  };
+  const list = [...(state.emotionEvents ?? []), ev].slice(-120);
+  write({ ...state, emotionEvents: list });
+}
+
+export function recentEmotionEvents(state: MetabyxState, limit = 12): EmotionEvent[] {
+  return [...(state.emotionEvents ?? [])].reverse().slice(0, limit);
 }
 
 export function todaysOpenBranches(state: MetabyxState): Branch[] {
