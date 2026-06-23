@@ -38,12 +38,13 @@ function BranchDetailPage() {
   const state = useMetabyx();
   const branch = state.branches.find((b) => b.id === id);
   if (!branch) throw notFound();
-  const done = branch.status === "metabolized";
+  const safeBranch = branch;
+  const done = safeBranch.status === "metabolized";
   const [copied, setCopied] = useState(false);
 
   async function share() {
     const url = typeof window !== "undefined" ? `${window.location.origin}/branch/${id}` : "";
-    const data = { title: `METABYX · ${branch.title}`, text: branch.detail, url };
+    const data = { title: `METABYX · ${safeBranch.title}`, text: safeBranch.detail, url };
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share(data);
