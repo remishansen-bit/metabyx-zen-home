@@ -378,11 +378,11 @@ export function VoiceRecorder({
         {/* Main control button */}
         <button
           type="button"
-          onClick={isRecording ? stop : start}
+          onClick={isRecording ? cancel : start}
           disabled={isProcessing}
           aria-label={
             ariaLabel ??
-            (isRecording ? "Stopp opptak" : isProcessing ? "Behandler" : "Start opptak")
+            (isRecording ? "Avbryt opptak" : isProcessing ? "Behandler" : "Start opptak")
           }
           className={`relative flex shrink-0 items-center justify-center rounded-full transition-all duration-300 active:scale-95 disabled:cursor-not-allowed ${
             compact ? "h-10 w-10" : "h-12 w-12"
@@ -426,7 +426,7 @@ export function VoiceRecorder({
           )}
 
           {isRecording ? (
-            <Square className="h-4 w-4 text-gold" fill="currentColor" />
+            <X className="h-4 w-4 text-foreground/80" />
           ) : isProcessing ? (
             <Loader2 className="h-5 w-5 animate-spin text-[oklch(0.8_0.08_240)]" />
           ) : isDone ? (
@@ -461,21 +461,39 @@ export function VoiceRecorder({
 
           {/* Live waveform + timer while recording */}
           {isRecording && (
-            <div className="animate-fade-in flex h-full items-center gap-3">
+            <div className="animate-fade-in flex h-full items-center gap-2">
               <canvas
                 ref={canvasRef}
-                className="h-10 flex-1 rounded-md"
+                className="h-11 flex-1 rounded-lg"
                 style={{
                   background:
-                    "linear-gradient(180deg, transparent, oklch(0.82 0.14 82 / 0.04), transparent)",
+                    "linear-gradient(180deg, oklch(0.72 0.13 265 / 0.05), oklch(0.82 0.14 82 / 0.04), oklch(0.72 0.13 265 / 0.05))",
+                  boxShadow: "inset 0 0 0 1px oklch(1 0 0 / 0.04)",
                 }}
               />
               <span
                 className="font-mono text-[11px] tabular-nums text-gold/90"
+                style={{ animation: "vr-tick 1s ease-in-out infinite" }}
                 aria-label={`Tid ${elapsed} sekunder`}
               >
                 {formatTime(elapsed)}
               </span>
+              <button
+                type="button"
+                onClick={stop}
+                aria-label="Fullfør opptak"
+                className="group relative ml-1 inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-foreground transition-all duration-300 active:scale-95"
+                style={{
+                  background:
+                    "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.35), oklch(0.72 0.13 265 / 0.28))",
+                  border: "1px solid oklch(1 0 0 / 0.12)",
+                  boxShadow:
+                    "0 0 18px oklch(0.88 0.14 82 / 0.35), inset 0 0 0 1px oklch(0.88 0.14 82 / 0.25)",
+                }}
+              >
+                <Check className="h-3.5 w-3.5" />
+                <span>Ferdig</span>
+              </button>
             </div>
           )}
 
