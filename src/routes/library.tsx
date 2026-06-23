@@ -175,7 +175,7 @@ function LibraryPage() {
           Nothing matches — try another word.
         </p>
       ) : (
-        <section className="flex flex-col gap-5">
+        <section id="library-results" className="flex flex-col gap-5">
           {groups.map(([day, items], gi) => (
             <div
               key={day}
