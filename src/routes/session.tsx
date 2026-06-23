@@ -834,6 +834,7 @@ function ClosePhase({
           style={{ fontFamily: "Fraunces, serif" }}
         />
       </div>
+      {children}
     </section>
   );
 }
