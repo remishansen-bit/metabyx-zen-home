@@ -295,6 +295,7 @@ function SessionPage() {
       .filter(Boolean)
       .join(" · ");
     metabolizeBranch(activeBranch.id, 5, reflection);
+    notify.saved("Branch saved to library", `${activeBranch.title}`);
     // Compute BMR against the just-mutated branch list so the recap shows the
     // post-session score (the live store updates a tick later via the hook).
     const projected: Branch = { ...activeBranch, status: "metabolized", rating: 5, reflection };
