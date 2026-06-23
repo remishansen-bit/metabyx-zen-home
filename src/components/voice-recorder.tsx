@@ -591,14 +591,107 @@ export function VoiceRecorder({
       return;
     }
     onTranscription(text);
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-      setAudioUrl(null);
-    }
+    // Build a history entry — keep the blob URL alive (do NOT revoke) so the
+    // user can replay it from the history list later in the same session.
+    const entry: AcceptedRecording = {
+      id:
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `r-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      transcript: text,
+      createdAt: Date.now(),
+      audioUrl: audioUrl ?? undefined,
+      mimeType: mediaRecorderRef.current?.mimeType,
+      emotion: emotion ?? undefined,
+    };
+    setHistory((prev) => {
+      const next = [entry, ...prev].slice(0, Math.max(1, historyLimit));
+      // Revoke any URL that drops off the end so we don't leak memory.
+      const dropped = prev.slice(Math.max(0, historyLimit - 1));
+      for (const old of dropped) {
+        if (old.audioUrl && !next.some((n) => n.audioUrl === old.audioUrl)) {
+          try {
+            URL.revokeObjectURL(old.audioUrl);
+          } catch {}
+        }
+      }
+      return next;
+    });
+    onAccepted?.(entry);
+    // Do not setAudioUrl(null) — history keeps the reference. We just clear
+    // the "current draft" pointer to avoid double-controls in the idle state.
+    setAudioUrl(null);
     setDraft("");
     setState("done");
     setTimeout(() => mountedRef.current && setState("idle"), 1400);
   }
+
+  // Persist *text* history to localStorage. Audio URLs are session-scoped
+  // (blob: URLs die on reload), so we store the transcript + metadata only.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const minimal = history.map(({ audioUrl: _omit, ...rest }) => rest);
+      window.localStorage.setItem("metabyx.vr.history", JSON.stringify(minimal));
+    } catch {}
+  }, [history]);
+
+  // Restore history (text only) once on mount.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem("metabyx.vr.history");
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as AcceptedRecording[];
+      if (Array.isArray(parsed)) {
+        setHistory(parsed.slice(0, Math.max(1, historyLimit)));
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Revoke any active blob URLs when the component unmounts.
+  useEffect(() => {
+    return () => {
+      for (const h of history) {
+        if (h.audioUrl) {
+          try {
+            URL.revokeObjectURL(h.audioUrl);
+          } catch {}
+        }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---- Focus trap inside the review panel ----
+  // While reviewing, Tab cycles among focusable controls within the panel.
+  useEffect(() => {
+    if (state !== "review") return;
+    const root = reviewRootRef.current;
+    if (!root) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const focusables = Array.from(
+        root.querySelectorAll<HTMLElement>(
+          'button, [href], textarea, input, select, audio[controls], [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => !el.hasAttribute("disabled") && el.offsetParent !== null);
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    root.addEventListener("keydown", onKey);
+    return () => root.removeEventListener("keydown", onKey);
+  }, [state]);
 
   // Persist VAD settings whenever they change (debounced via effect coalescing).
   useEffect(() => {
