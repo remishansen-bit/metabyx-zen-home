@@ -956,6 +956,35 @@ function RecapView({
   recap: { branch: Branch; bmr: number; reflection: string };
   onDone: () => void;
 }) {
+  const ctlRef = useRef<TtsController | null>(null);
+  const [playState, setPlayState] = useState<"idle" | "playing" | "error">("idle");
+
+  const narrative = useMemo(() => {
+    const r = recap.reflection?.trim();
+    return [
+      `You noticed ${recap.branch.title}.`,
+      r ? `You closed it with this thought: ${r}` : "You let it settle, gently.",
+      `Your metabolic rhythm today is ${recap.bmr}. It is held now. Rest well.`,
+    ].join(" ");
+  }, [recap]);
+
+  useEffect(() => () => ctlRef.current?.stop(), []);
+
+  const play = () => {
+    ctlRef.current?.stop();
+    setPlayState("playing");
+    const ctl = streamTts(narrative, { voice: "sage" });
+    ctlRef.current = ctl;
+    ctl.done
+      .then(() => setPlayState((s) => (s === "playing" ? "idle" : s)))
+      .catch(() => setPlayState("error"));
+  };
+  const stop = () => {
+    ctlRef.current?.stop();
+    ctlRef.current = null;
+    setPlayState("idle");
+  };
+
   return (
     <section className="flex flex-col gap-6 animate-fade-in">
       <header className="flex flex-col items-center gap-3 text-center">
@@ -1010,6 +1039,25 @@ function RecapView({
         </p>
         <p className="mt-1 text-xs text-muted-foreground">Your metabolic rhythm, today.</p>
       </div>
+
+      <button
+        type="button"
+        onClick={playState === "playing" ? stop : play}
+        aria-live="polite"
+        className="glass flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm text-foreground transition-all active:scale-[0.99]"
+      >
+        {playState === "playing" ? (
+          <>
+            <Square className="h-4 w-4 text-gold" />
+            Stop voice-over
+          </>
+        ) : (
+          <>
+            <Volume2 className="h-4 w-4 text-gold" />
+            {playState === "error" ? "Try voice-over again" : "Play closing voice-over"}
+          </>
+        )}
+      </button>
 
       <div className="flex flex-col gap-2">
         <Link
