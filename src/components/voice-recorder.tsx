@@ -10,8 +10,15 @@ import {
   Settings2,
   Play,
   Pause,
+  History,
+  Sparkles,
 } from "lucide-react";
-import type { VoiceRecorderProps, VoiceRecorderState } from "@/types/voice-recorder";
+import type {
+  AcceptedRecording,
+  PitchInfo,
+  VoiceRecorderProps,
+  VoiceRecorderState,
+} from "@/types/voice-recorder";
 
 /**
  * Premium glassmorphic voice recorder.
@@ -34,6 +41,10 @@ export function VoiceRecorder({
   editBeforeAccept = true,
   enablePlayback = true,
   showSettings = true,
+  onAccepted,
+  emotion = null,
+  showHistory = true,
+  historyLimit = 6,
 }: VoiceRecorderProps) {
   const [state, setState] = useState<VoiceRecorderState>("idle");
   const [elapsed, setElapsed] = useState(0);
@@ -48,6 +59,19 @@ export function VoiceRecorder({
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioElRef = useRef<HTMLAudioElement | null>(null);
+  // Live pitch state, updated at ~5Hz during recording.
+  const [pitch, setPitch] = useState<PitchInfo>({
+    hz: null,
+    category: "unknown",
+    stability: 0,
+  });
+  // Accepted recordings — kept in state for replay, persisted (text only) to localStorage.
+  const [history, setHistory] = useState<AcceptedRecording[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const historyAudioRefs = useRef<Map<string, HTMLAudioElement | null>>(new Map());
+  // Focus-trap refs for the review panel.
+  const reviewRootRef = useRef<HTMLDivElement | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -78,6 +102,13 @@ export function VoiceRecorder({
   const lastDrawAtRef = useRef(0);
   // Capped DPR to avoid burning fillrate on retina mobile.
   const dprRef = useRef(1);
+  // ---- Pitch detection refs ----
+  // Dedicated time-domain buffer sized for autocorrelation (≥2048 samples).
+  const pitchBufRef = useRef<Float32Array | null>(null);
+  // Recent pitch samples (Hz) used to compute stability over a sliding window.
+  const pitchHistoryRef = useRef<number[]>([]);
+  // Throttle pitch updates to keep React renders cheap (~5Hz).
+  const lastPitchAtRef = useRef(0);
 
   // Detect low-end devices once. Conservative heuristics.
   useEffect(() => {
