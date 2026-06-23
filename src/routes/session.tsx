@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { VoiceInputButton } from "@/components/voice-input-button";
+import { VoiceRecorder } from "@/components/voice-recorder";
 import { suggestPaths } from "@/lib/gcmp.functions";
 import { analyzeVoiceEmotion, type VoiceEmotion } from "@/lib/emotion.functions";
 import { EmotionInsight } from "@/components/emotion-insight";
