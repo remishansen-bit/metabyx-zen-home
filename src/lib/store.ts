@@ -170,6 +170,47 @@ export function todaysAllBranches(state: MetabyxState): Branch[] {
 }
 
 /**
+ * Replace the persisted Metabyx state from a previously-exported JSON payload.
+ * Merges branches by id (newer createdAt wins) and concatenates BMR history,
+ * so importing on top of an existing library never deletes local data.
+ */
+export function importMetabyxJson(raw: unknown): {
+  importedBranches: number;
+  importedHistory: number;
+} {
+  if (!raw || typeof raw !== "object") throw new Error("Not a Metabyx export");
+  const payload = raw as Partial<MetabyxState> & { app?: string };
+  if (payload.app && payload.app !== "metabyx") throw new Error("Wrong app");
+  const incomingBranches = Array.isArray(payload.branches) ? payload.branches : [];
+  const incomingHistory = Array.isArray(payload.bmrHistory) ? payload.bmrHistory : [];
+  const state = read();
+  const byId = new Map<string, Branch>();
+  for (const b of state.branches) byId.set(b.id, b);
+  for (const b of incomingBranches) {
+    if (!b || typeof b !== "object" || !b.id) continue;
+    const existing = byId.get(b.id);
+    if (!existing || (b.createdAt ?? 0) >= existing.createdAt) byId.set(b.id, b);
+  }
+  const branches = [...byId.values()].sort((a, b) => b.createdAt - a.createdAt);
+  const history = [...state.bmrHistory, ...incomingHistory]
+    .filter((p) => p && typeof p.t === "number" && typeof p.value === "number")
+    .sort((a, b) => a.t - b.t)
+    .slice(-60);
+  const next: MetabyxState = {
+    ...state,
+    branches,
+    bmrHistory: history,
+    lastBmr: typeof payload.lastBmr === "number" ? payload.lastBmr : state.lastBmr,
+  };
+  next.lastBmr = computeBmr(next);
+  write(next);
+  return {
+    importedBranches: incomingBranches.length,
+    importedHistory: incomingHistory.length,
+  };
+}
+
+/**
  * Pure helper used by the Home dashboard tiles. Kept here (not inlined in the
  * route) so it can be unit-tested without rendering React.
  *

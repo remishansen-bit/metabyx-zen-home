@@ -1,9 +1,10 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, CheckCircle2, Leaf, Sparkles, Calendar, Tag } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Leaf, Sparkles, Calendar, Tag, Share2, Check } from "lucide-react";
+import { useState } from "react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { useMetabyx } from "@/lib/store";
 
-export const Route = createFileRoute("/branch/")({
+export const Route = createFileRoute("/branch/$id")({
   head: () => ({
     meta: [
       { title: "Branch · METABYX" },
@@ -37,7 +38,25 @@ function BranchDetailPage() {
   const state = useMetabyx();
   const branch = state.branches.find((b) => b.id === id);
   if (!branch) throw notFound();
-  const done = branch.status === "metabolized";
+  const safeBranch = branch;
+  const done = safeBranch.status === "metabolized";
+  const [copied, setCopied] = useState(false);
+
+  async function share() {
+    const url = typeof window !== "undefined" ? `${window.location.origin}/branch/${id}` : "";
+    const data = { title: `METABYX · ${safeBranch.title}`, text: safeBranch.detail, url };
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share(data);
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* user cancelled or unsupported */
+    }
+  }
 
   return (
     <PhoneFrame>
@@ -54,7 +73,18 @@ function BranchDetailPage() {
         <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
           {done ? "Metabolized" : "Open"}
         </p>
-        <div className="h-10 w-10" />
+        <button
+          type="button"
+          onClick={share}
+          aria-label={copied ? "Link copied" : "Share branch link"}
+          className="glass flex h-10 w-10 items-center justify-center rounded-full transition-all active:scale-95"
+        >
+          {copied ? (
+            <Check className="h-4 w-4 text-gold" />
+          ) : (
+            <Share2 className="h-4 w-4 text-foreground" />
+          )}
+        </button>
       </header>
 
       <section className="flex flex-col items-center text-center">
