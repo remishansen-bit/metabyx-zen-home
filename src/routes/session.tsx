@@ -586,6 +586,26 @@ function FrictionPhase({
           className="mt-1 w-full resize-none bg-transparent text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
         />
       </div>
+
+      {/* Optional richer voice recorder for Phase 2. Transcript appends to
+          the note above and stays editable before continuing. */}
+      <details className="glass rounded-2xl px-4 py-3">
+        <summary className="flex cursor-pointer items-center justify-between text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+          <span>Describe the feeling aloud</span>
+          <span className="text-gold">+ Voice</span>
+        </summary>
+        <div className="mt-3">
+          <VoiceRecorder
+            language="en-US"
+            compact
+            showHistory={false}
+            ariaLabel="Record what you notice in body and mind"
+            onTranscription={(text) =>
+              setNote(note ? `${note.trim()} ${text}` : text)
+            }
+          />
+        </div>
+      </details>
     </section>
   );
 }
