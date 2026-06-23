@@ -510,6 +510,19 @@ export function VoiceRecorder({
 
   function stop() {
     cancelledRef.current = false;
+    // Snapshot pitch before tearing down the analyser so we can surface
+    // a summary in the review panel ("avg 178 Hz, stable").
+    const hist = pitchHistoryRef.current;
+    if (hist.length >= 4) {
+      const avg = hist.reduce((a, b) => a + b, 0) / hist.length;
+      setPitchSnapshot({
+        hz: avg,
+        stability: smoothedStabilityRef.current,
+        category: pitchCategory(avg),
+      });
+    } else {
+      setPitchSnapshot(null);
+    }
     if (mediaRecorderRef.current?.state === "recording") {
       try {
         mediaRecorderRef.current.stop();
