@@ -64,3 +64,45 @@ describe("computeBmrStats", () => {
     expect(r.weeklyDelta).toBe(82 - 50);
   });
 });
+
+// Cold-start / reload scenarios: simulate what the Home tiles see after the
+// app boots from localStorage with varying amounts of persisted history.
+describe("computeBmrStats — reload scenarios", () => {
+  it("cold start with no persisted history shows neutral tiles", () => {
+    const persisted: { t: number; value: number }[] = [];
+    const current = 68; // defaultState.lastBmr
+    const r = computeBmrStats(persisted, current, NOW);
+    expect(r).toEqual({ weeklyDelta: 0, streak: 0, latest: 68 });
+  });
+
+  it("reload with a single persisted point keeps latest and streak coherent", () => {
+    const persisted = [{ t: NOW - 2 * DAY, value: 72 }];
+    const r = computeBmrStats(persisted, 72, NOW);
+    expect(r.latest).toBe(72);
+    expect(r.streak).toBe(1);
+    expect(r.weeklyDelta).toBe(0);
+  });
+
+  it("reload with only stale history (>7d old) uses oldest as baseline", () => {
+    const persisted = [
+      { t: NOW - 20 * DAY, value: 55 },
+      { t: NOW - 14 * DAY, value: 60 },
+    ];
+    const r = computeBmrStats(persisted, 60, NOW);
+    // most recent before-window entry (60) is the baseline
+    expect(r.weeklyDelta).toBe(0);
+    expect(r.latest).toBe(60);
+  });
+
+  it("reload mid-week recomputes weekly change against pre-window baseline", () => {
+    const persisted = [
+      { t: NOW - 9 * DAY, value: 64 },
+      { t: NOW - 6 * DAY, value: 66 },
+      { t: NOW - 3 * DAY, value: 70 },
+    ];
+    const r = computeBmrStats(persisted, 70, NOW);
+    expect(r.weeklyDelta).toBe(70 - 64);
+    expect(r.streak).toBe(2);
+    expect(r.latest).toBe(70);
+  });
+});
