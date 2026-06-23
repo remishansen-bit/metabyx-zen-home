@@ -22,6 +22,7 @@ import {
   todaysOpenBranches,
   useMetabyx,
   logEmotionEvent,
+  computeBmr,
   type Branch,
 } from "@/lib/store";
 
@@ -34,6 +35,15 @@ export const Route = createFileRoute("/session")({
         content: "Guided Counterfactual Metabolism Protocol — a calm 5-phase practice.",
       },
     ],
+  }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    phase:
+      typeof s.phase === "string" && /^[1-5]$/.test(s.phase)
+        ? (Number(s.phase) - 1)
+        : typeof s.phase === "number" && s.phase >= 1 && s.phase <= 5
+          ? s.phase - 1
+          : undefined,
+    branchId: typeof s.branchId === "string" ? s.branchId : undefined,
   }),
   component: SessionPage,
 });
@@ -123,14 +133,17 @@ type Phase = 0 | 1 | 2 | 3 | 4;
 
 function SessionPage() {
   const router = useRouter();
+  const search = Route.useSearch();
   const state = useMetabyx();
   const openToday = useMemo(() => todaysOpenBranches(state), [state]);
   const suggest = useServerFn(suggestPaths);
   const analyzeEmotion = useServerFn(analyzeVoiceEmotion);
 
-  const [phase, setPhase] = useState<Phase>(0);
+  const [phase, setPhase] = useState<Phase>(
+    (search.phase as Phase | undefined) ?? 0,
+  );
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(
-    openToday[0]?.id ?? null,
+    search.branchId ?? openToday[0]?.id ?? null,
   );
   const [whatIf, setWhatIf] = useState("");
   const [frictions, setFrictions] = useState<Set<string>>(new Set());
@@ -149,6 +162,10 @@ function SessionPage() {
   const [emotionLoading, setEmotionLoading] = useState<Record<number, boolean>>({});
   const [emotionError, setEmotionError] = useState<Record<number, string | null>>({});
   const [emotionAnalyzedFor, setEmotionAnalyzedFor] = useState<Record<number, string>>({});
+
+  // Post-session recap: shown after finish() so the user can see what was
+  // saved and the updated BMR before returning home.
+  const [recap, setRecap] = useState<{ branch: Branch; bmr: number; reflection: string } | null>(null);
 
   const activeBranch: Branch | undefined = openToday.find(
     (b) => b.id === selectedBranchId,
@@ -263,16 +280,32 @@ function SessionPage() {
   }
 
   function finish() {
-    if (activeBranch) {
-      const reflection = [
-        newStory.trim(),
-        path ? `Path: ${path.title}` : null,
-      ]
-        .filter(Boolean)
-        .join(" · ");
-      metabolizeBranch(activeBranch.id, 5, reflection);
+    if (!activeBranch) {
+      router.navigate({ to: "/" });
+      return;
     }
-    router.navigate({ to: "/" });
+    const reflection = [
+      newStory.trim(),
+      path ? `Path: ${path.title}` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    metabolizeBranch(activeBranch.id, 5, reflection);
+    // Compute BMR against the just-mutated branch list so the recap shows the
+    // post-session score (the live store updates a tick later via the hook).
+    const projected: Branch = { ...activeBranch, status: "metabolized", rating: 5, reflection };
+    const others = state.branches.filter((b) => b.id !== activeBranch.id);
+    const bmr = computeBmr({ ...state, branches: [projected, ...others] });
+    setRecap({ branch: projected, bmr, reflection });
+  }
+
+  if (recap) {
+    return (
+      <PhoneFrame>
+        <StatusBar title="GCMP" />
+        <RecapView recap={recap} onDone={() => router.navigate({ to: "/" })} />
+      </PhoneFrame>
+    );
   }
 
   const canAdvance =
