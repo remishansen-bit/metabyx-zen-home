@@ -503,6 +503,26 @@ function IdentifyPhase({
           <VoiceInputButton value={whatIf} onChange={setWhatIf} />
         </div>
       </div>
+
+      {/* Optional richer voice recorder for Phase 1. Lands transcript into
+          the textarea above, where it remains fully editable. */}
+      <details className="glass rounded-2xl px-4 py-3">
+        <summary className="flex cursor-pointer items-center justify-between text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+          <span>Speak the branch aloud</span>
+          <span className="text-gold">+ Voice</span>
+        </summary>
+        <div className="mt-3">
+          <VoiceRecorder
+            language="en-US"
+            compact
+            showHistory={false}
+            ariaLabel="Record the what-if branch"
+            onTranscription={(text) =>
+              setWhatIf(whatIf ? `${whatIf.trim()} ${text}` : text)
+            }
+          />
+        </div>
+      </details>
       {children}
     </section>
   );
