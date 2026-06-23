@@ -15,8 +15,8 @@ import { Route as MorningRouteImport } from './routes/morning'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as EveningRouteImport } from './routes/evening'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BranchIdRouteImport } from './routes/branch.$id'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
-import { Route as BranchRouteImport } from './routes/branch.'
 
 const SessionRoute = SessionRouteImport.update({
   id: '/session',
@@ -48,14 +48,14 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BranchIdRoute = BranchIdRouteImport.update({
+  id: '/branch/$id',
+  path: '/branch/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   id: '/api/transcribe',
   path: '/api/transcribe',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BranchRoute = BranchRouteImport.update({
-  id: '/branch/',
-  path: '/branch/',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -66,8 +66,8 @@ export interface FileRoutesByFullPath {
   '/morning': typeof MorningRoute
   '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
-  '/branch/': typeof BranchRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/branch/$id': typeof BranchIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -76,8 +76,8 @@ export interface FileRoutesByTo {
   '/morning': typeof MorningRoute
   '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
-  '/branch': typeof BranchRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/branch/$id': typeof BranchIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -87,8 +87,8 @@ export interface FileRoutesById {
   '/morning': typeof MorningRoute
   '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
-  '/branch/': typeof BranchRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/branch/$id': typeof BranchIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -99,8 +99,8 @@ export interface FileRouteTypes {
     | '/morning'
     | '/profile'
     | '/session'
-    | '/branch/'
     | '/api/transcribe'
+    | '/branch/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -109,8 +109,8 @@ export interface FileRouteTypes {
     | '/morning'
     | '/profile'
     | '/session'
-    | '/branch'
     | '/api/transcribe'
+    | '/branch/$id'
   id:
     | '__root__'
     | '/'
@@ -119,8 +119,8 @@ export interface FileRouteTypes {
     | '/morning'
     | '/profile'
     | '/session'
-    | '/branch/'
     | '/api/transcribe'
+    | '/branch/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -130,8 +130,8 @@ export interface RootRouteChildren {
   MorningRoute: typeof MorningRoute
   ProfileRoute: typeof ProfileRoute
   SessionRoute: typeof SessionRoute
-  BranchRoute: typeof BranchRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  BranchIdRoute: typeof BranchIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -178,18 +178,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/branch/$id': {
+      id: '/branch/$id'
+      path: '/branch/$id'
+      fullPath: '/branch/$id'
+      preLoaderRoute: typeof BranchIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/transcribe': {
       id: '/api/transcribe'
       path: '/api/transcribe'
       fullPath: '/api/transcribe'
       preLoaderRoute: typeof ApiTranscribeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/branch/': {
-      id: '/branch/'
-      path: '/branch'
-      fullPath: '/branch/'
-      preLoaderRoute: typeof BranchRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -202,8 +202,8 @@ const rootRouteChildren: RootRouteChildren = {
   MorningRoute: MorningRoute,
   ProfileRoute: ProfileRoute,
   SessionRoute: SessionRoute,
-  BranchRoute: BranchRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  BranchIdRoute: BranchIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
