@@ -4,6 +4,7 @@ import { BookHeart, Leaf, CheckCircle2, Search, ChevronRight, X, Download, Uploa
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { useMetabyx, importMetabyxJson, type Branch } from "@/lib/store";
 import { exportLibraryPdf } from "@/lib/library-pdf";
+import { notify } from "@/lib/feedback";
 
 export const Route = createFileRoute("/library")({
   head: () => ({
@@ -43,7 +44,6 @@ function LibraryPage() {
   }, [query]);
   const [cat, setCat] = useState<Cat>("all");
   const fileRef = useRef<HTMLInputElement | null>(null);
-  const [importMsg, setImportMsg] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = debouncedQuery.toLowerCase();
@@ -104,7 +104,17 @@ function LibraryPage() {
           </button>
           <button
             type="button"
-            onClick={() => exportLibrary(state)}
+            onClick={() => {
+              try {
+                exportLibrary(state);
+                notify.saved("Library exported", "JSON download started.");
+              } catch (err) {
+                notify.error(
+                  "Couldn't export library",
+                  err instanceof Error ? err.message : undefined,
+                );
+              }
+            }}
             disabled={total === 0}
             aria-label="Export library as JSON"
             className="glass flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 disabled:opacity-40"
@@ -113,7 +123,19 @@ function LibraryPage() {
           </button>
           <button
             type="button"
-            onClick={() => exportLibraryPdf(state)}
+            onClick={async () => {
+              const id = notify.loading("Preparing PDF…");
+              try {
+                await exportLibraryPdf(state);
+                notify.done(id, "PDF ready", "Saved to your downloads.");
+              } catch (err) {
+                notify.failed(
+                  id,
+                  "Couldn't build PDF",
+                  err instanceof Error ? err.message : undefined,
+                );
+              }
+            }}
             disabled={total === 0}
             aria-label="Export library as PDF"
             className="glass flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 disabled:opacity-40"
@@ -135,6 +157,7 @@ function LibraryPage() {
           const file = e.target.files?.[0];
           e.target.value = "";
           if (!file) return;
+          const id = notify.loading("Reading file…");
           try {
             if (file.size > 5 * 1024 * 1024) {
               throw new Error("File is larger than 5 MB.");
@@ -153,24 +176,16 @@ function LibraryPage() {
             ];
             if (r.skippedBranches > 0) parts.push(`${r.skippedBranches} skipped`);
             parts.push(`library now ${r.totalBranches}`);
-            setImportMsg(parts.join(" · "));
+            notify.done(id, "Library restored", parts.join(" · "));
           } catch (err) {
-            setImportMsg(
-              err instanceof Error ? `Could not import: ${err.message}` : "Could not import that file",
+            notify.failed(
+              id,
+              "Couldn't import that file",
+              err instanceof Error ? err.message : undefined,
             );
           }
-          window.setTimeout(() => setImportMsg(null), 6000);
         }}
       />
-      {importMsg && (
-        <p
-          role="status"
-          aria-live="polite"
-          className="glass rounded-2xl px-4 py-2 text-center text-xs text-foreground animate-fade-in"
-        >
-          {importMsg}
-        </p>
-      )}
 
       <section className="grid grid-cols-2 gap-3">
         <div className="glass rounded-2xl p-4">
