@@ -14,6 +14,8 @@ import {
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { VoiceInputButton } from "@/components/voice-input-button";
 import { suggestPaths } from "@/lib/gcmp.functions";
+import { analyzeVoiceEmotion, type VoiceEmotion } from "@/lib/emotion.functions";
+import { EmotionInsight } from "@/components/emotion-insight";
 import {
   metabolizeBranch,
   todaysOpenBranches,
@@ -122,6 +124,7 @@ function SessionPage() {
   const state = useMetabyx();
   const openToday = useMemo(() => todaysOpenBranches(state), [state]);
   const suggest = useServerFn(suggestPaths);
+  const analyzeEmotion = useServerFn(analyzeVoiceEmotion);
 
   const [phase, setPhase] = useState<Phase>(0);
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(
@@ -138,6 +141,12 @@ function SessionPage() {
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [suggestError, setSuggestError] = useState<string | null>(null);
   const [suggestedFor, setSuggestedFor] = useState<string>("");
+
+  // Emotion analysis per phase (0 = Identify / "Phase 1", 4 = Close / "Phase 5")
+  const [emotionByPhase, setEmotionByPhase] = useState<Record<number, VoiceEmotion | null>>({});
+  const [emotionLoading, setEmotionLoading] = useState<Record<number, boolean>>({});
+  const [emotionError, setEmotionError] = useState<Record<number, string | null>>({});
+  const [emotionAnalyzedFor, setEmotionAnalyzedFor] = useState<Record<number, string>>({});
 
   const activeBranch: Branch | undefined = openToday.find(
     (b) => b.id === selectedBranchId,
@@ -191,6 +200,46 @@ function SessionPage() {
       cancelled = true;
     };
   }, [phase, whatIf, frictions, frictionNote, suggest, suggestedFor]);
+
+  // Debounced emotional analysis for Phase 0 (whatIf) and Phase 4 (newStory)
+  useEffect(() => {
+    if (phase !== 0 && phase !== 4) return;
+    const text = phase === 0 ? whatIf.trim() : newStory.trim();
+    if (text.length < 24) return;
+    if (emotionAnalyzedFor[phase] === text) return;
+
+    const previousContext =
+      phase === 4
+        ? [
+            whatIf ? `Branch: ${whatIf}` : "",
+            frictions.size ? `Friction: ${Array.from(frictions).join(", ")}` : "",
+            frictionNote ? `Note: ${frictionNote}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n")
+        : "";
+
+    const handle = setTimeout(() => {
+      setEmotionLoading((m) => ({ ...m, [phase]: true }));
+      setEmotionError((m) => ({ ...m, [phase]: null }));
+      analyzeEmotion({ data: { transcription: text, previousContext } })
+        .then((res) => {
+          setEmotionByPhase((m) => ({ ...m, [phase]: res }));
+          setEmotionAnalyzedFor((m) => ({ ...m, [phase]: text }));
+        })
+        .catch(() => {
+          setEmotionError((m) => ({
+            ...m,
+            [phase]: "Couldn't read the tone just now — your words still land.",
+          }));
+        })
+        .finally(() => {
+          setEmotionLoading((m) => ({ ...m, [phase]: false }));
+        });
+    }, 1400);
+
+    return () => clearTimeout(handle);
+  }, [phase, whatIf, newStory, frictions, frictionNote, analyzeEmotion, emotionAnalyzedFor]);
 
   function next() {
     setPhase((p) => (Math.min(4, p + 1) as Phase));
@@ -259,7 +308,13 @@ function SessionPage() {
             }}
             whatIf={whatIf}
             setWhatIf={setWhatIf}
-          />
+          >
+            <EmotionInsight
+              emotion={emotionByPhase[0] ?? null}
+              loading={emotionLoading[0]}
+              error={emotionError[0]}
+            />
+          </IdentifyPhase>
         )}
         {phase === 1 && (
           <FrictionPhase
@@ -297,7 +352,13 @@ function SessionPage() {
             whatIf={whatIf}
             newStory={newStory}
             setNewStory={setNewStory}
-          />
+          >
+            <EmotionInsight
+              emotion={emotionByPhase[4] ?? null}
+              loading={emotionLoading[4]}
+              error={emotionError[4]}
+            />
+          </ClosePhase>
         )}
       </div>
 
