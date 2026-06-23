@@ -732,9 +732,14 @@ export function VoiceRecorder({
   // Root-level keyboard shortcuts: Esc cancels recording / closes review;
   // Cmd/Ctrl+Enter accepts the draft in review.
   const onRootKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (state === "recording" && e.key === "Escape") {
-      e.preventDefault();
-      cancel();
+    if (state === "recording") {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        cancel();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        stop();
+      }
     } else if (state === "review") {
       if (e.key === "Escape") {
         e.preventDefault();
