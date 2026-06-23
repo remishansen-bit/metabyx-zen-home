@@ -3,7 +3,7 @@ import { ArrowLeft, CheckCircle2, Leaf, Sparkles, Calendar, Tag } from "lucide-r
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { useMetabyx } from "@/lib/store";
 
-export const Route = createFileRoute("/branch/$id")({
+export const Route = createFileRoute("/branch/")({
   head: () => ({
     meta: [
       { title: "Branch · METABYX" },
