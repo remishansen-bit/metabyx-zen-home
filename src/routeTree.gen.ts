@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SessionRouteImport } from './routes/session'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MorningRouteImport } from './routes/morning'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as EveningRouteImport } from './routes/evening'
@@ -29,6 +30,11 @@ const SessionRoute = SessionRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MorningRoute = MorningRouteImport.update({
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/evening': typeof EveningRoute
   '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
+  '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
   '/api/transcribe': typeof ApiTranscribeRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/evening': typeof EveningRoute
   '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
+  '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
   '/api/transcribe': typeof ApiTranscribeRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/evening': typeof EveningRoute
   '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
+  '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
   '/api/transcribe': typeof ApiTranscribeRoute
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/evening'
     | '/library'
     | '/morning'
+    | '/onboarding'
     | '/profile'
     | '/session'
     | '/api/transcribe'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/evening'
     | '/library'
     | '/morning'
+    | '/onboarding'
     | '/profile'
     | '/session'
     | '/api/transcribe'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/evening'
     | '/library'
     | '/morning'
+    | '/onboarding'
     | '/profile'
     | '/session'
     | '/api/transcribe'
@@ -166,6 +178,7 @@ export interface RootRouteChildren {
   EveningRoute: typeof EveningRoute
   LibraryRoute: typeof LibraryRoute
   MorningRoute: typeof MorningRoute
+  OnboardingRoute: typeof OnboardingRoute
   ProfileRoute: typeof ProfileRoute
   SessionRoute: typeof SessionRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
@@ -187,6 +200,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/morning': {
@@ -262,6 +282,7 @@ const rootRouteChildren: RootRouteChildren = {
   EveningRoute: EveningRoute,
   LibraryRoute: LibraryRoute,
   MorningRoute: MorningRoute,
+  OnboardingRoute: OnboardingRoute,
   ProfileRoute: ProfileRoute,
   SessionRoute: SessionRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
