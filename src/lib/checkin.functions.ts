@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { generateText, Output } from "ai";
+import { generateObject } from "ai";
 import { z } from "zod";
 
 const RefineInput = z.object({
@@ -26,13 +26,13 @@ export const refineBranches = createServerFn({ method: "POST" })
     const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
     const gateway = createLovableAiGatewayProvider(key);
 
-    const { experimental_output } = await generateText({
+    const { object } = await generateObject({
       model: gateway("google/gemini-3-flash-preview"),
       system:
         "You are METABYX, a calm mindfulness coach. Users describe 'open branches' — unresolved energies, thoughts, or commitments occupying their mind. Distill the user's raw text into 1–5 concrete, gentle branches. Each branch is a single concern phrased in second person ('Reach out to your sister'). Keep titles short (2-5 words). The summary is one warm sentence acknowledging what surfaced.",
       prompt: data.rawText,
-      experimental_output: Output.object({ schema: RefineOutputSchema }),
+      schema: RefineOutputSchema,
     });
 
-    return experimental_output;
+    return object;
   });
