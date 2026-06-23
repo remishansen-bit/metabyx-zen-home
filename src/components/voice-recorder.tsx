@@ -1295,6 +1295,111 @@ export function VoiceRecorder({
       </div>
       )}
 
+      {/* Recording history — replay & revisit previously accepted transcripts. */}
+      {showHistory && state === "idle" && history.length > 0 && (
+        <div className="mt-3 border-t border-white/5 pt-3">
+          <button
+            type="button"
+            onClick={() => setHistoryOpen((o) => !o)}
+            aria-expanded={historyOpen}
+            aria-controls="vr-history"
+            className="flex w-full items-center justify-between text-[10px] uppercase tracking-[0.3em] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 rounded"
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <History className="h-3 w-3" />
+              Tidligere opptak ({history.length})
+            </span>
+            <span className="text-foreground/50">{historyOpen ? "−" : "+"}</span>
+          </button>
+          {historyOpen && (
+            <ul id="vr-history" className="mt-2 flex flex-col gap-1.5">
+              {history.map((h) => {
+                const isPlayingThis = playingId === h.id;
+                return (
+                  <li
+                    key={h.id}
+                    className="flex items-start gap-2 rounded-xl p-2.5"
+                    style={{
+                      background: "oklch(1 0 0 / 0.03)",
+                      border: "1px solid oklch(1 0 0 / 0.06)",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const el = historyAudioRefs.current.get(h.id);
+                        if (!el) return;
+                        // Pause any other history audio first.
+                        for (const [oid, oel] of historyAudioRefs.current) {
+                          if (oid !== h.id && oel && !oel.paused) oel.pause();
+                        }
+                        if (el.paused) void el.play();
+                        else el.pause();
+                      }}
+                      disabled={!h.audioUrl}
+                      aria-label={
+                        h.audioUrl
+                          ? isPlayingThis
+                            ? "Pause avspilling"
+                            : "Spill av opptaket"
+                          : "Lyden er ikke lenger tilgjengelig"
+                      }
+                      className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.22), oklch(0.72 0.13 265 / 0.18))",
+                        border: "1px solid oklch(1 0 0 / 0.1)",
+                      }}
+                    >
+                      {isPlayingThis ? (
+                        <Pause className="h-3 w-3 text-foreground" />
+                      ) : (
+                        <Play className="ml-0.5 h-3 w-3 text-foreground" />
+                      )}
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className="line-clamp-2 text-[12px] leading-snug text-foreground/85"
+                        style={{ fontFamily: "Fraunces, serif" }}
+                      >
+                        {h.transcript}
+                      </p>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] uppercase tracking-[0.15em] text-muted-foreground">
+                        <span>{formatHistoryDate(h.createdAt)}</span>
+                        {h.emotion?.primaryEmotion && (
+                          <span className="capitalize text-foreground/60">
+                            · {h.emotion.primaryEmotion}
+                          </span>
+                        )}
+                        {!h.audioUrl && <span>· kun tekst</span>}
+                      </div>
+                    </div>
+                    {h.audioUrl && (
+                      <audio
+                        ref={(el) => {
+                          if (el) historyAudioRefs.current.set(h.id, el);
+                          else historyAudioRefs.current.delete(h.id);
+                        }}
+                        src={h.audioUrl}
+                        preload="metadata"
+                        onPlay={() => setPlayingId(h.id)}
+                        onPause={() =>
+                          setPlayingId((p) => (p === h.id ? null : p))
+                        }
+                        onEnded={() =>
+                          setPlayingId((p) => (p === h.id ? null : p))
+                        }
+                        className="sr-only"
+                      />
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+
       <style>{`
         @keyframes vr-pulse {
           0%   { transform: scale(1);    opacity: 0.9; }
