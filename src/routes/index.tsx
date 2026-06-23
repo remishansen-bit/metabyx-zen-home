@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Sunrise, Moon, Sparkles, Leaf, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { todaysAllBranches, todaysOpenBranches, useMetabyx } from "@/lib/store";
+import { computeBmrStats, todaysAllBranches, todaysOpenBranches, useMetabyx } from "@/lib/store";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 
 export const Route = createFileRoute("/")({
@@ -295,28 +295,8 @@ function BmrStats({
   history: { t: number; value: number }[];
   current: number;
 }) {
-  // Weekly change: compare current to the oldest reading inside the last 7 days.
-  // Weekly change: prefer the last reading taken *before* the 7-day window so
-  // we're comparing against a true baseline. Fall back to the oldest reading
-  // in the window, then to the oldest reading overall.
-  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const beforeWindow = [...history].reverse().find((p) => p.t < weekAgo);
-  const inWindow = history.find((p) => p.t >= weekAgo);
-  const weekBase = beforeWindow?.value ?? inWindow?.value ?? history[0]?.value ?? current;
-  const weeklyDelta = current - weekBase;
-
-  // Streak: consecutive history points that did not drop, walking from the
-  // newest backwards. `current` is already the last entry of `history` (the
-  // store writes it on every change), so we never add an extra step on top.
-  let streak = 0;
-  if (history.length >= 2) {
-    for (let i = history.length - 1; i > 0; i--) {
-      if (history[i].value >= history[i - 1].value) streak += 1;
-      else break;
-    }
-  } else if (history.length === 1) {
-    streak = 1;
-  }
+  // Centralized in src/lib/store.ts so the math is testable in isolation.
+  const { weeklyDelta, streak } = computeBmrStats(history, current);
 
   const tiles: { label: string; value: string; tone: "gold" | "muted" }[] = [
     {

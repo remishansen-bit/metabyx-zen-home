@@ -168,3 +168,45 @@ export function todaysAllBranches(state: MetabyxState): Branch[] {
   const todayStart = startOfDay(Date.now());
   return state.branches.filter((b) => b.createdAt >= todayStart);
 }
+
+/**
+ * Pure helper used by the Home dashboard tiles. Kept here (not inlined in the
+ * route) so it can be unit-tested without rendering React.
+ *
+ * - `weeklyDelta`: current value minus the BMR baseline. Baseline is the last
+ *   reading *before* the 7-day window when one exists, otherwise the oldest
+ *   reading inside the window, otherwise the oldest known reading.
+ * - `streak`: count of consecutive history points (walking from newest back)
+ *   whose value did not drop. `current` is already the last entry of
+ *   `history` in normal app flow, so we never add it on top.
+ * - `latest`: the supplied `current` BMR.
+ */
+export function computeBmrStats(
+  history: { t: number; value: number }[],
+  current: number,
+  now: number = Date.now(),
+): { weeklyDelta: number; streak: number; latest: number } {
+  const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+  let beforeWindow: { t: number; value: number } | undefined;
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (history[i].t < weekAgo) {
+      beforeWindow = history[i];
+      break;
+    }
+  }
+  const inWindow = history.find((p) => p.t >= weekAgo);
+  const baseline =
+    beforeWindow?.value ?? inWindow?.value ?? history[0]?.value ?? current;
+
+  let streak = 0;
+  if (history.length >= 2) {
+    for (let i = history.length - 1; i > 0; i--) {
+      if (history[i].value >= history[i - 1].value) streak += 1;
+      else break;
+    }
+  } else if (history.length === 1) {
+    streak = 1;
+  }
+
+  return { weeklyDelta: current - baseline, streak, latest: current };
+}

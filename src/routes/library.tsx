@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BookHeart, Leaf, CheckCircle2, Search, ChevronRight, X } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { useMetabyx, type Branch } from "@/lib/store";
@@ -33,10 +33,17 @@ const dayLabel = (t: number) => {
 function LibraryPage() {
   const state = useMetabyx();
   const [query, setQuery] = useState("");
+  // Debounce keeps filtering snappy and the live-region calm on long lists —
+  // we don't recompute (or announce a new result count) until typing settles.
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedQuery(query.trim()), 180);
+    return () => window.clearTimeout(id);
+  }, [query]);
   const [cat, setCat] = useState<Cat>("all");
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.toLowerCase();
     return state.branches.filter((b) => {
       if (cat !== "all" && b.category !== cat) return false;
       if (!q) return true;
@@ -46,7 +53,7 @@ function LibraryPage() {
         (b.reflection ?? "").toLowerCase().includes(q)
       );
     });
-  }, [state.branches, query, cat]);
+  }, [state.branches, debouncedQuery, cat]);
 
   const groups = useMemo(() => {
     const map = new Map<number, Branch[]>();
@@ -109,6 +116,9 @@ function LibraryPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search branches, reflections…"
+          role="searchbox"
+          aria-label="Search past branches"
+          aria-controls="library-results"
           className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
         />
         {query && (
@@ -117,6 +127,14 @@ function LibraryPage() {
           </button>
         )}
       </div>
+
+      {/* Calm SR-only announcement of result count, recomputed only after the
+          debounce settles. */}
+      <p className="sr-only" role="status" aria-live="polite">
+        {debouncedQuery
+          ? `${filtered.length} result${filtered.length === 1 ? "" : "s"} for ${debouncedQuery}`
+          : ""}
+      </p>
 
       {/* Category chips */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
@@ -157,7 +175,7 @@ function LibraryPage() {
           Nothing matches — try another word.
         </p>
       ) : (
-        <section className="flex flex-col gap-5">
+        <section id="library-results" className="flex flex-col gap-5">
           {groups.map(([day, items], gi) => (
             <div
               key={day}
