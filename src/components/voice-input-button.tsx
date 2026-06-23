@@ -2,14 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { Mic, MicOff } from "lucide-react";
 
 type Props = {
-  onResult: (text: string) => void;
+  value: string;
+  onChange: (text: string) => void;
   lang?: string;
   className?: string;
   compact?: boolean;
 };
 
 export function VoiceInputButton({
-  onResult,
+  value,
+  onChange,
   lang = "nb-NO",
   className = "",
   compact = false,
@@ -17,6 +19,7 @@ export function VoiceInputButton({
   const [isListening, setIsListening] = useState(false);
   const [supported, setSupported] = useState(true);
   const recognitionRef = useRef<any>(null);
+  const baseRef = useRef("");
 
   useEffect(() => {
     const SR =
@@ -50,6 +53,7 @@ export function VoiceInputButton({
     recognition.interimResults = true;
     recognition.continuous = false;
 
+    baseRef.current = value ? value.replace(/\s+$/, "") + " " : "";
     let finalText = "";
     recognition.onresult = (event: any) => {
       let interim = "";
@@ -58,8 +62,8 @@ export function VoiceInputButton({
         if (event.results[i].isFinal) finalText += transcript;
         else interim += transcript;
       }
-      const text = (finalText + interim).trim();
-      if (text) onResult(text);
+      const spoken = (finalText + interim).trim();
+      if (spoken) onChange(baseRef.current + spoken);
     };
     recognition.onerror = () => setIsListening(false);
     recognition.onend = () => setIsListening(false);
