@@ -1,3 +1,4 @@
+import { RequireAuth } from "@/lib/auth";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, LifeBuoy, Phone, Sparkles } from "lucide-react";
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/crisis")({
       },
     ],
   }),
-  component: CrisisPage,
+  component: () => (<RequireAuth><CrisisPage /></RequireAuth>),
 });
 
 /** 4 · 7 · 8 breathing pattern (seconds), one of the gentlest paced patterns. */

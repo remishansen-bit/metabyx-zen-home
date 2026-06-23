@@ -1,3 +1,4 @@
+import { RequireAuth } from "@/lib/auth";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BookHeart, Leaf, CheckCircle2, Search, ChevronRight, X, Download, Upload, LifeBuoy, FileText } from "lucide-react";
@@ -13,7 +14,7 @@ export const Route = createFileRoute("/library")({
       { name: "description", content: "Branches you have noticed and metabolized." },
     ],
   }),
-  component: LibraryPage,
+  component: () => (<RequireAuth><LibraryPage /></RequireAuth>),
 });
 
 const CATEGORIES = ["all", "mind", "body", "relationship", "work", "spirit"] as const;

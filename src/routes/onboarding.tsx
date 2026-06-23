@@ -1,0 +1,297 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Sparkles, ArrowRight, Loader2, Check } from "lucide-react";
+import { PhoneFrame, StatusBar } from "@/components/phone-frame";
+import { supabase } from "@/integrations/supabase/client";
+import { RequireAuth, refreshProfile, useAuth } from "@/lib/auth";
+import { notify } from "@/lib/feedback";
+
+export const Route = createFileRoute("/onboarding")({
+  head: () => ({ meta: [{ title: "Welcome · METABYX" }] }),
+  component: () => (
+    <RequireAuth requireOnboarded={false}>
+      <OnboardingFlow />
+    </RequireAuth>
+  ),
+});
+
+type Area = "mind" | "body" | "relationship" | "work" | "spirit";
+
+const QUESTIONS: { area: Area; prompt: string }[] = [
+  { area: "mind", prompt: "How often do 'what if' loops circle in your mind?" },
+  { area: "body", prompt: "How often does tension settle into your body?" },
+  { area: "relationship", prompt: "How often do unspoken things linger between you and others?" },
+  { area: "work", prompt: "How often do open loops at work pull at your attention?" },
+  { area: "spirit", prompt: "How often do you feel cut off from a deeper sense of meaning?" },
+];
+
+const ARCHETYPES: Record<Area, { name: string; tagline: string }> = {
+  mind: { name: "The Reflector", tagline: "You metabolise through naming the loops." },
+  body: { name: "The Embodied", tagline: "Your body is where the truth lands first." },
+  relationship: { name: "The Connector", tagline: "You integrate by being seen." },
+  work: { name: "The Builder", tagline: "You move when the open loops are closed." },
+  spirit: { name: "The Seeker", tagline: "You return to centre through meaning." },
+};
+
+function OnboardingFlow() {
+  const auth = useAuth();
+  const navigate = useNavigate();
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState<number[]>(() => QUESTIONS.map(() => 3));
+  const [saving, setSaving] = useState(false);
+
+  // Skip the flow if already onboarded
+  useEffect(() => {
+    if (auth.profile?.onboarded_at) navigate({ to: "/" });
+  }, [auth.profile, navigate]);
+
+  const total = QUESTIONS.length + 2; // welcome + questions + summary
+  const progress = (step / (total - 1)) * 100;
+
+  const archetypeArea: Area = ((): Area => {
+    let topI = 0;
+    for (let i = 1; i < answers.length; i++) if (answers[i] > answers[topI]) topI = i;
+    return QUESTIONS[topI].area;
+  })();
+  const archetype = ARCHETYPES[archetypeArea];
+  const totalLoad = answers.reduce((a, b) => a + b, 0);
+  const baselineBmr = Math.max(48, Math.min(82, Math.round(82 - (totalLoad - QUESTIONS.length) * 1.6)));
+
+  const finish = async () => {
+    if (!auth.user) return;
+    setSaving(true);
+    try {
+      const scores = Object.fromEntries(QUESTIONS.map((q, i) => [q.area, answers[i]]));
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          archetype: archetype.name,
+          archetype_scores: scores,
+          baseline_bmr: baselineBmr,
+          onboarded_at: new Date().toISOString(),
+        })
+        .eq("user_id", auth.user.id);
+      if (error) throw error;
+      await refreshProfile();
+      notify.saved("You're in", "Your baseline is set.");
+      navigate({ to: "/" });
+    } catch (err) {
+      notify.error("Couldn't save", err instanceof Error ? err.message : "Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <PhoneFrame hideTabBar>
+      <StatusBar title="WELCOME" />
+      <div className="h-1 w-full overflow-hidden rounded-full bg-[oklch(1_0_0/0.05)]">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${progress}%`, background: "var(--gradient-gold)" }}
+        />
+      </div>
+
+      {step === 0 ? (
+        <WelcomeStep onNext={() => setStep(1)} />
+      ) : step <= QUESTIONS.length ? (
+        <QuestionStep
+          index={step - 1}
+          value={answers[step - 1]}
+          onChange={(v) =>
+            setAnswers((prev) => prev.map((a, i) => (i === step - 1 ? v : a)))
+          }
+          onNext={() => setStep(step + 1)}
+          onBack={() => setStep(step - 1)}
+        />
+      ) : (
+        <SummaryStep
+          archetype={archetype}
+          baseline={baselineBmr}
+          onFinish={finish}
+          saving={saving}
+          onBack={() => setStep(QUESTIONS.length)}
+        />
+      )}
+    </PhoneFrame>
+  );
+}
+
+function WelcomeStep({ onNext }: { onNext: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-6 text-center">
+      <div className="glass-strong flex h-20 w-20 items-center justify-center rounded-3xl">
+        <Sparkles className="h-7 w-7 text-gold" />
+      </div>
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
+          A gentle beginning
+        </p>
+        <h1
+          className="mt-2 text-3xl font-light text-foreground"
+          style={{ fontFamily: "Fraunces, serif" }}
+        >
+          Your metabolic rhythm starts here.
+        </h1>
+      </div>
+      <div className="glass w-full rounded-3xl p-5 text-left">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-gold">What is BMR?</p>
+        <p className="mt-2 text-sm leading-relaxed text-foreground/90">
+          Your <span className="text-gold">Basal Metabolisation Rate</span> reflects how well
+          you're moving life through, not just storing it. We track gently — no scores to
+          chase, only patterns to notice.
+        </p>
+      </div>
+      <div className="glass w-full rounded-3xl p-5 text-left">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-gold">Narrative metabolism</p>
+        <p className="mt-2 text-sm leading-relaxed text-foreground/90">
+          Each unfinished thought becomes a <span className="italic">branch</span>. Naming it,
+          feeling it, integrating it — that's how it gets metabolised.
+        </p>
+      </div>
+      <button
+        onClick={onNext}
+        className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-medium text-background"
+        style={{ background: "var(--gradient-gold)" }}
+      >
+        Begin <ArrowRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+function QuestionStep({
+  index,
+  value,
+  onChange,
+  onNext,
+  onBack,
+}: {
+  index: number;
+  value: number;
+  onChange: (v: number) => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  const q = QUESTIONS[index];
+  const labels = ["rarely", "sometimes", "often", "a lot", "constantly"];
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+          Question {index + 1} of {QUESTIONS.length}
+        </p>
+        <h2
+          className="mt-3 text-2xl font-light leading-snug text-foreground"
+          style={{ fontFamily: "Fraunces, serif" }}
+        >
+          {q.prompt}
+        </h2>
+      </div>
+      <div className="glass-strong rounded-3xl p-5">
+        <div className="flex items-end justify-between gap-2">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              onClick={() => onChange(n)}
+              className="flex flex-1 flex-col items-center gap-2"
+            >
+              <span
+                className="block w-full rounded-full transition-all"
+                style={{
+                  height: 12 + n * 8,
+                  background:
+                    value >= n
+                      ? "var(--gradient-gold)"
+                      : "oklch(1 0 0 / 0.08)",
+                  boxShadow:
+                    value === n ? "0 0 18px oklch(0.82 0.14 82 / 0.5)" : undefined,
+                }}
+              />
+              <span
+                className={`text-[9px] uppercase tracking-wider ${value === n ? "text-gold" : "text-muted-foreground"}`}
+              >
+                {labels[n - 1]}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mt-2 flex items-center gap-3">
+        <button
+          onClick={onBack}
+          className="glass rounded-2xl px-4 py-3 text-xs uppercase tracking-[0.2em] text-muted-foreground"
+        >
+          Back
+        </button>
+        <button
+          onClick={onNext}
+          className="flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-medium text-background"
+          style={{ background: "var(--gradient-gold)" }}
+        >
+          Continue <ArrowRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SummaryStep({
+  archetype,
+  baseline,
+  onFinish,
+  saving,
+  onBack,
+}: {
+  archetype: { name: string; tagline: string };
+  baseline: number;
+  onFinish: () => void;
+  saving: boolean;
+  onBack: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-5 text-center">
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
+          Your archetype
+        </p>
+        <h2
+          className="mt-2 text-3xl font-light text-foreground"
+          style={{ fontFamily: "Fraunces, serif" }}
+        >
+          {archetype.name}
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">{archetype.tagline}</p>
+      </div>
+      <div className="glass-strong rounded-3xl p-6">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+          Baseline BMR
+        </p>
+        <p
+          className="mt-2 text-6xl font-light text-foreground"
+          style={{ fontFamily: "Fraunces, serif" }}
+        >
+          {baseline}
+        </p>
+        <p className="mt-2 text-xs text-gold">starting point · no need to compare</p>
+      </div>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onBack}
+          className="glass rounded-2xl px-4 py-3 text-xs uppercase tracking-[0.2em] text-muted-foreground"
+        >
+          Back
+        </button>
+        <button
+          onClick={onFinish}
+          disabled={saving}
+          className="flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-medium text-background disabled:opacity-60"
+          style={{ background: "var(--gradient-gold)" }}
+        >
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+          Enter METABYX
+        </button>
+      </div>
+    </div>
+  );
+}

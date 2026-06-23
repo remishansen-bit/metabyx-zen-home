@@ -1,3 +1,4 @@
+import { RequireAuth } from "@/lib/auth";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, CheckCircle2, Leaf, Sparkles, Calendar, Tag, Share2, Check } from "lucide-react";
 import { useState } from "react";
@@ -12,7 +13,7 @@ export const Route = createFileRoute("/branch/$id")({
       { name: "description", content: "How a branch was noticed and metabolized." },
     ],
   }),
-  component: BranchDetailPage,
+  component: () => (<RequireAuth><BranchDetailPage /></RequireAuth>),
   notFoundComponent: () => (
     <PhoneFrame>
       <StatusBar title="BRANCH" />

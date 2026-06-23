@@ -1,3 +1,4 @@
+import { RequireAuth } from "@/lib/auth";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Moon } from "lucide-react";
@@ -12,7 +13,7 @@ export const Route = createFileRoute("/evening")({
       { name: "description", content: "Notice which branches you metabolized today." },
     ],
   }),
-  component: EveningPage,
+  component: () => (<RequireAuth><EveningPage /></RequireAuth>),
 });
 
 function EveningPage() {

@@ -9,17 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SessionRouteImport } from './routes/session'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MorningRouteImport } from './routes/morning'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as EveningRouteImport } from './routes/evening'
 import { Route as CrisisRouteImport } from './routes/crisis'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BranchIdRouteImport } from './routes/branch.$id'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SessionRoute = SessionRouteImport.update({
   id: '/session',
   path: '/session',
@@ -28,6 +36,11 @@ const SessionRoute = SessionRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MorningRoute = MorningRouteImport.update({
@@ -48,6 +61,11 @@ const EveningRoute = EveningRouteImport.update({
 const CrisisRoute = CrisisRouteImport.update({
   id: '/crisis',
   path: '/crisis',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -73,24 +91,30 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
   '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
+  '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
+  '/settings': typeof SettingsRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
   '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
+  '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
+  '/settings': typeof SettingsRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
@@ -98,12 +122,15 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
   '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
+  '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
+  '/settings': typeof SettingsRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
@@ -112,36 +139,45 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/crisis'
     | '/evening'
     | '/library'
     | '/morning'
+    | '/onboarding'
     | '/profile'
     | '/session'
+    | '/settings'
     | '/api/transcribe'
     | '/api/tts'
     | '/branch/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/crisis'
     | '/evening'
     | '/library'
     | '/morning'
+    | '/onboarding'
     | '/profile'
     | '/session'
+    | '/settings'
     | '/api/transcribe'
     | '/api/tts'
     | '/branch/$id'
   id:
     | '__root__'
     | '/'
+    | '/auth'
     | '/crisis'
     | '/evening'
     | '/library'
     | '/morning'
+    | '/onboarding'
     | '/profile'
     | '/session'
+    | '/settings'
     | '/api/transcribe'
     | '/api/tts'
     | '/branch/$id'
@@ -149,12 +185,15 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   CrisisRoute: typeof CrisisRoute
   EveningRoute: typeof EveningRoute
   LibraryRoute: typeof LibraryRoute
   MorningRoute: typeof MorningRoute
+  OnboardingRoute: typeof OnboardingRoute
   ProfileRoute: typeof ProfileRoute
   SessionRoute: typeof SessionRoute
+  SettingsRoute: typeof SettingsRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   ApiTtsRoute: typeof ApiTtsRoute
   BranchIdRoute: typeof BranchIdRoute
@@ -162,6 +201,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/session': {
       id: '/session'
       path: '/session'
@@ -174,6 +220,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/morning': {
@@ -202,6 +255,13 @@ declare module '@tanstack/react-router' {
       path: '/crisis'
       fullPath: '/crisis'
       preLoaderRoute: typeof CrisisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -237,12 +297,15 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   CrisisRoute: CrisisRoute,
   EveningRoute: EveningRoute,
   LibraryRoute: LibraryRoute,
   MorningRoute: MorningRoute,
+  OnboardingRoute: OnboardingRoute,
   ProfileRoute: ProfileRoute,
   SessionRoute: SessionRoute,
+  SettingsRoute: SettingsRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
   ApiTtsRoute: ApiTtsRoute,
   BranchIdRoute: BranchIdRoute,
