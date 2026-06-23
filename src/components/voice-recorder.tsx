@@ -797,7 +797,13 @@ export function VoiceRecorder({
 
       {/* Review (editable transcription preview) — full-width row */}
       {isReview && (
-        <div className="animate-fade-in flex flex-col gap-3">
+        <div
+          ref={reviewRootRef}
+          role="dialog"
+          aria-label="Forhåndsvis og rediger transkripsjon"
+          aria-modal="false"
+          className="animate-fade-in flex flex-col gap-3 focus-visible:outline-none"
+        >
           <div className="flex items-center justify-between">
             <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
               Forhåndsvisning
@@ -852,19 +858,62 @@ export function VoiceRecorder({
             </div>
           )}
 
+          <div className={emotion ? "grid grid-cols-1 gap-3 md:grid-cols-[1fr_minmax(180px,220px)]" : ""}>
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             rows={4}
             aria-label="Transkribert tekst — rediger før du godtar"
             autoFocus
-            className="min-h-[88px] w-full resize-y rounded-xl bg-white/5 p-3 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold/40"
+            className="min-h-[88px] w-full resize-y rounded-xl bg-white/5 p-3 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
             style={{
               border: "1px solid oklch(1 0 0 / 0.08)",
               fontFamily: "Fraunces, serif",
             }}
             placeholder="Tom transkripsjon — skriv her i stedet."
           />
+          {emotion && (
+            <aside
+              aria-label="Følelsesinnsikt"
+              className="flex flex-col gap-2 rounded-xl p-3"
+              style={{
+                background:
+                  "linear-gradient(160deg, oklch(0.72 0.13 265 / 0.10), oklch(0.88 0.14 82 / 0.05))",
+                border: "1px solid oklch(1 0 0 / 0.08)",
+              }}
+            >
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="h-3 w-3 text-gold/80" />
+                <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                  Følelse
+                </p>
+              </div>
+              {emotion.primaryEmotion && (
+                <p
+                  className="text-sm capitalize text-foreground"
+                  style={{ fontFamily: "Fraunces, serif" }}
+                >
+                  {emotion.primaryEmotion}
+                  {emotion.emotionalIntensity && (
+                    <span className="ml-1 text-[10px] text-muted-foreground">
+                      · {emotion.emotionalIntensity}
+                    </span>
+                  )}
+                </p>
+              )}
+              {emotion.summary && (
+                <p className="text-[11px] leading-relaxed text-foreground/75">
+                  {emotion.summary}
+                </p>
+              )}
+              {emotion.tearfulness?.value && (
+                <p className="text-[10px] text-muted-foreground">
+                  Tegn på gråt · {Math.round((emotion.tearfulness.confidence ?? 0) * 100)}%
+                </p>
+              )}
+            </aside>
+          )}
+          </div>
           <p className="text-[10px] text-muted-foreground">
             Tips: <kbd className="rounded bg-white/10 px-1">⌘</kbd>/
             <kbd className="rounded bg-white/10 px-1">Ctrl</kbd> +{" "}
@@ -878,7 +927,7 @@ export function VoiceRecorder({
                 setDraft("");
                 setState("idle");
               }}
-              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
               style={{ border: "1px solid oklch(1 0 0 / 0.08)" }}
             >
               <X className="h-3.5 w-3.5" />
@@ -890,7 +939,7 @@ export function VoiceRecorder({
                 setDraft("");
                 void start();
               }}
-              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-foreground transition-colors"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
               style={{
                 border: "1px solid oklch(1 0 0 / 0.1)",
                 background: "oklch(1 0 0 / 0.04)",
@@ -902,7 +951,7 @@ export function VoiceRecorder({
             <button
               type="button"
               onClick={acceptDraft}
-              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[11px] font-semibold text-foreground transition-all active:scale-95"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[11px] font-semibold text-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/80"
               style={{
                 background:
                   "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.4), oklch(0.72 0.13 265 / 0.32))",
