@@ -10,8 +10,15 @@ import {
   Settings2,
   Play,
   Pause,
+  History,
+  Sparkles,
 } from "lucide-react";
-import type { VoiceRecorderProps, VoiceRecorderState } from "@/types/voice-recorder";
+import type {
+  AcceptedRecording,
+  PitchInfo,
+  VoiceRecorderProps,
+  VoiceRecorderState,
+} from "@/types/voice-recorder";
 
 /**
  * Premium glassmorphic voice recorder.
@@ -34,6 +41,10 @@ export function VoiceRecorder({
   editBeforeAccept = true,
   enablePlayback = true,
   showSettings = true,
+  onAccepted,
+  emotion = null,
+  showHistory = true,
+  historyLimit = 6,
 }: VoiceRecorderProps) {
   const [state, setState] = useState<VoiceRecorderState>("idle");
   const [elapsed, setElapsed] = useState(0);
@@ -48,6 +59,19 @@ export function VoiceRecorder({
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioElRef = useRef<HTMLAudioElement | null>(null);
+  // Live pitch state, updated at ~5Hz during recording.
+  const [pitch, setPitch] = useState<PitchInfo>({
+    hz: null,
+    category: "unknown",
+    stability: 0,
+  });
+  // Accepted recordings — kept in state for replay, persisted (text only) to localStorage.
+  const [history, setHistory] = useState<AcceptedRecording[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const historyAudioRefs = useRef<Map<string, HTMLAudioElement | null>>(new Map());
+  // Focus-trap refs for the review panel.
+  const reviewRootRef = useRef<HTMLDivElement | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -78,6 +102,13 @@ export function VoiceRecorder({
   const lastDrawAtRef = useRef(0);
   // Capped DPR to avoid burning fillrate on retina mobile.
   const dprRef = useRef(1);
+  // ---- Pitch detection refs ----
+  // Dedicated time-domain buffer sized for autocorrelation (≥2048 samples).
+  const pitchBufRef = useRef<Float32Array | null>(null);
+  // Recent pitch samples (Hz) used to compute stability over a sliding window.
+  const pitchHistoryRef = useRef<number[]>([]);
+  // Throttle pitch updates to keep React renders cheap (~5Hz).
+  const lastPitchAtRef = useRef(0);
 
   // Detect low-end devices once. Conservative heuristics.
   useEffect(() => {
@@ -256,6 +287,38 @@ export function VoiceRecorder({
         return;
       }
 
+      // --- Pitch detection (throttled to ~5Hz) ---
+      // Only attempt to find a fundamental when there's actual voice energy.
+      // Skipping on silence avoids wasted CPU and noisy "Hz" jitter.
+      if (isSpeech && now - lastPitchAtRef.current > 200) {
+        lastPitchAtRef.current = now;
+        const ctxAudio = audioCtxRef.current;
+        if (ctxAudio) {
+          if (!pitchBufRef.current) {
+            // Backing store typed as ArrayBuffer (not SharedArrayBuffer)
+            // to satisfy Web Audio API typings.
+            pitchBufRef.current = new Float32Array(
+              new ArrayBuffer(analyser.fftSize * 4),
+            );
+          }
+          const buf = pitchBufRef.current as Float32Array<ArrayBuffer>;
+          analyser.getFloatTimeDomainData(buf);
+          const hz = estimatePitchAutocorrelation(buf, ctxAudio.sampleRate);
+          if (hz !== null) {
+            // Maintain a sliding window of recent pitch samples for stability.
+            const hist = pitchHistoryRef.current;
+            hist.push(hz);
+            if (hist.length > 20) hist.shift();
+            const stability = pitchStability(hist);
+            setPitch({ hz, category: pitchCategory(hz), stability });
+          }
+        }
+      } else if (!isSpeech && pitchHistoryRef.current.length && now - lastPitchAtRef.current > 600) {
+        // Decay history when user goes quiet so the badge can fade.
+        pitchHistoryRef.current = [];
+        setPitch({ hz: null, category: "unknown", stability: 0 });
+      }
+
       // Scroll a history buffer — voice-memo style left-to-right flow
       const barGap = 3 * dpr;
       const barW = 2 * dpr;
@@ -375,6 +438,12 @@ export function VoiceRecorder({
         source.connect(analyser);
         sourceRef.current = source;
         analyserRef.current = analyser;
+        // Pre-allocate the pitch buffer matching analyser.fftSize. Backed by a
+        // plain ArrayBuffer so it satisfies getFloatTimeDomainData typings.
+        pitchBufRef.current = new Float32Array(new ArrayBuffer(analyser.fftSize * 4));
+        pitchHistoryRef.current = [];
+        lastPitchAtRef.current = 0;
+        setPitch({ hz: null, category: "unknown", stability: 0 });
       }
     } catch {
       // Waveform is decorative — recording still works without it
@@ -522,14 +591,107 @@ export function VoiceRecorder({
       return;
     }
     onTranscription(text);
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-      setAudioUrl(null);
-    }
+    // Build a history entry — keep the blob URL alive (do NOT revoke) so the
+    // user can replay it from the history list later in the same session.
+    const entry: AcceptedRecording = {
+      id:
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `r-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      transcript: text,
+      createdAt: Date.now(),
+      audioUrl: audioUrl ?? undefined,
+      mimeType: mediaRecorderRef.current?.mimeType,
+      emotion: emotion ?? undefined,
+    };
+    setHistory((prev) => {
+      const next = [entry, ...prev].slice(0, Math.max(1, historyLimit));
+      // Revoke any URL that drops off the end so we don't leak memory.
+      const dropped = prev.slice(Math.max(0, historyLimit - 1));
+      for (const old of dropped) {
+        if (old.audioUrl && !next.some((n) => n.audioUrl === old.audioUrl)) {
+          try {
+            URL.revokeObjectURL(old.audioUrl);
+          } catch {}
+        }
+      }
+      return next;
+    });
+    onAccepted?.(entry);
+    // Do not setAudioUrl(null) — history keeps the reference. We just clear
+    // the "current draft" pointer to avoid double-controls in the idle state.
+    setAudioUrl(null);
     setDraft("");
     setState("done");
     setTimeout(() => mountedRef.current && setState("idle"), 1400);
   }
+
+  // Persist *text* history to localStorage. Audio URLs are session-scoped
+  // (blob: URLs die on reload), so we store the transcript + metadata only.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const minimal = history.map(({ audioUrl: _omit, ...rest }) => rest);
+      window.localStorage.setItem("metabyx.vr.history", JSON.stringify(minimal));
+    } catch {}
+  }, [history]);
+
+  // Restore history (text only) once on mount.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem("metabyx.vr.history");
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as AcceptedRecording[];
+      if (Array.isArray(parsed)) {
+        setHistory(parsed.slice(0, Math.max(1, historyLimit)));
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Revoke any active blob URLs when the component unmounts.
+  useEffect(() => {
+    return () => {
+      for (const h of history) {
+        if (h.audioUrl) {
+          try {
+            URL.revokeObjectURL(h.audioUrl);
+          } catch {}
+        }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---- Focus trap inside the review panel ----
+  // While reviewing, Tab cycles among focusable controls within the panel.
+  useEffect(() => {
+    if (state !== "review") return;
+    const root = reviewRootRef.current;
+    if (!root) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const focusables = Array.from(
+        root.querySelectorAll<HTMLElement>(
+          'button, [href], textarea, input, select, audio[controls], [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => !el.hasAttribute("disabled") && el.offsetParent !== null);
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    root.addEventListener("keydown", onKey);
+    return () => root.removeEventListener("keydown", onKey);
+  }, [state]);
 
   // Persist VAD settings whenever they change (debounced via effect coalescing).
   useEffect(() => {
@@ -635,7 +797,13 @@ export function VoiceRecorder({
 
       {/* Review (editable transcription preview) — full-width row */}
       {isReview && (
-        <div className="animate-fade-in flex flex-col gap-3">
+        <div
+          ref={reviewRootRef}
+          role="dialog"
+          aria-label="Forhåndsvis og rediger transkripsjon"
+          aria-modal="false"
+          className="animate-fade-in flex flex-col gap-3 focus-visible:outline-none"
+        >
           <div className="flex items-center justify-between">
             <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
               Forhåndsvisning
@@ -663,7 +831,7 @@ export function VoiceRecorder({
                   else el.pause();
                 }}
                 aria-label={isPlaying ? "Pause avspilling" : "Spill av opptaket"}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all active:scale-95"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
                 style={{
                   background:
                     "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.3), oklch(0.72 0.13 265 / 0.22))",
@@ -690,19 +858,62 @@ export function VoiceRecorder({
             </div>
           )}
 
+          <div className={emotion ? "grid grid-cols-1 gap-3 md:grid-cols-[1fr_minmax(180px,220px)]" : ""}>
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             rows={4}
             aria-label="Transkribert tekst — rediger før du godtar"
             autoFocus
-            className="min-h-[88px] w-full resize-y rounded-xl bg-white/5 p-3 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold/40"
+            className="min-h-[88px] w-full resize-y rounded-xl bg-white/5 p-3 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
             style={{
               border: "1px solid oklch(1 0 0 / 0.08)",
               fontFamily: "Fraunces, serif",
             }}
             placeholder="Tom transkripsjon — skriv her i stedet."
           />
+          {emotion && (
+            <aside
+              aria-label="Følelsesinnsikt"
+              className="flex flex-col gap-2 rounded-xl p-3"
+              style={{
+                background:
+                  "linear-gradient(160deg, oklch(0.72 0.13 265 / 0.10), oklch(0.88 0.14 82 / 0.05))",
+                border: "1px solid oklch(1 0 0 / 0.08)",
+              }}
+            >
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="h-3 w-3 text-gold/80" />
+                <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                  Følelse
+                </p>
+              </div>
+              {emotion.primaryEmotion && (
+                <p
+                  className="text-sm capitalize text-foreground"
+                  style={{ fontFamily: "Fraunces, serif" }}
+                >
+                  {emotion.primaryEmotion}
+                  {emotion.emotionalIntensity && (
+                    <span className="ml-1 text-[10px] text-muted-foreground">
+                      · {emotion.emotionalIntensity}
+                    </span>
+                  )}
+                </p>
+              )}
+              {emotion.summary && (
+                <p className="text-[11px] leading-relaxed text-foreground/75">
+                  {emotion.summary}
+                </p>
+              )}
+              {emotion.tearfulness?.value && (
+                <p className="text-[10px] text-muted-foreground">
+                  Tegn på gråt · {Math.round((emotion.tearfulness.confidence ?? 0) * 100)}%
+                </p>
+              )}
+            </aside>
+          )}
+          </div>
           <p className="text-[10px] text-muted-foreground">
             Tips: <kbd className="rounded bg-white/10 px-1">⌘</kbd>/
             <kbd className="rounded bg-white/10 px-1">Ctrl</kbd> +{" "}
@@ -716,7 +927,7 @@ export function VoiceRecorder({
                 setDraft("");
                 setState("idle");
               }}
-              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
               style={{ border: "1px solid oklch(1 0 0 / 0.08)" }}
             >
               <X className="h-3.5 w-3.5" />
@@ -728,7 +939,7 @@ export function VoiceRecorder({
                 setDraft("");
                 void start();
               }}
-              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-foreground transition-colors"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
               style={{
                 border: "1px solid oklch(1 0 0 / 0.1)",
                 background: "oklch(1 0 0 / 0.04)",
@@ -740,7 +951,7 @@ export function VoiceRecorder({
             <button
               type="button"
               onClick={acceptDraft}
-              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[11px] font-semibold text-foreground transition-all active:scale-95"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[11px] font-semibold text-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/80"
               style={{
                 background:
                   "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.4), oklch(0.72 0.13 265 / 0.32))",
@@ -767,7 +978,7 @@ export function VoiceRecorder({
             ariaLabel ??
             (isRecording ? "Avbryt opptak" : isProcessing ? "Behandler" : "Start opptak")
           }
-          className={`relative flex shrink-0 items-center justify-center rounded-full transition-all duration-300 active:scale-95 disabled:cursor-not-allowed ${
+          className={`relative flex shrink-0 items-center justify-center rounded-full transition-all duration-300 active:scale-95 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 ${
             compact ? "h-10 w-10" : "h-12 w-12"
           }`}
           style={{
@@ -837,7 +1048,7 @@ export function VoiceRecorder({
                     aria-expanded={settingsOpen}
                     aria-controls="vr-settings"
                     aria-label="Justér stemmedeteksjon"
-                    className="-mr-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+                    className="-mr-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
                   >
                     <Settings2 className="h-3.5 w-3.5" />
                   </button>
@@ -859,7 +1070,7 @@ export function VoiceRecorder({
                     type="button"
                     onClick={() => void start()}
                     aria-label="Prøv stemmeopptak på nytt"
-                    className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium text-foreground transition-all active:scale-95"
+                    className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium text-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
                     style={{
                       background:
                         "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.35), oklch(0.72 0.13 265 / 0.28))",
@@ -882,7 +1093,7 @@ export function VoiceRecorder({
                         }
                       }}
                       aria-label="Spill av siste opptak"
-                      className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
                       style={{ border: "1px solid oklch(1 0 0 / 0.08)" }}
                     >
                       <Play className="h-3 w-3" />
@@ -996,6 +1207,39 @@ export function VoiceRecorder({
                   {speaking ? "Snakker" : "Lytter"}
                 </span>
               </div>
+            {/* Pitch / stability chip + supportive cue */}
+            {pitch.hz != null && (
+              <div
+                role="status"
+                aria-label={`Tonehøyde ${Math.round(pitch.hz)} hertz, stabilitet ${Math.round(pitch.stability * 100)} prosent`}
+                className="hidden flex-col items-end gap-0.5 sm:flex"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span
+                    aria-hidden
+                    className="inline-block h-1 w-10 overflow-hidden rounded-full bg-white/8"
+                    style={{ background: "oklch(1 0 0 / 0.08)" }}
+                  >
+                    <span
+                      className="block h-full rounded-full transition-[width,background] duration-300"
+                      style={{
+                        width: `${Math.round(pitch.stability * 100)}%`,
+                        background:
+                          "linear-gradient(90deg, oklch(0.72 0.13 265 / 0.7), oklch(0.88 0.14 82 / 0.9))",
+                      }}
+                    />
+                  </span>
+                  <span className="font-mono text-[10px] tabular-nums text-foreground/70">
+                    {Math.round(pitch.hz)} Hz
+                  </span>
+                </div>
+                {pitchCue(pitch) && (
+                  <span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">
+                    {pitchCue(pitch)}
+                  </span>
+                )}
+              </div>
+            )}
               <span
                 className="font-mono text-[11px] tabular-nums text-gold/90"
                 style={
@@ -1011,7 +1255,7 @@ export function VoiceRecorder({
                 type="button"
                 onClick={stop}
                 aria-label="Fullfør opptak"
-                className="group relative ml-1 inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-foreground transition-all duration-300 active:scale-95"
+                className="group relative ml-1 inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-foreground transition-all duration-300 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/80"
                 style={{
                   background:
                     "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.35), oklch(0.72 0.13 265 / 0.28))",
@@ -1049,6 +1293,111 @@ export function VoiceRecorder({
           )}
         </div>
       </div>
+      )}
+
+      {/* Recording history — replay & revisit previously accepted transcripts. */}
+      {showHistory && state === "idle" && history.length > 0 && (
+        <div className="mt-3 border-t border-white/5 pt-3">
+          <button
+            type="button"
+            onClick={() => setHistoryOpen((o) => !o)}
+            aria-expanded={historyOpen}
+            aria-controls="vr-history"
+            className="flex w-full items-center justify-between text-[10px] uppercase tracking-[0.3em] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 rounded"
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <History className="h-3 w-3" />
+              Tidligere opptak ({history.length})
+            </span>
+            <span className="text-foreground/50">{historyOpen ? "−" : "+"}</span>
+          </button>
+          {historyOpen && (
+            <ul id="vr-history" className="mt-2 flex flex-col gap-1.5">
+              {history.map((h) => {
+                const isPlayingThis = playingId === h.id;
+                return (
+                  <li
+                    key={h.id}
+                    className="flex items-start gap-2 rounded-xl p-2.5"
+                    style={{
+                      background: "oklch(1 0 0 / 0.03)",
+                      border: "1px solid oklch(1 0 0 / 0.06)",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const el = historyAudioRefs.current.get(h.id);
+                        if (!el) return;
+                        // Pause any other history audio first.
+                        for (const [oid, oel] of historyAudioRefs.current) {
+                          if (oid !== h.id && oel && !oel.paused) oel.pause();
+                        }
+                        if (el.paused) void el.play();
+                        else el.pause();
+                      }}
+                      disabled={!h.audioUrl}
+                      aria-label={
+                        h.audioUrl
+                          ? isPlayingThis
+                            ? "Pause avspilling"
+                            : "Spill av opptaket"
+                          : "Lyden er ikke lenger tilgjengelig"
+                      }
+                      className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.22), oklch(0.72 0.13 265 / 0.18))",
+                        border: "1px solid oklch(1 0 0 / 0.1)",
+                      }}
+                    >
+                      {isPlayingThis ? (
+                        <Pause className="h-3 w-3 text-foreground" />
+                      ) : (
+                        <Play className="ml-0.5 h-3 w-3 text-foreground" />
+                      )}
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className="line-clamp-2 text-[12px] leading-snug text-foreground/85"
+                        style={{ fontFamily: "Fraunces, serif" }}
+                      >
+                        {h.transcript}
+                      </p>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] uppercase tracking-[0.15em] text-muted-foreground">
+                        <span>{formatHistoryDate(h.createdAt)}</span>
+                        {h.emotion?.primaryEmotion && (
+                          <span className="capitalize text-foreground/60">
+                            · {h.emotion.primaryEmotion}
+                          </span>
+                        )}
+                        {!h.audioUrl && <span>· kun tekst</span>}
+                      </div>
+                    </div>
+                    {h.audioUrl && (
+                      <audio
+                        ref={(el) => {
+                          if (el) historyAudioRefs.current.set(h.id, el);
+                          else historyAudioRefs.current.delete(h.id);
+                        }}
+                        src={h.audioUrl}
+                        preload="metadata"
+                        onPlay={() => setPlayingId(h.id)}
+                        onPause={() =>
+                          setPlayingId((p) => (p === h.id ? null : p))
+                        }
+                        onEnded={() =>
+                          setPlayingId((p) => (p === h.id ? null : p))
+                        }
+                        className="sr-only"
+                      />
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       )}
 
       <style>{`
@@ -1161,4 +1510,127 @@ function describeTranscribeError(status: number, serverMessage?: string): string
     serverMessage ||
     "Klarte ikke å transkribere opptaket. Prøv igjen eller skriv teksten i stedet."
   );
+}
+/* ------------------------------------------------------------------ */
+/*  Pitch detection                                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Estimate the fundamental frequency of a voice signal using normalized
+ * autocorrelation (a.k.a. ACF / NSDF-lite). Cheap and reasonably robust
+ * for speech in the 60–500 Hz range.
+ *
+ * Algorithm:
+ *   1. Compute signal RMS — abort if too weak (avoids garbage on silence).
+ *   2. For each candidate lag τ in [minTau, maxTau], compute
+ *        r(τ) = Σ x[i] * x[i+τ]  (i = 0..N-1-τ)
+ *      The first prominent peak of r(τ) corresponds to one period of
+ *      the fundamental, so f₀ = sampleRate / τ.
+ *   3. Refine the peak with parabolic interpolation around the bin.
+ *
+ * We bound the search to 60–500 Hz to cover adult speech and avoid
+ * doubling/halving errors at the extremes.
+ */
+function estimatePitchAutocorrelation(
+  buf: Float32Array<ArrayBuffer>,
+  sampleRate: number,
+): number | null {
+  const N = buf.length;
+  // RMS gate — bail out on quiet frames.
+  let rms = 0;
+  for (let i = 0; i < N; i++) rms += buf[i] * buf[i];
+  rms = Math.sqrt(rms / N);
+  if (rms < 0.01) return null;
+
+  const minHz = 60;
+  const maxHz = 500;
+  const maxTau = Math.floor(sampleRate / minHz);
+  const minTau = Math.floor(sampleRate / maxHz);
+  if (maxTau >= N) return null;
+
+  // Compute autocorrelation for every candidate lag.
+  // We track the largest peak that is also a local maximum.
+  let bestTau = -1;
+  let bestVal = 0;
+  let prev = 0;
+  let rising = false;
+  for (let tau = minTau; tau <= maxTau; tau++) {
+    let sum = 0;
+    for (let i = 0; i < N - tau; i++) sum += buf[i] * buf[i + tau];
+    if (sum > prev) {
+      rising = true;
+    } else if (rising && sum < prev) {
+      // We just crossed a local max at tau - 1.
+      if (prev > bestVal) {
+        bestVal = prev;
+        bestTau = tau - 1;
+      }
+      rising = false;
+    }
+    prev = sum;
+  }
+  if (bestTau < 0) return null;
+
+  // Parabolic interpolation around bestTau for sub-bin accuracy.
+  const yLeft = autocorrAt(buf, bestTau - 1);
+  const yMid = bestVal;
+  const yRight = autocorrAt(buf, bestTau + 1);
+  const denom = yLeft - 2 * yMid + yRight;
+  const shift = denom === 0 ? 0 : (0.5 * (yLeft - yRight)) / denom;
+  const refinedTau = bestTau + shift;
+
+  const hz = sampleRate / refinedTau;
+  if (hz < minHz || hz > maxHz) return null;
+  return hz;
+}
+
+function autocorrAt(buf: Float32Array<ArrayBuffer>, tau: number): number {
+  if (tau <= 0 || tau >= buf.length) return 0;
+  let s = 0;
+  for (let i = 0; i < buf.length - tau; i++) s += buf[i] * buf[i + tau];
+  return s;
+}
+
+/** Stability ∈ [0,1] — 1 means rock-steady pitch, 0 means very erratic. */
+function pitchStability(samples: number[]): number {
+  if (samples.length < 4) return 0;
+  const mean = samples.reduce((a, b) => a + b, 0) / samples.length;
+  if (mean <= 0) return 0;
+  let varSum = 0;
+  for (const s of samples) varSum += (s - mean) * (s - mean);
+  const stdev = Math.sqrt(varSum / samples.length);
+  const cv = stdev / mean; // coefficient of variation
+  // Map cv: 0 → 1 (perfect), 0.15+ → 0 (very wobbly). Smooth in between.
+  return Math.max(0, Math.min(1, 1 - cv / 0.15));
+}
+
+function pitchCategory(hz: number): "low" | "medium" | "high" {
+  if (hz < 140) return "low";
+  if (hz < 230) return "medium";
+  return "high";
+}
+
+/** Light, supportive cue derived from pitch stability + category. */
+export function pitchCue(p: { hz: number | null; stability: number }): string | null {
+  if (p.hz == null) return null;
+  if (p.stability > 0.75) return "Rolig og stødig stemme";
+  if (p.stability > 0.45) return "Jevn stemme";
+  if (p.stability > 0.2) return "Litt variasjon i stemmen";
+  return "Stemmen virker litt anspent";
+}
+
+/** Compact relative date: "nå", "12 min", "3 t", or locale date. */
+function formatHistoryDate(ts: number): string {
+  const diffMs = Date.now() - ts;
+  const s = Math.floor(diffMs / 1000);
+  if (s < 30) return "nå nettopp";
+  if (s < 60) return `${s} s siden`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} min siden`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} t siden`;
+  return new Date(ts).toLocaleDateString("nb-NO", {
+    day: "2-digit",
+    month: "short",
+  });
 }
