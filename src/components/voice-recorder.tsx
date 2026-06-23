@@ -1618,3 +1618,19 @@ export function pitchCue(p: { hz: number | null; stability: number }): string | 
   if (p.stability > 0.2) return "Litt variasjon i stemmen";
   return "Stemmen virker litt anspent";
 }
+
+/** Compact relative date: "nå", "12 min", "3 t", or locale date. */
+function formatHistoryDate(ts: number): string {
+  const diffMs = Date.now() - ts;
+  const s = Math.floor(diffMs / 1000);
+  if (s < 30) return "nå nettopp";
+  if (s < 60) return `${s} s siden`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} min siden`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} t siden`;
+  return new Date(ts).toLocaleDateString("nb-NO", {
+    day: "2-digit",
+    month: "short",
+  });
+}
