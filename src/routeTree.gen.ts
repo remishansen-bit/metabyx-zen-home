@@ -15,6 +15,7 @@ import { Route as MorningRouteImport } from './routes/morning'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as EveningRouteImport } from './routes/evening'
 import { Route as CrisisRouteImport } from './routes/crisis'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BranchIdRouteImport } from './routes/branch.$id'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
@@ -50,6 +51,11 @@ const CrisisRoute = CrisisRouteImport.update({
   path: '/crisis',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -73,6 +79,7 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
   '/library': typeof LibraryRoute
@@ -85,6 +92,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
   '/library': typeof LibraryRoute
@@ -98,6 +106,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
   '/library': typeof LibraryRoute
@@ -112,6 +121,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/crisis'
     | '/evening'
     | '/library'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/crisis'
     | '/evening'
     | '/library'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/auth'
     | '/crisis'
     | '/evening'
     | '/library'
@@ -149,6 +161,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   CrisisRoute: typeof CrisisRoute
   EveningRoute: typeof EveningRoute
   LibraryRoute: typeof LibraryRoute
@@ -204,6 +217,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CrisisRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -237,6 +257,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   CrisisRoute: CrisisRoute,
   EveningRoute: EveningRoute,
   LibraryRoute: LibraryRoute,
