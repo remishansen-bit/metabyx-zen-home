@@ -1917,6 +1917,28 @@ function pitchCategory(hz: number): "low" | "medium" | "high" {
   return "high";
 }
 
+/** Norwegian label for the pitch category shown in the review summary. */
+function pitchCategoryLabel(c: "low" | "medium" | "high" | "unknown"): string {
+  switch (c) {
+    case "low":
+      return "lav";
+    case "medium":
+      return "middels";
+    case "high":
+      return "høy";
+    default:
+      return "ukjent";
+  }
+}
+
+/** Plain-language stability label for the review summary. */
+function stabilityLabel(stability: number): string {
+  if (stability >= 0.7) return "Stødig";
+  if (stability >= 0.4) return "Jevn";
+  if (stability >= 0.2) return "Litt ujevn";
+  return "Ustødig";
+}
+
 /** Light, supportive cue derived from pitch stability + category. */
 export function pitchCue(p: { hz: number | null; stability: number }): string | null {
   if (p.hz == null) return null;
