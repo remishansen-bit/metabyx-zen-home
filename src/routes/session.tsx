@@ -946,3 +946,87 @@ function ClosePhase({
     </section>
   );
 }
+function RecapView({
+  recap,
+  onDone,
+}: {
+  recap: { branch: Branch; bmr: number; reflection: string };
+  onDone: () => void;
+}) {
+  return (
+    <section className="flex flex-col gap-6 animate-fade-in">
+      <header className="flex flex-col items-center gap-3 text-center">
+        <div
+          className="flex h-14 w-14 items-center justify-center rounded-full"
+          style={{ background: "var(--gradient-gold)", boxShadow: "var(--shadow-gold)" }}
+        >
+          <Check className="h-6 w-6" style={{ color: "var(--primary-foreground)" }} />
+        </div>
+        <p className="text-[10px] uppercase tracking-[0.35em] text-gold">Branch metabolized</p>
+        <h1
+          className="text-2xl font-light leading-snug text-foreground"
+          style={{ fontFamily: "Fraunces, serif" }}
+        >
+          It is <span className="text-gold italic">held now</span>.
+        </h1>
+      </header>
+
+      <div className="glass rounded-2xl p-4">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Saved to library</p>
+        <p
+          className="mt-2 text-base leading-relaxed text-foreground"
+          style={{ fontFamily: "Fraunces, serif" }}
+        >
+          {recap.branch.title}
+        </p>
+        {recap.reflection && (
+          <p
+            className="mt-2 text-sm leading-relaxed text-muted-foreground"
+            style={{ fontFamily: "Fraunces, serif" }}
+          >
+            {recap.reflection}
+          </p>
+        )}
+      </div>
+
+      <div
+        className="rounded-2xl p-4 text-center"
+        style={{
+          background:
+            "linear-gradient(135deg, oklch(0.82 0.14 82 / 0.12), oklch(0.82 0.14 82 / 0.02))",
+          border: "1px solid oklch(0.82 0.14 82 / 0.35)",
+          boxShadow: "var(--shadow-gold)",
+        }}
+      >
+        <p className="text-[10px] uppercase tracking-[0.3em] text-gold">Updated BMR</p>
+        <p
+          className="mt-1 text-5xl font-light text-foreground"
+          style={{ fontFamily: "Fraunces, serif" }}
+        >
+          {recap.bmr}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">Your metabolic rhythm, today.</p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Link
+          to="/library"
+          className="glass flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm text-foreground"
+        >
+          Open the library
+        </Link>
+        <button
+          onClick={onDone}
+          className="flex items-center justify-center gap-2 rounded-2xl px-5 py-4 text-sm font-semibold transition-transform active:scale-[0.99]"
+          style={{
+            background: "var(--gradient-gold)",
+            color: "var(--primary-foreground)",
+            boxShadow: "var(--shadow-gold)",
+          }}
+        >
+          Return home
+        </button>
+      </div>
+    </section>
+  );
+}
