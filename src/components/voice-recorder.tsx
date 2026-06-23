@@ -535,6 +535,10 @@ export function VoiceRecorder({
           0%   { transform: translateX(-100%); }
           100% { transform: translateX(400%);  }
         }
+        @keyframes vr-tick {
+          0%, 100% { opacity: 0.65; }
+          50%      { opacity: 1; }
+        }
       `}</style>
     </div>
   );
