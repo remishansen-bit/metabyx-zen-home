@@ -251,3 +251,25 @@ function LibraryPage() {
     </PhoneFrame>
   );
 }
+
+function exportLibrary(state: ReturnType<typeof useMetabyx>) {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    version: 1,
+    app: "metabyx",
+    branches: state.branches,
+    bmrHistory: state.bmrHistory,
+    lastBmr: state.lastBmr,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `metabyx-library-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
