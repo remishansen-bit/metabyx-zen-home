@@ -1289,6 +1289,44 @@ export function VoiceRecorder({
                       Lavere = fanger opp svakere stemme.
                     </span>
                   </label>
+                  {/* Noise-floor calibration: samples ambient RMS for ~1.4s
+                      and sets the threshold just above it. */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 flex-col">
+                      <span className="text-[10px] text-muted-foreground">
+                        Bakgrunnsstøy
+                      </span>
+                      <span className="text-[9px] text-muted-foreground/70">
+                        {noiseFloor != null
+                          ? `Målt: ${(noiseFloor * 100).toFixed(1)}%`
+                          : "Ikke kalibrert ennå"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void calibrateNoiseFloor()}
+                      disabled={calibrating}
+                      aria-label="Kalibrer bakgrunnsstøy ved å være stille i ett sekund"
+                      className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium text-foreground transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.28), oklch(0.72 0.13 265 / 0.22))",
+                        border: "1px solid oklch(1 0 0 / 0.12)",
+                      }}
+                    >
+                      {calibrating ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Lytter…
+                        </>
+                      ) : (
+                        <>
+                          <Settings2 className="h-3 w-3" />
+                          Kalibrer
+                        </>
+                      )}
+                    </button>
+                  </div>
                   <label className="flex flex-col gap-1 text-[10px] text-muted-foreground">
                     <span className="flex items-center justify-between">
                       <span>Stillhet før auto-stopp</span>
