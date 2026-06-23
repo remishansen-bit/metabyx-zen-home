@@ -831,7 +831,7 @@ export function VoiceRecorder({
                   else el.pause();
                 }}
                 aria-label={isPlaying ? "Pause avspilling" : "Spill av opptaket"}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all active:scale-95"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
                 style={{
                   background:
                     "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.3), oklch(0.72 0.13 265 / 0.22))",
@@ -978,7 +978,7 @@ export function VoiceRecorder({
             ariaLabel ??
             (isRecording ? "Avbryt opptak" : isProcessing ? "Behandler" : "Start opptak")
           }
-          className={`relative flex shrink-0 items-center justify-center rounded-full transition-all duration-300 active:scale-95 disabled:cursor-not-allowed ${
+          className={`relative flex shrink-0 items-center justify-center rounded-full transition-all duration-300 active:scale-95 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 ${
             compact ? "h-10 w-10" : "h-12 w-12"
           }`}
           style={{
@@ -1048,7 +1048,7 @@ export function VoiceRecorder({
                     aria-expanded={settingsOpen}
                     aria-controls="vr-settings"
                     aria-label="Justér stemmedeteksjon"
-                    className="-mr-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+                    className="-mr-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
                   >
                     <Settings2 className="h-3.5 w-3.5" />
                   </button>
@@ -1070,7 +1070,7 @@ export function VoiceRecorder({
                     type="button"
                     onClick={() => void start()}
                     aria-label="Prøv stemmeopptak på nytt"
-                    className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium text-foreground transition-all active:scale-95"
+                    className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium text-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
                     style={{
                       background:
                         "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.35), oklch(0.72 0.13 265 / 0.28))",
@@ -1093,7 +1093,7 @@ export function VoiceRecorder({
                         }
                       }}
                       aria-label="Spill av siste opptak"
-                      className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
                       style={{ border: "1px solid oklch(1 0 0 / 0.08)" }}
                     >
                       <Play className="h-3 w-3" />
@@ -1255,7 +1255,7 @@ export function VoiceRecorder({
                 type="button"
                 onClick={stop}
                 aria-label="Fullfør opptak"
-                className="group relative ml-1 inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-foreground transition-all duration-300 active:scale-95"
+                className="group relative ml-1 inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-foreground transition-all duration-300 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/80"
                 style={{
                   background:
                     "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.35), oklch(0.72 0.13 265 / 0.28))",
