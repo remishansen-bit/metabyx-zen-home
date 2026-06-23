@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { BookHeart, Leaf, CheckCircle2, Search, ChevronRight, X, Download } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { BookHeart, Leaf, CheckCircle2, Search, ChevronRight, X, Download, Upload, LifeBuoy } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
-import { useMetabyx, type Branch } from "@/lib/store";
+import { useMetabyx, importMetabyxJson, type Branch } from "@/lib/store";
 
 export const Route = createFileRoute("/library")({
   head: () => ({
@@ -41,6 +41,8 @@ function LibraryPage() {
     return () => window.clearTimeout(id);
   }, [query]);
   const [cat, setCat] = useState<Cat>("all");
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = debouncedQuery.toLowerCase();
@@ -84,6 +86,21 @@ function LibraryPage() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            to="/crisis"
+            aria-label="Open crisis mode"
+            className="glass flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95"
+          >
+            <LifeBuoy className="h-4 w-4 text-foreground" />
+          </Link>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            aria-label="Import library from JSON"
+            className="glass flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95"
+          >
+            <Upload className="h-4 w-4 text-foreground" />
+          </button>
           <button
             type="button"
             onClick={() => exportLibrary(state)}
@@ -98,6 +115,40 @@ function LibraryPage() {
           </div>
         </div>
       </header>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (!file) return;
+          try {
+            const text = await file.text();
+            const parsed = JSON.parse(text);
+            const { importedBranches, importedHistory } = importMetabyxJson(parsed);
+            setImportMsg(
+              `Restored ${importedBranches} branch${importedBranches === 1 ? "" : "es"} · ${importedHistory} BMR points`,
+            );
+          } catch (err) {
+            setImportMsg(
+              err instanceof Error ? `Could not import: ${err.message}` : "Could not import that file",
+            );
+          }
+          window.setTimeout(() => setImportMsg(null), 4000);
+        }}
+      />
+      {importMsg && (
+        <p
+          role="status"
+          aria-live="polite"
+          className="glass rounded-2xl px-4 py-2 text-center text-xs text-foreground animate-fade-in"
+        >
+          {importMsg}
+        </p>
+      )}
 
       <section className="grid grid-cols-2 gap-3">
         <div className="glass rounded-2xl p-4">
