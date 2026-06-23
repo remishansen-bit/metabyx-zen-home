@@ -21,6 +21,10 @@ export interface VoiceRecorderProps {
   silenceTimeoutMs?: number;
   /** Show an editable preview before emitting the transcript (default true). */
   editBeforeAccept?: boolean;
+  /** Show an in-card audio player in the review step (default true). */
+  enablePlayback?: boolean;
+  /** Show the VAD settings toggle (sensitivity + silence threshold). Default true. */
+  showSettings?: boolean;
 }
 
 export type VoiceRecorderState =
