@@ -887,6 +887,24 @@ export function VoiceRecorder({
     }
   }, [pitch.hz, smoothedStability, state, announce]);
 
+  // Gently announce emotion summaries when the parent supplies one in the
+  // review step. Low-confidence tearfulness gets a calmer, slower message
+  // rather than an alarming "crying detected" cue.
+  useEffect(() => {
+    if (state !== "review" || !emotion) return;
+    const tearsConf = emotion.tearfulness?.confidence ?? 0;
+    const lowConfTears = emotion.tearfulness?.value && tearsConf < 0.5;
+    if (lowConfTears) {
+      announce("Tonen er litt uklar — pust rolig, ordene dine holder");
+      return;
+    }
+    if (emotion.summary) {
+      announce(`Følelse: ${emotion.summary}`);
+    } else if (emotion.primaryEmotion) {
+      announce(`Følelse oppdaget: ${emotion.primaryEmotion}`);
+    }
+  }, [state, emotion, announce]);
+
   // Sample ambient noise for ~1.4s and set the VAD threshold just above it.
   // The mic must be open — we briefly start a stream if needed and tear it
   // down afterwards. Updates `noiseFloor` and `userThreshold` together.
