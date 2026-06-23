@@ -84,7 +84,7 @@ export function VoiceWaveform({
     } catch {}
 
     // Hook up Web Audio only when a stream is provided.
-    let dataArray: Uint8Array | null = null;
+    let dataArray: Uint8Array<ArrayBuffer> | null = null;
     if (stream) {
       try {
         const AC =
@@ -101,7 +101,7 @@ export function VoiceWaveform({
           ctxAudioRef.current = ctxAudio;
           srcRef.current = source;
           analyserRef.current = analyser;
-          dataArray = new Uint8Array(analyser.fftSize);
+          dataArray = new Uint8Array(new ArrayBuffer(analyser.fftSize));
         }
       } catch {
         // Decorative — silently fall back to an idle baseline.
