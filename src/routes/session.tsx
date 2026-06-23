@@ -864,7 +864,7 @@ function ClosePhase({
             showHistory={false}
             ariaLabel="Record the closing story"
             onTranscription={(text) =>
-              setNewStory((prev) => (prev ? `${prev.trim()} ${text}` : text))
+              setNewStory(newStory ? `${newStory.trim()} ${text}` : text)
             }
           />
         </div>
