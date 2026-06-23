@@ -20,6 +20,7 @@ import { suggestPaths } from "@/lib/gcmp.functions";
 import { analyzeVoiceEmotion, type VoiceEmotion } from "@/lib/emotion.functions";
 import { EmotionInsight } from "@/components/emotion-insight";
 import { streamTts, type TtsController } from "@/lib/tts-stream";
+import { notify } from "@/lib/feedback";
 import {
   metabolizeBranch,
   todaysOpenBranches,
@@ -294,6 +295,7 @@ function SessionPage() {
       .filter(Boolean)
       .join(" · ");
     metabolizeBranch(activeBranch.id, 5, reflection);
+    notify.saved("Branch saved to library", `${activeBranch.title}`);
     // Compute BMR against the just-mutated branch list so the recap shows the
     // post-session score (the live store updates a tick later via the hook).
     const projected: Branch = { ...activeBranch, status: "metabolized", rating: 5, reflection };
@@ -958,6 +960,7 @@ function RecapView({
 }) {
   const ctlRef = useRef<TtsController | null>(null);
   const [playState, setPlayState] = useState<"idle" | "playing" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const narrative = useMemo(() => {
     const r = recap.reflection?.trim();
@@ -971,13 +974,31 @@ function RecapView({
   useEffect(() => () => ctlRef.current?.stop(), []);
 
   const play = () => {
+    // The voice-over is always user-initiated — never auto-started — so it
+    // respects browser autoplay rules and users who prefer reduced motion
+    // (the `prefers-reduced-motion: reduce` CSS already kills the rest of
+    // the app's micro-animations). Nothing here starts without a click.
+    if (typeof window !== "undefined" && !("AudioContext" in window)) {
+      const msg = "This browser can't play the voice-over.";
+      setErrorMsg(msg);
+      setPlayState("error");
+      notify.error(msg);
+      return;
+    }
     ctlRef.current?.stop();
+    setErrorMsg(null);
     setPlayState("playing");
     const ctl = streamTts(narrative, { voice: "sage" });
     ctlRef.current = ctl;
     ctl.done
       .then(() => setPlayState((s) => (s === "playing" ? "idle" : s)))
-      .catch(() => setPlayState("error"));
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        const msg = err instanceof Error ? err.message : "Voice-over failed.";
+        setErrorMsg(msg);
+        setPlayState("error");
+        notify.error("Voice-over unavailable", msg);
+      });
   };
   const stop = () => {
     ctlRef.current?.stop();
@@ -1043,7 +1064,13 @@ function RecapView({
       <button
         type="button"
         onClick={playState === "playing" ? stop : play}
-        aria-live="polite"
+        aria-label={
+          playState === "playing"
+            ? "Stop closing voice-over"
+            : playState === "error"
+              ? "Retry closing voice-over"
+              : "Play closing voice-over"
+        }
         className="glass flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm text-foreground transition-all active:scale-[0.99]"
       >
         {playState === "playing" ? (
@@ -1058,6 +1085,11 @@ function RecapView({
           </>
         )}
       </button>
+      {errorMsg && (
+        <p role="status" className="-mt-3 text-center text-[11px] text-muted-foreground">
+          {errorMsg}
+        </p>
+      )}
 
       <div className="flex flex-col gap-2">
         <Link

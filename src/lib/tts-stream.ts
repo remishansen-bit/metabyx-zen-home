@@ -52,7 +52,17 @@ export function streamTts(text: string, opts?: { voice?: string }): TtsControlle
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {
-        throw new Error(`TTS failed: ${res.status}`);
+        // The /api/tts route always responds with `{ error, detail? }` on
+        // failure — surface that string so the UI can show a useful toast
+        // instead of "TTS failed: 502".
+        let message = `Voice-over failed (${res.status}).`;
+        try {
+          const payload = (await res.json()) as { error?: string };
+          if (payload?.error) message = payload.error;
+        } catch {
+          /* non-JSON body, keep generic */
+        }
+        throw new Error(message);
       }
 
       const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
