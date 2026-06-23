@@ -14,7 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          archetype: string | null
+          archetype_scores: Json
+          avatar_url: string | null
+          baseline_bmr: number | null
+          created_at: string
+          display_name: string | null
+          onboarded_at: string | null
+          preferences: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archetype?: string | null
+          archetype_scores?: Json
+          avatar_url?: string | null
+          baseline_bmr?: number | null
+          created_at?: string
+          display_name?: string | null
+          onboarded_at?: string | null
+          preferences?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archetype?: string | null
+          archetype_scores?: Json
+          avatar_url?: string | null
+          baseline_bmr?: number | null
+          created_at?: string
+          display_name?: string | null
+          onboarded_at?: string | null
+          preferences?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
