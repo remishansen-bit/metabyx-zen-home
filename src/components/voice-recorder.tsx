@@ -59,6 +59,12 @@ export function VoiceRecorder({
   // Auto-measured ambient noise floor (RMS, 0..1). Used by calibration.
   const [noiseFloor, setNoiseFloor] = useState<number | null>(null);
   const [calibrating, setCalibrating] = useState(false);
+  // Snapshot of pitch at end of recording — surfaced in the review panel.
+  const [pitchSnapshot, setPitchSnapshot] = useState<{
+    hz: number;
+    stability: number;
+    category: "low" | "medium" | "high";
+  } | null>(null);
   // Throttled aria-live announcements (speaking changes, low confidence).
   const [liveMessage, setLiveMessage] = useState("");
   const lastLiveAtRef = useRef(0);
@@ -142,7 +148,11 @@ export function VoiceRecorder({
     try {
       const raw = window.localStorage.getItem("metabyx.vr.vad");
       if (raw) {
-        const v = JSON.parse(raw) as { threshold?: number; silenceMs?: number };
+        const v = JSON.parse(raw) as {
+          threshold?: number;
+          silenceMs?: number;
+          noiseFloor?: number;
+        };
         if (typeof v.threshold === "number") {
           setUserThreshold(v.threshold);
           thresholdRef.current = v.threshold;
@@ -150,6 +160,9 @@ export function VoiceRecorder({
         if (typeof v.silenceMs === "number") {
           setUserSilenceMs(v.silenceMs);
           silenceMsRef.current = v.silenceMs;
+        }
+        if (typeof v.noiseFloor === "number") {
+          setNoiseFloor(v.noiseFloor);
         }
       }
     } catch {}
@@ -497,6 +510,19 @@ export function VoiceRecorder({
 
   function stop() {
     cancelledRef.current = false;
+    // Snapshot pitch before tearing down the analyser so we can surface
+    // a summary in the review panel ("avg 178 Hz, stable").
+    const hist = pitchHistoryRef.current;
+    if (hist.length >= 4) {
+      const avg = hist.reduce((a, b) => a + b, 0) / hist.length;
+      setPitchSnapshot({
+        hz: avg,
+        stability: smoothedStabilityRef.current,
+        category: pitchCategory(avg),
+      });
+    } else {
+      setPitchSnapshot(null);
+    }
     if (mediaRecorderRef.current?.state === "recording") {
       try {
         mediaRecorderRef.current.stop();
@@ -731,10 +757,14 @@ export function VoiceRecorder({
     try {
       window.localStorage.setItem(
         "metabyx.vr.vad",
-        JSON.stringify({ threshold: userThreshold, silenceMs: userSilenceMs }),
+        JSON.stringify({
+          threshold: userThreshold,
+          silenceMs: userSilenceMs,
+          noiseFloor,
+        }),
       );
     } catch {}
-  }, [userThreshold, userSilenceMs]);
+  }, [userThreshold, userSilenceMs, noiseFloor]);
 
   // Root-level keyboard shortcuts: Esc cancels recording / closes review;
   // Cmd/Ctrl+Enter accepts the draft in review.
@@ -1001,6 +1031,58 @@ export function VoiceRecorder({
                 className="h-8 flex-1"
                 style={{ colorScheme: "dark" }}
               />
+            </div>
+          )}
+
+          {/* Pitch summary — captured at the end of recording. */}
+          {pitchSnapshot && (
+            <div
+              role="group"
+              aria-label={`Stemmesammendrag: ${Math.round(pitchSnapshot.hz)} hertz, stabilitet ${Math.round(pitchSnapshot.stability * 100)} prosent`}
+              className="flex items-center justify-between gap-3 rounded-xl px-3 py-2"
+              style={{
+                background: "oklch(1 0 0 / 0.03)",
+                border: "1px solid oklch(1 0 0 / 0.08)",
+              }}
+            >
+              <div className="flex flex-col">
+                <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
+                  Tonehøyde
+                </span>
+                <span
+                  className="text-sm text-foreground"
+                  style={{ fontFamily: "Fraunces, serif" }}
+                >
+                  {Math.round(pitchSnapshot.hz)} Hz
+                  <span className="ml-1.5 text-[10px] capitalize text-muted-foreground">
+                    · {pitchCategoryLabel(pitchSnapshot.category)}
+                  </span>
+                </span>
+              </div>
+              <div className="flex min-w-[120px] flex-col items-end">
+                <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
+                  Variasjon
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span
+                    aria-hidden
+                    className="inline-block h-1 w-14 overflow-hidden rounded-full"
+                    style={{ background: "oklch(1 0 0 / 0.08)" }}
+                  >
+                    <span
+                      className="block h-full rounded-full"
+                      style={{
+                        width: `${Math.round(pitchSnapshot.stability * 100)}%`,
+                        background:
+                          "linear-gradient(90deg, oklch(0.72 0.13 265 / 0.7), oklch(0.88 0.14 82 / 0.9))",
+                      }}
+                    />
+                  </span>
+                  <span className="text-[11px] text-foreground/80">
+                    {stabilityLabel(pitchSnapshot.stability)}
+                  </span>
+                </span>
+              </div>
             </div>
           )}
 
@@ -1833,6 +1915,28 @@ function pitchCategory(hz: number): "low" | "medium" | "high" {
   if (hz < 140) return "low";
   if (hz < 230) return "medium";
   return "high";
+}
+
+/** Norwegian label for the pitch category shown in the review summary. */
+function pitchCategoryLabel(c: "low" | "medium" | "high" | "unknown"): string {
+  switch (c) {
+    case "low":
+      return "lav";
+    case "medium":
+      return "middels";
+    case "high":
+      return "høy";
+    default:
+      return "ukjent";
+  }
+}
+
+/** Plain-language stability label for the review summary. */
+function stabilityLabel(stability: number): string {
+  if (stability >= 0.7) return "Stødig";
+  if (stability >= 0.4) return "Jevn";
+  if (stability >= 0.2) return "Litt ujevn";
+  return "Ustødig";
 }
 
 /** Light, supportive cue derived from pitch stability + category. */
