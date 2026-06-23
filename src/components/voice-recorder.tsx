@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, Loader2, Check, AlertCircle, Keyboard, X } from "lucide-react";
+import {
+  Mic,
+  Loader2,
+  Check,
+  AlertCircle,
+  Keyboard,
+  X,
+  RotateCcw,
+} from "lucide-react";
 import type { VoiceRecorderProps, VoiceRecorderState } from "@/types/voice-recorder";
 
 /**
@@ -17,10 +25,17 @@ export function VoiceRecorder({
   compact = false,
   maxSeconds = 120,
   ariaLabel,
+  autoStopOnSilence = true,
+  silenceThreshold = 0.02,
+  silenceTimeoutMs = 2200,
+  editBeforeAccept = true,
 }: VoiceRecorderProps) {
   const [state, setState] = useState<VoiceRecorderState>("idle");
   const [elapsed, setElapsed] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const [speaking, setSpeaking] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -35,6 +50,10 @@ export function VoiceRecorder({
   const mountedRef = useRef(true);
   const cancelledRef = useRef(false);
   const historyRef = useRef<number[]>([]);
+  const lastSpeechAtRef = useRef<number>(0);
+  const speakingRef = useRef(false);
+  const reducedMotionRef = useRef(false);
+  const autoStoppedRef = useRef(false);
 
   // Detect support once on mount
   useEffect(() => {
@@ -44,6 +63,20 @@ export function VoiceRecorder({
       typeof MediaRecorder === "undefined"
     ) {
       setState("unsupported");
+    }
+    if (typeof window !== "undefined" && window.matchMedia) {
+      const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const apply = () => {
+        setReducedMotion(mq.matches);
+        reducedMotionRef.current = mq.matches;
+      };
+      apply();
+      mq.addEventListener?.("change", apply);
+      return () => {
+        mq.removeEventListener?.("change", apply);
+        mountedRef.current = false;
+        cleanup();
+      };
     }
     return () => {
       mountedRef.current = false;
@@ -111,6 +144,31 @@ export function VoiceRecorder({
       const rms = Math.sqrt(sum / bufferLength);
       const amp = Math.min(1, Math.pow(rms * 2.4, 0.85));
 
+      // --- Voice activity detection ---
+      const now = performance.now();
+      const isSpeech = rms > silenceThreshold;
+      if (isSpeech) {
+        lastSpeechAtRef.current = now;
+        if (!speakingRef.current) {
+          speakingRef.current = true;
+          setSpeaking(true);
+        }
+      } else if (speakingRef.current && now - lastSpeechAtRef.current > 350) {
+        speakingRef.current = false;
+        setSpeaking(false);
+      }
+      // Auto-stop after sustained silence (only after some real speech captured)
+      if (
+        autoStopOnSilence &&
+        lastSpeechAtRef.current > 0 &&
+        now - lastSpeechAtRef.current > silenceTimeoutMs &&
+        (Date.now() - startedAtRef.current) > 1500
+      ) {
+        autoStoppedRef.current = true;
+        stop();
+        return;
+      }
+
       // Scroll a history buffer — voice-memo style left-to-right flow
       const barGap = 3 * dpr;
       const barW = 2 * dpr;
@@ -129,14 +187,28 @@ export function VoiceRecorder({
       ctx.lineTo(w, h / 2);
       ctx.stroke();
 
-      // Gradient: indigo → gold → indigo, with soft outer glow
+      // Gradient shifts toward gold when the user is speaking,
+      // sits in calm indigo when silent.
+      const speakingNow = speakingRef.current;
       const grad = ctx.createLinearGradient(0, 0, w, 0);
-      grad.addColorStop(0, "oklch(0.72 0.13 265 / 0.85)");
-      grad.addColorStop(0.5, "oklch(0.88 0.14 82 / 1)");
-      grad.addColorStop(1, "oklch(0.72 0.13 265 / 0.85)");
+      if (speakingNow) {
+        grad.addColorStop(0, "oklch(0.72 0.13 265 / 0.85)");
+        grad.addColorStop(0.5, "oklch(0.9 0.15 82 / 1)");
+        grad.addColorStop(1, "oklch(0.72 0.13 265 / 0.85)");
+      } else {
+        grad.addColorStop(0, "oklch(0.7 0.1 265 / 0.55)");
+        grad.addColorStop(0.5, "oklch(0.78 0.1 265 / 0.75)");
+        grad.addColorStop(1, "oklch(0.7 0.1 265 / 0.55)");
+      }
       ctx.fillStyle = grad;
-      ctx.shadowColor = "oklch(0.88 0.14 82 / 0.55)";
-      ctx.shadowBlur = 10 * dpr;
+      if (!reducedMotionRef.current) {
+        ctx.shadowColor = speakingNow
+          ? "oklch(0.88 0.14 82 / 0.55)"
+          : "oklch(0.72 0.13 265 / 0.35)";
+        ctx.shadowBlur = (speakingNow ? 10 : 5) * dpr;
+      } else {
+        ctx.shadowBlur = 0;
+      }
 
       const history = historyRef.current;
       const offset = Math.max(0, barCount - history.length);
@@ -157,6 +229,10 @@ export function VoiceRecorder({
   async function start() {
     if (state === "recording" || state === "processing") return;
     setErrorMsg(null);
+    autoStoppedRef.current = false;
+    lastSpeechAtRef.current = 0;
+    speakingRef.current = false;
+    setSpeaking(false);
 
     let stream: MediaStream;
     try {
@@ -316,9 +392,14 @@ export function VoiceRecorder({
         return;
       }
 
-      onTranscription(json.text);
-      setState("done");
-      setTimeout(() => mountedRef.current && setState("idle"), 1600);
+      if (editBeforeAccept) {
+        setDraft(json.text);
+        setState("review");
+      } else {
+        onTranscription(json.text);
+        setState("done");
+        setTimeout(() => mountedRef.current && setState("idle"), 1600);
+      }
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Nettverksfeil under transkripsjon.";
@@ -326,6 +407,21 @@ export function VoiceRecorder({
       setErrorMsg(msg);
       onError?.(msg);
     }
+  }
+
+  function acceptDraft() {
+    const text = draft.trim();
+    if (!text) {
+      const msg = "Teksten er tom. Spill inn på nytt eller skriv inn en tekst.";
+      setErrorMsg(msg);
+      setState("error");
+      onError?.(msg);
+      return;
+    }
+    onTranscription(text);
+    setDraft("");
+    setState("done");
+    setTimeout(() => mountedRef.current && setState("idle"), 1400);
   }
 
   if (state === "unsupported") {
@@ -343,6 +439,7 @@ export function VoiceRecorder({
   const isProcessing = state === "processing";
   const isDone = state === "done";
   const isError = state === "error";
+  const isReview = state === "review";
 
   return (
     <div
@@ -356,13 +453,15 @@ export function VoiceRecorder({
             ? "linear-gradient(135deg, oklch(0.75 0.08 240 / 0.10), oklch(0.75 0.08 240 / 0.02))"
             : isError
               ? "linear-gradient(135deg, oklch(0.7 0.14 25 / 0.10), oklch(0.7 0.14 25 / 0.02))"
-              : undefined,
+              : isReview
+                ? "linear-gradient(135deg, oklch(0.72 0.13 265 / 0.08), oklch(0.88 0.14 82 / 0.04))"
+                : undefined,
         boxShadow: isRecording ? "var(--shadow-gold)" : undefined,
       }}
       aria-live="polite"
     >
       {/* Ambient breathing glow during record */}
-      {isRecording && (
+      {isRecording && !reducedMotion && (
         <span
           aria-hidden
           className="pointer-events-none absolute -inset-8 -z-10"
@@ -374,6 +473,77 @@ export function VoiceRecorder({
         />
       )}
 
+      {/* Review (editable transcription preview) — full-width row */}
+      {isReview && (
+        <div className="animate-fade-in flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+              Forhåndsvisning
+            </p>
+            <span className="text-[10px] text-muted-foreground">
+              Rediger om noe ble feil
+            </span>
+          </div>
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={4}
+            aria-label="Transkribert tekst — rediger før du godtar"
+            className="min-h-[88px] w-full resize-y rounded-xl bg-white/5 p-3 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold/40"
+            style={{
+              border: "1px solid oklch(1 0 0 / 0.08)",
+              fontFamily: "Fraunces, serif",
+            }}
+            placeholder="Tom transkripsjon — skriv her i stedet."
+          />
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setDraft("");
+                setState("idle");
+              }}
+              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+              style={{ border: "1px solid oklch(1 0 0 / 0.08)" }}
+            >
+              <X className="h-3.5 w-3.5" />
+              Avbryt
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDraft("");
+                void start();
+              }}
+              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-foreground transition-colors"
+              style={{
+                border: "1px solid oklch(1 0 0 / 0.1)",
+                background: "oklch(1 0 0 / 0.04)",
+              }}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Ta opp på nytt
+            </button>
+            <button
+              type="button"
+              onClick={acceptDraft}
+              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[11px] font-semibold text-foreground transition-all active:scale-95"
+              style={{
+                background:
+                  "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.4), oklch(0.72 0.13 265 / 0.32))",
+                border: "1px solid oklch(1 0 0 / 0.12)",
+                boxShadow:
+                  "0 0 18px oklch(0.88 0.14 82 / 0.35), inset 0 0 0 1px oklch(0.88 0.14 82 / 0.25)",
+              }}
+            >
+              <Check className="h-3.5 w-3.5" />
+              Bruk teksten
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!isReview && (
       <div className="flex items-center gap-3">
         {/* Main control button */}
         <button
@@ -442,12 +612,12 @@ export function VoiceRecorder({
         <div className="relative min-h-[44px] flex-1">
           {/* Idle / done / error labels */}
           {(state === "idle" || isDone || isError) && (
-            <div className="animate-fade-in flex h-full flex-col justify-center">
+            <div className="animate-fade-in flex h-full flex-col justify-center gap-1">
               <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                 {isDone ? "Ferdig" : isError ? "Noe gikk galt" : "Stemmeopptak"}
               </p>
               <p
-                className="mt-0.5 text-xs leading-snug text-foreground/80"
+                className="text-xs leading-snug text-foreground/80"
                 style={{ fontFamily: "Fraunces, serif" }}
               >
                 {isDone
@@ -456,24 +626,75 @@ export function VoiceRecorder({
                     ? (errorMsg ?? "Prøv igjen, eller skriv i stedet.")
                     : "Trykk for å snakke. Norsk støttes."}
               </p>
+              {isError && (
+                <div className="mt-1 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void start()}
+                    className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium text-foreground transition-all active:scale-95"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.35), oklch(0.72 0.13 265 / 0.28))",
+                      border: "1px solid oklch(1 0 0 / 0.12)",
+                      boxShadow:
+                        "0 0 12px oklch(0.88 0.14 82 / 0.25), inset 0 0 0 1px oklch(0.88 0.14 82 / 0.2)",
+                    }}
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    Prøv igjen
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
           {/* Live waveform + timer while recording */}
           {isRecording && (
             <div className="animate-fade-in flex h-full items-center gap-2">
-              <canvas
-                ref={canvasRef}
-                className="h-11 flex-1 rounded-lg"
-                style={{
-                  background:
-                    "linear-gradient(180deg, oklch(0.72 0.13 265 / 0.05), oklch(0.82 0.14 82 / 0.04), oklch(0.72 0.13 265 / 0.05))",
-                  boxShadow: "inset 0 0 0 1px oklch(1 0 0 / 0.04)",
-                }}
-              />
+              <div className="relative h-11 flex-1">
+                <canvas
+                  ref={canvasRef}
+                  className="h-full w-full rounded-lg"
+                  style={{
+                    background:
+                      "linear-gradient(180deg, oklch(0.72 0.13 265 / 0.05), oklch(0.82 0.14 82 / 0.04), oklch(0.72 0.13 265 / 0.05))",
+                    boxShadow: "inset 0 0 0 1px oklch(1 0 0 / 0.04)",
+                  }}
+                />
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute left-2 top-1.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-[0.2em] transition-colors duration-300"
+                  style={{
+                    color: speaking
+                      ? "oklch(0.92 0.14 82)"
+                      : "oklch(0.78 0.08 265)",
+                    background: speaking
+                      ? "oklch(0.88 0.14 82 / 0.15)"
+                      : "oklch(0.72 0.13 265 / 0.12)",
+                  }}
+                >
+                  <span
+                    className="inline-block h-1 w-1 rounded-full"
+                    style={{
+                      background: speaking
+                        ? "oklch(0.9 0.15 82)"
+                        : "oklch(0.78 0.08 265)",
+                      animation:
+                        speaking && !reducedMotion
+                          ? "vr-tick 0.9s ease-in-out infinite"
+                          : undefined,
+                    }}
+                  />
+                  {speaking ? "Snakker" : "Lytter"}
+                </span>
+              </div>
               <span
                 className="font-mono text-[11px] tabular-nums text-gold/90"
-                style={{ animation: "vr-tick 1s ease-in-out infinite" }}
+                style={
+                  reducedMotion
+                    ? undefined
+                    : { animation: "vr-tick 1s ease-in-out infinite" }
+                }
                 aria-label={`Tid ${elapsed} sekunder`}
               >
                 {formatTime(elapsed)}
@@ -520,6 +741,7 @@ export function VoiceRecorder({
           )}
         </div>
       </div>
+      )}
 
       <style>{`
         @keyframes vr-pulse {
@@ -538,6 +760,12 @@ export function VoiceRecorder({
         @keyframes vr-tick {
           0%, 100% { opacity: 0.65; }
           50%      { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .vr-no-motion, .vr-no-motion * {
+            animation: none !important;
+            transition: none !important;
+          }
         }
       `}</style>
     </div>
