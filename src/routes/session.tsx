@@ -22,6 +22,7 @@ import {
   todaysOpenBranches,
   useMetabyx,
   logEmotionEvent,
+  computeBmr,
   type Branch,
 } from "@/lib/store";
 
@@ -34,6 +35,15 @@ export const Route = createFileRoute("/session")({
         content: "Guided Counterfactual Metabolism Protocol — a calm 5-phase practice.",
       },
     ],
+  }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    phase:
+      typeof s.phase === "string" && /^[1-5]$/.test(s.phase)
+        ? (Number(s.phase) - 1)
+        : typeof s.phase === "number" && s.phase >= 1 && s.phase <= 5
+          ? s.phase - 1
+          : undefined,
+    branchId: typeof s.branchId === "string" ? s.branchId : undefined,
   }),
   component: SessionPage,
 });
@@ -123,14 +133,17 @@ type Phase = 0 | 1 | 2 | 3 | 4;
 
 function SessionPage() {
   const router = useRouter();
+  const search = Route.useSearch();
   const state = useMetabyx();
   const openToday = useMemo(() => todaysOpenBranches(state), [state]);
   const suggest = useServerFn(suggestPaths);
   const analyzeEmotion = useServerFn(analyzeVoiceEmotion);
 
-  const [phase, setPhase] = useState<Phase>(0);
+  const [phase, setPhase] = useState<Phase>(
+    (search.phase as Phase | undefined) ?? 0,
+  );
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(
-    openToday[0]?.id ?? null,
+    search.branchId ?? openToday[0]?.id ?? null,
   );
   const [whatIf, setWhatIf] = useState("");
   const [frictions, setFrictions] = useState<Set<string>>(new Set());
@@ -149,6 +162,10 @@ function SessionPage() {
   const [emotionLoading, setEmotionLoading] = useState<Record<number, boolean>>({});
   const [emotionError, setEmotionError] = useState<Record<number, string | null>>({});
   const [emotionAnalyzedFor, setEmotionAnalyzedFor] = useState<Record<number, string>>({});
+
+  // Post-session recap: shown after finish() so the user can see what was
+  // saved and the updated BMR before returning home.
+  const [recap, setRecap] = useState<{ branch: Branch; bmr: number; reflection: string } | null>(null);
 
   const activeBranch: Branch | undefined = openToday.find(
     (b) => b.id === selectedBranchId,
@@ -263,16 +280,32 @@ function SessionPage() {
   }
 
   function finish() {
-    if (activeBranch) {
-      const reflection = [
-        newStory.trim(),
-        path ? `Path: ${path.title}` : null,
-      ]
-        .filter(Boolean)
-        .join(" · ");
-      metabolizeBranch(activeBranch.id, 5, reflection);
+    if (!activeBranch) {
+      router.navigate({ to: "/" });
+      return;
     }
-    router.navigate({ to: "/" });
+    const reflection = [
+      newStory.trim(),
+      path ? `Path: ${path.title}` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    metabolizeBranch(activeBranch.id, 5, reflection);
+    // Compute BMR against the just-mutated branch list so the recap shows the
+    // post-session score (the live store updates a tick later via the hook).
+    const projected: Branch = { ...activeBranch, status: "metabolized", rating: 5, reflection };
+    const others = state.branches.filter((b) => b.id !== activeBranch.id);
+    const bmr = computeBmr({ ...state, branches: [projected, ...others] });
+    setRecap({ branch: projected, bmr, reflection });
+  }
+
+  if (recap) {
+    return (
+      <PhoneFrame>
+        <StatusBar title="GCMP" />
+        <RecapView recap={recap} onDone={() => router.navigate({ to: "/" })} />
+      </PhoneFrame>
+    );
   }
 
   const canAdvance =
@@ -910,6 +943,90 @@ function ClosePhase({
         </div>
       </details>
       {children}
+    </section>
+  );
+}
+function RecapView({
+  recap,
+  onDone,
+}: {
+  recap: { branch: Branch; bmr: number; reflection: string };
+  onDone: () => void;
+}) {
+  return (
+    <section className="flex flex-col gap-6 animate-fade-in">
+      <header className="flex flex-col items-center gap-3 text-center">
+        <div
+          className="flex h-14 w-14 items-center justify-center rounded-full"
+          style={{ background: "var(--gradient-gold)", boxShadow: "var(--shadow-gold)" }}
+        >
+          <Check className="h-6 w-6" style={{ color: "var(--primary-foreground)" }} />
+        </div>
+        <p className="text-[10px] uppercase tracking-[0.35em] text-gold">Branch metabolized</p>
+        <h1
+          className="text-2xl font-light leading-snug text-foreground"
+          style={{ fontFamily: "Fraunces, serif" }}
+        >
+          It is <span className="text-gold italic">held now</span>.
+        </h1>
+      </header>
+
+      <div className="glass rounded-2xl p-4">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Saved to library</p>
+        <p
+          className="mt-2 text-base leading-relaxed text-foreground"
+          style={{ fontFamily: "Fraunces, serif" }}
+        >
+          {recap.branch.title}
+        </p>
+        {recap.reflection && (
+          <p
+            className="mt-2 text-sm leading-relaxed text-muted-foreground"
+            style={{ fontFamily: "Fraunces, serif" }}
+          >
+            {recap.reflection}
+          </p>
+        )}
+      </div>
+
+      <div
+        className="rounded-2xl p-4 text-center"
+        style={{
+          background:
+            "linear-gradient(135deg, oklch(0.82 0.14 82 / 0.12), oklch(0.82 0.14 82 / 0.02))",
+          border: "1px solid oklch(0.82 0.14 82 / 0.35)",
+          boxShadow: "var(--shadow-gold)",
+        }}
+      >
+        <p className="text-[10px] uppercase tracking-[0.3em] text-gold">Updated BMR</p>
+        <p
+          className="mt-1 text-5xl font-light text-foreground"
+          style={{ fontFamily: "Fraunces, serif" }}
+        >
+          {recap.bmr}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">Your metabolic rhythm, today.</p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Link
+          to="/library"
+          className="glass flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm text-foreground"
+        >
+          Open the library
+        </Link>
+        <button
+          onClick={onDone}
+          className="flex items-center justify-center gap-2 rounded-2xl px-5 py-4 text-sm font-semibold transition-transform active:scale-[0.99]"
+          style={{
+            background: "var(--gradient-gold)",
+            color: "var(--primary-foreground)",
+            boxShadow: "var(--shadow-gold)",
+          }}
+        >
+          Return home
+        </button>
+      </div>
     </section>
   );
 }
