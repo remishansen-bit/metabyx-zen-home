@@ -52,6 +52,10 @@ export function VoiceRecorder({
   const [draft, setDraft] = useState("");
   const [speaking, setSpeaking] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
+  // Live volume (0..1), throttled — drives the small VAD bars.
+  const [volume, setVolume] = useState(0);
+  // EMA-smoothed pitch stability shown to the user — raw values are jumpy.
+  const [smoothedStability, setSmoothedStability] = useState(0);
   // User-tunable VAD (persisted). Falls back to props.
   const [userThreshold, setUserThreshold] = useState<number>(silenceThreshold);
   const [userSilenceMs, setUserSilenceMs] = useState<number>(silenceTimeoutMs);
@@ -109,6 +113,10 @@ export function VoiceRecorder({
   const pitchHistoryRef = useRef<number[]>([]);
   // Throttle pitch updates to keep React renders cheap (~5Hz).
   const lastPitchAtRef = useRef(0);
+  // Last volume push to React — keeps re-renders at ~12Hz.
+  const lastVolumeAtRef = useRef(0);
+  // Smoothed stability mirror so the rAF loop reads without re-creating closures.
+  const smoothedStabilityRef = useRef(0);
 
   // Detect low-end devices once. Conservative heuristics.
   useEffect(() => {
@@ -239,7 +247,9 @@ export function VoiceRecorder({
     }
 
     // Throttle to ~30fps on low-end devices to keep main thread free.
-    const minFrameMs = lowEndRef.current ? 33 : 0;
+    // Reduced-motion users get a calmer ~20fps update — visually steady,
+    // less peripheral movement.
+    const minFrameMs = reducedMotionRef.current ? 50 : lowEndRef.current ? 33 : 0;
 
     const render = (ts?: number) => {
       rafRef.current = requestAnimationFrame(render);
@@ -262,6 +272,12 @@ export function VoiceRecorder({
       }
       const rms = Math.sqrt(sum / bufferLength);
       const amp = Math.min(1, Math.pow(rms * 2.4, 0.85));
+
+      // Throttled volume push — feeds the "Speaking…" bars.
+      if (now - lastVolumeAtRef.current > 80) {
+        lastVolumeAtRef.current = now;
+        setVolume(amp);
+      }
 
       // --- Voice activity detection ---
       const isSpeech = rms > thresholdRef.current;
@@ -310,6 +326,12 @@ export function VoiceRecorder({
             hist.push(hz);
             if (hist.length > 20) hist.shift();
             const stability = pitchStability(hist);
+            // EMA smoothing — fast on rise, gentle on decay, prevents jitter.
+            const prev = smoothedStabilityRef.current;
+            const alpha = stability > prev ? 0.35 : 0.15;
+            const nextSmoothed = prev + (stability - prev) * alpha;
+            smoothedStabilityRef.current = nextSmoothed;
+            setSmoothedStability(nextSmoothed);
             setPitch({ hz, category: pitchCategory(hz), stability });
           }
         }
@@ -317,6 +339,9 @@ export function VoiceRecorder({
         // Decay history when user goes quiet so the badge can fade.
         pitchHistoryRef.current = [];
         setPitch({ hz: null, category: "unknown", stability: 0 });
+        // Decay smoothed stability gently so the bar doesn't snap to zero.
+        smoothedStabilityRef.current = smoothedStabilityRef.current * 0.6;
+        setSmoothedStability((s) => s * 0.6);
       }
 
       // Scroll a history buffer — voice-memo style left-to-right flow
@@ -707,9 +732,14 @@ export function VoiceRecorder({
   // Root-level keyboard shortcuts: Esc cancels recording / closes review;
   // Cmd/Ctrl+Enter accepts the draft in review.
   const onRootKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (state === "recording" && e.key === "Escape") {
-      e.preventDefault();
-      cancel();
+    if (state === "recording") {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        cancel();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        stop();
+      }
     } else if (state === "review") {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -1193,17 +1223,33 @@ export function VoiceRecorder({
                   }}
                 >
                   <span
-                    className="inline-block h-1 w-1 rounded-full"
-                    style={{
-                      background: speaking
-                        ? "oklch(0.9 0.15 82)"
-                        : "oklch(0.78 0.08 265)",
-                      animation:
-                        speaking && !reducedMotion
-                          ? "vr-tick 0.9s ease-in-out infinite"
-                          : undefined,
-                    }}
-                  />
+                    aria-hidden
+                    className="inline-flex items-end gap-[2px]"
+                    style={{ height: 8 }}
+                  >
+                    {[0, 1, 2, 3].map((i) => {
+                      // Each bar lights up at progressively higher thresholds.
+                      const lit = speaking && volume > 0.06 + i * 0.08;
+                      const h = lit
+                        ? Math.max(2, Math.min(8, 2 + volume * 10 - i))
+                        : 2;
+                      return (
+                        <span
+                          key={i}
+                          className="block w-[2px] rounded-full"
+                          style={{
+                            height: `${h}px`,
+                            background: lit
+                              ? "oklch(0.9 0.15 82)"
+                              : "oklch(0.78 0.08 265 / 0.55)",
+                            transition: reducedMotion
+                              ? undefined
+                              : "height 120ms ease-out, background 200ms ease-out",
+                          }}
+                        />
+                      );
+                    })}
+                  </span>
                   {speaking ? "Snakker" : "Lytter"}
                 </span>
               </div>
@@ -1211,7 +1257,7 @@ export function VoiceRecorder({
             {pitch.hz != null && (
               <div
                 role="status"
-                aria-label={`Tonehøyde ${Math.round(pitch.hz)} hertz, stabilitet ${Math.round(pitch.stability * 100)} prosent`}
+                aria-label={`Tonehøyde ${Math.round(pitch.hz)} hertz, stabilitet ${Math.round(smoothedStability * 100)} prosent`}
                 className="hidden flex-col items-end gap-0.5 sm:flex"
               >
                 <div className="flex items-center gap-1.5">
@@ -1221,9 +1267,11 @@ export function VoiceRecorder({
                     style={{ background: "oklch(1 0 0 / 0.08)" }}
                   >
                     <span
-                      className="block h-full rounded-full transition-[width,background] duration-300"
+                      className={`block h-full rounded-full ${
+                        reducedMotion ? "" : "transition-[width,background] duration-500 ease-out"
+                      }`}
                       style={{
-                        width: `${Math.round(pitch.stability * 100)}%`,
+                        width: `${Math.round(smoothedStability * 100)}%`,
                         background:
                           "linear-gradient(90deg, oklch(0.72 0.13 265 / 0.7), oklch(0.88 0.14 82 / 0.9))",
                       }}
@@ -1233,9 +1281,15 @@ export function VoiceRecorder({
                     {Math.round(pitch.hz)} Hz
                   </span>
                 </div>
-                {pitchCue(pitch) && (
+                {/* Low-confidence fallback — when we don't have enough stable
+                    samples yet, prefer a calm waiting message over a noisy cue. */}
+                {smoothedStability < 0.2 || pitch.stability === 0 ? (
+                  <span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/70">
+                    Lytter etter tydeligere stemme
+                  </span>
+                ) : pitchCue({ hz: pitch.hz, stability: smoothedStability }) && (
                   <span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">
-                    {pitchCue(pitch)}
+                    {pitchCue({ hz: pitch.hz, stability: smoothedStability })}
                   </span>
                 )}
               </div>
@@ -1293,6 +1347,23 @@ export function VoiceRecorder({
           )}
         </div>
       </div>
+      )}
+
+      {/* Keyboard shortcuts hint — visible during recording & review so users
+          know how to confirm or cancel without reaching for the mouse. */}
+      {(isRecording || isReview) && (
+        <p className="mt-2 hidden items-center gap-2 text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70 sm:flex">
+          <Keyboard aria-hidden className="h-3 w-3" />
+          <span>
+            <kbd className="rounded bg-white/10 px-1 py-0.5">Esc</kbd>{" "}
+            {isRecording ? "avbryt" : "lukk"}
+            <span className="mx-1.5 text-foreground/30">·</span>
+            <kbd className="rounded bg-white/10 px-1 py-0.5">⌘</kbd>/
+            <kbd className="rounded bg-white/10 px-1 py-0.5">Ctrl</kbd>+
+            <kbd className="rounded bg-white/10 px-1 py-0.5">Enter</kbd>{" "}
+            {isRecording ? "godta" : "bruk"}
+          </span>
+        </p>
       )}
 
       {/* Recording history — replay & revisit previously accepted transcripts. */}
