@@ -778,10 +778,12 @@ function ClosePhase({
   whatIf,
   newStory,
   setNewStory,
+  children,
 }: {
   whatIf: string;
   newStory: string;
   setNewStory: (v: string) => void;
+  children?: React.ReactNode;
 }) {
   return (
     <section className="flex flex-col gap-5">
