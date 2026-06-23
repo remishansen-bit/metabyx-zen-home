@@ -3,6 +3,7 @@ import { ArrowLeft, CheckCircle2, Leaf, Sparkles, Calendar, Tag, Share2, Check }
 import { useState } from "react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { useMetabyx } from "@/lib/store";
+import { notify } from "@/lib/feedback";
 
 export const Route = createFileRoute("/branch/$id")({
   head: () => ({
@@ -48,13 +49,18 @@ function BranchDetailPage() {
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share(data);
+        notify.info("Shared");
         return;
       }
       await navigator.clipboard.writeText(url);
       setCopied(true);
+      notify.saved("Link copied", "Paste it anywhere to revisit this branch.");
       window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      /* user cancelled or unsupported */
+    } catch (err) {
+      // navigator.share rejects with AbortError when the user dismisses the
+      // share sheet — that's a deliberate "no", not a failure to surface.
+      if (err instanceof Error && err.name === "AbortError") return;
+      notify.error("Couldn't share link", "Try copying the address bar instead.");
     }
   }
 
