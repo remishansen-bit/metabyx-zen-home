@@ -1,14 +1,24 @@
 export interface VoiceRecorderProps {
-  /** Called with the final transcribed text when recording stops. */
-  onResult: (text: string) => void;
+  /** Called with the final transcribed text from Whisper. */
+  onTranscription: (text: string) => void;
+  /** Called when something fails (mic denied, transcription error, etc). */
+  onError?: (message: string) => void;
   /** BCP-47 language code. Defaults to Norwegian ('nb-NO'). */
-  lang?: string;
-  /** Additional classes for the outer button. */
+  language?: string;
+  /** Additional classes for the outer wrapper. */
   className?: string;
-  /** Compact size for tight layouts. */
+  /** Compact size for tight layouts (smaller pad, no big timer). */
   compact?: boolean;
-  /** Optional accessible label. Defaults to "Snakk inn tekst". */
+  /** Max recording duration in seconds (auto-stops). Defaults to 120s. */
+  maxSeconds?: number;
+  /** Optional accessible label for the main button. */
   ariaLabel?: string;
 }
 
-export type VoiceRecorderState = "idle" | "listening" | "done" | "unsupported";
+export type VoiceRecorderState =
+  | "idle"
+  | "recording"
+  | "processing"
+  | "done"
+  | "error"
+  | "unsupported";
