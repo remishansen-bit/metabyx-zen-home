@@ -1,3 +1,4 @@
+import { RequireAuth } from "@/lib/auth";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -49,7 +50,7 @@ export const Route = createFileRoute("/session")({
           : undefined,
     branchId: typeof s.branchId === "string" ? s.branchId : undefined,
   }),
-  component: SessionPage,
+  component: () => (<RequireAuth><SessionPage /></RequireAuth>),
 });
 
 type Path = {

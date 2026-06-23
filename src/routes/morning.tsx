@@ -1,3 +1,4 @@
+import { RequireAuth } from "@/lib/auth";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Mic, MicOff, Sparkles, Check, Loader2 } from "lucide-react";
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/morning")({
       { name: "description", content: "Notice the open branches you carry into the day." },
     ],
   }),
-  component: MorningPage,
+  component: () => (<RequireAuth><MorningPage /></RequireAuth>),
 });
 
 type RefineResult = Awaited<ReturnType<typeof refineBranches>>;
