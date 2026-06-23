@@ -574,7 +574,7 @@ export function VoiceRecorder({
           }}
         >
           {/* Pulsing halo when recording */}
-          {isRecording && (
+          {isRecording && !reducedMotion && (
             <>
               <span
                 aria-hidden
