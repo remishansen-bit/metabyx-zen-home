@@ -212,3 +212,24 @@
     filter: blur(0);
   }
 }
+
+/* Reduced-motion fallback: tone down glassmorphism transitions and
+ * micro-animations so the app stays calm without motion sensitivity issues. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-rise,
+  .animate-fade-in,
+  .animate-pulse {
+    animation: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+  }
+}
