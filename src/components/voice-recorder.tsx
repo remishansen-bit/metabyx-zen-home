@@ -59,6 +59,12 @@ export function VoiceRecorder({
   // Auto-measured ambient noise floor (RMS, 0..1). Used by calibration.
   const [noiseFloor, setNoiseFloor] = useState<number | null>(null);
   const [calibrating, setCalibrating] = useState(false);
+  // Snapshot of pitch at end of recording — surfaced in the review panel.
+  const [pitchSnapshot, setPitchSnapshot] = useState<{
+    hz: number;
+    stability: number;
+    category: "low" | "medium" | "high";
+  } | null>(null);
   // Throttled aria-live announcements (speaking changes, low confidence).
   const [liveMessage, setLiveMessage] = useState("");
   const lastLiveAtRef = useRef(0);
@@ -142,7 +148,11 @@ export function VoiceRecorder({
     try {
       const raw = window.localStorage.getItem("metabyx.vr.vad");
       if (raw) {
-        const v = JSON.parse(raw) as { threshold?: number; silenceMs?: number };
+        const v = JSON.parse(raw) as {
+          threshold?: number;
+          silenceMs?: number;
+          noiseFloor?: number;
+        };
         if (typeof v.threshold === "number") {
           setUserThreshold(v.threshold);
           thresholdRef.current = v.threshold;
@@ -150,6 +160,9 @@ export function VoiceRecorder({
         if (typeof v.silenceMs === "number") {
           setUserSilenceMs(v.silenceMs);
           silenceMsRef.current = v.silenceMs;
+        }
+        if (typeof v.noiseFloor === "number") {
+          setNoiseFloor(v.noiseFloor);
         }
       }
     } catch {}
@@ -731,10 +744,14 @@ export function VoiceRecorder({
     try {
       window.localStorage.setItem(
         "metabyx.vr.vad",
-        JSON.stringify({ threshold: userThreshold, silenceMs: userSilenceMs }),
+        JSON.stringify({
+          threshold: userThreshold,
+          silenceMs: userSilenceMs,
+          noiseFloor,
+        }),
       );
     } catch {}
-  }, [userThreshold, userSilenceMs]);
+  }, [userThreshold, userSilenceMs, noiseFloor]);
 
   // Root-level keyboard shortcuts: Esc cancels recording / closes review;
   // Cmd/Ctrl+Enter accepts the draft in review.
