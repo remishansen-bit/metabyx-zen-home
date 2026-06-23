@@ -296,19 +296,27 @@ function BmrStats({
   current: number;
 }) {
   // Weekly change: compare current to the oldest reading inside the last 7 days.
+  // Weekly change: prefer the last reading taken *before* the 7-day window so
+  // we're comparing against a true baseline. Fall back to the oldest reading
+  // in the window, then to the oldest reading overall.
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const recent = history.filter((p) => p.t >= weekAgo);
-  const weekBase = recent[0]?.value ?? history[0]?.value ?? current;
+  const beforeWindow = [...history].reverse().find((p) => p.t < weekAgo);
+  const inWindow = history.find((p) => p.t >= weekAgo);
+  const weekBase = beforeWindow?.value ?? inWindow?.value ?? history[0]?.value ?? current;
   const weeklyDelta = current - weekBase;
-  // Streak: count consecutive recent points that did not drop.
+
+  // Streak: consecutive history points that did not drop, walking from the
+  // newest backwards. `current` is already the last entry of `history` (the
+  // store writes it on every change), so we never add an extra step on top.
   let streak = 0;
-  for (let i = history.length - 1; i > 0; i--) {
-    if (history[i].value >= history[i - 1].value) streak += 1;
-    else break;
+  if (history.length >= 2) {
+    for (let i = history.length - 1; i > 0; i--) {
+      if (history[i].value >= history[i - 1].value) streak += 1;
+      else break;
+    }
+  } else if (history.length === 1) {
+    streak = 1;
   }
-  // Include current vs last as the most recent step.
-  const last = history.at(-1)?.value;
-  if (typeof last === "number" && current >= last) streak += 1;
 
   const tiles: { label: string; value: string; tone: "gold" | "muted" }[] = [
     {
