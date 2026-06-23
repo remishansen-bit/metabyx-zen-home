@@ -123,6 +123,7 @@ function Index() {
                   : "Your metabolic rhythm is steady. A short reset will lift you further."}
             </p>
             <BmrSparkline history={state.bmrHistory} current={bmr} />
+            <BmrStats history={state.bmrHistory} current={bmr} />
           </section>
 
           {/* Branches */}
