@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SessionRouteImport } from './routes/session'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MorningRouteImport } from './routes/morning'
+import { Route as LibraryRouteImport } from './routes/library'
 import { Route as EveningRouteImport } from './routes/evening'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -19,9 +21,19 @@ const SessionRoute = SessionRouteImport.update({
   path: '/session',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MorningRoute = MorningRouteImport.update({
   id: '/morning',
   path: '/morning',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EveningRoute = EveningRouteImport.update({
@@ -38,34 +50,55 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/evening': typeof EveningRoute
+  '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
+  '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/evening': typeof EveningRoute
+  '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
+  '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/evening': typeof EveningRoute
+  '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
+  '/profile': typeof ProfileRoute
   '/session': typeof SessionRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/evening' | '/morning' | '/session'
+  fullPaths:
+    | '/'
+    | '/evening'
+    | '/library'
+    | '/morning'
+    | '/profile'
+    | '/session'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/evening' | '/morning' | '/session'
-  id: '__root__' | '/' | '/evening' | '/morning' | '/session'
+  to: '/' | '/evening' | '/library' | '/morning' | '/profile' | '/session'
+  id:
+    | '__root__'
+    | '/'
+    | '/evening'
+    | '/library'
+    | '/morning'
+    | '/profile'
+    | '/session'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   EveningRoute: typeof EveningRoute
+  LibraryRoute: typeof LibraryRoute
   MorningRoute: typeof MorningRoute
+  ProfileRoute: typeof ProfileRoute
   SessionRoute: typeof SessionRoute
 }
 
@@ -78,11 +111,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SessionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/morning': {
       id: '/morning'
       path: '/morning'
       fullPath: '/morning'
       preLoaderRoute: typeof MorningRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/evening': {
@@ -105,7 +152,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   EveningRoute: EveningRoute,
+  LibraryRoute: LibraryRoute,
   MorningRoute: MorningRoute,
+  ProfileRoute: ProfileRoute,
   SessionRoute: SessionRoute,
 }
 export const routeTree = rootRouteImport
