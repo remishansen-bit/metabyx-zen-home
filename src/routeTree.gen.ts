@@ -9,8 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as MorningRouteImport } from './routes/morning'
+import { Route as EveningRouteImport } from './routes/evening'
 import { Route as IndexRouteImport } from './routes/index'
 
+const MorningRoute = MorningRouteImport.update({
+  id: '/morning',
+  path: '/morning',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EveningRoute = EveningRouteImport.update({
+  id: '/evening',
+  path: '/evening',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +31,50 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/evening': typeof EveningRoute
+  '/morning': typeof MorningRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/evening': typeof EveningRoute
+  '/morning': typeof MorningRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/evening': typeof EveningRoute
+  '/morning': typeof MorningRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/evening' | '/morning'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/evening' | '/morning'
+  id: '__root__' | '/' | '/evening' | '/morning'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  EveningRoute: typeof EveningRoute
+  MorningRoute: typeof MorningRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/morning': {
+      id: '/morning'
+      path: '/morning'
+      fullPath: '/morning'
+      preLoaderRoute: typeof MorningRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/evening': {
+      id: '/evening'
+      path: '/evening'
+      fullPath: '/evening'
+      preLoaderRoute: typeof EveningRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +87,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  EveningRoute: EveningRoute,
+  MorningRoute: MorningRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
