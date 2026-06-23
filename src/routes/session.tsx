@@ -494,10 +494,27 @@ function FrictionPhase({
 function PathsPhase({
   pathId,
   onPick,
+  suggestions,
+  intro,
+  loading,
+  error,
 }: {
   pathId: Path["id"] | null;
   onPick: (id: Path["id"]) => void;
+  suggestions: Suggestion[] | null;
+  intro: string;
+  loading: boolean;
+  error: string | null;
 }) {
+  const list: { meta: Path; sug?: Suggestion }[] = suggestions
+    ? suggestions
+        .map((s) => {
+          const meta = PATHS.find((p) => p.id === s.id);
+          return meta ? { meta, sug: s } : null;
+        })
+        .filter((x): x is { meta: Path; sug: Suggestion } => x !== null)
+    : PATHS.map((p) => ({ meta: p }));
+
   return (
     <section className="flex flex-col gap-5">
       <div>
@@ -505,18 +522,45 @@ function PathsPhase({
           className="text-2xl font-light leading-snug text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          Four <span className="text-gold italic">integration paths</span>.
+          Your <span className="text-gold italic">integration paths</span>.
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Read each slowly. Choose the one your body leans toward.
+          {loading
+            ? "Listening to what you shared…"
+            : error
+              ? error
+              : intro ||
+                "Read each slowly. Choose the one your body leans toward."}
         </p>
       </div>
 
+      {loading && (
+        <ul className="flex flex-col gap-3" aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <li
+              key={i}
+              className="glass animate-pulse rounded-2xl px-4 py-5"
+              style={{ animationDelay: `${i * 120}ms` }}
+            >
+              <div className="h-3 w-1/3 rounded-full bg-white/10" />
+              <div className="mt-2 h-2 w-2/3 rounded-full bg-white/5" />
+              <div className="mt-2 h-2 w-1/2 rounded-full bg-white/5" />
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!loading && (
       <ul className="flex flex-col gap-3">
-        {PATHS.map(({ id, icon: Icon, title, blurb }) => {
+        {list.map(({ meta, sug }, i) => {
+          const { id, icon: Icon, title, blurb } = meta;
           const on = id === pathId;
           return (
-            <li key={id}>
+            <li
+              key={id}
+              className="animate-fade-in"
+              style={{ animationDelay: `${i * 90}ms`, animationFillMode: "backwards" }}
+            >
               <button
                 onClick={() => onPick(id)}
                 className={`glass flex w-full items-start gap-3 rounded-2xl px-4 py-3.5 text-left transition-all ${on ? "ring-1 ring-[oklch(0.82_0.14_82/0.6)]" : "opacity-80 hover:opacity-100"}`}
@@ -540,28 +584,52 @@ function PathsPhase({
                   />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground">{title}</p>
-                  <p className="text-xs text-muted-foreground">{blurb}</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {sug?.title || title}
+                  </p>
+                  <p
+                    className="mt-0.5 text-xs leading-relaxed text-muted-foreground"
+                    style={{ fontFamily: "Fraunces, serif" }}
+                  >
+                    {sug?.description || blurb}
+                  </p>
+                  {sug?.firstStep && (
+                    <div className="mt-2 flex items-start gap-1.5 rounded-xl border border-[oklch(0.82_0.14_82/0.25)] bg-[oklch(0.82_0.14_82/0.06)] px-2.5 py-1.5">
+                      <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-gold" />
+                      <p className="text-[11px] leading-snug text-foreground/85">
+                        <span className="text-[9px] uppercase tracking-wider text-gold">
+                          First step ·{" "}
+                        </span>
+                        {sug.firstStep}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </button>
             </li>
           );
         })}
       </ul>
+      )}
     </section>
   );
 }
 
 function WalkPhase({
   path,
+  suggestion,
   done,
   onDone,
 }: {
   path: Path;
+  suggestion: Suggestion | null;
   done: boolean;
   onDone: () => void;
 }) {
   const Icon = path.icon;
+  const steps = suggestion?.firstStep
+    ? [suggestion.firstStep, ...path.guidance]
+    : path.guidance;
   return (
     <section className="flex flex-col gap-5">
       <div className="flex items-center gap-3">
@@ -580,13 +648,22 @@ function WalkPhase({
             className="text-xl font-light text-foreground"
             style={{ fontFamily: "Fraunces, serif" }}
           >
-            {path.title}
+            {suggestion?.title || path.title}
           </h1>
         </div>
       </div>
 
+      {suggestion?.description && (
+        <p
+          className="text-sm leading-relaxed text-muted-foreground"
+          style={{ fontFamily: "Fraunces, serif" }}
+        >
+          {suggestion.description}
+        </p>
+      )}
+
       <ol className="flex flex-col gap-3">
-        {path.guidance.map((step, i) => (
+        {steps.map((step, i) => (
           <li
             key={i}
             className="glass animate-fade-in rounded-2xl px-4 py-3.5"
