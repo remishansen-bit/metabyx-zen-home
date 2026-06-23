@@ -1034,6 +1034,58 @@ export function VoiceRecorder({
             </div>
           )}
 
+          {/* Pitch summary — captured at the end of recording. */}
+          {pitchSnapshot && (
+            <div
+              role="group"
+              aria-label={`Stemmesammendrag: ${Math.round(pitchSnapshot.hz)} hertz, stabilitet ${Math.round(pitchSnapshot.stability * 100)} prosent`}
+              className="flex items-center justify-between gap-3 rounded-xl px-3 py-2"
+              style={{
+                background: "oklch(1 0 0 / 0.03)",
+                border: "1px solid oklch(1 0 0 / 0.08)",
+              }}
+            >
+              <div className="flex flex-col">
+                <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
+                  Tonehøyde
+                </span>
+                <span
+                  className="text-sm text-foreground"
+                  style={{ fontFamily: "Fraunces, serif" }}
+                >
+                  {Math.round(pitchSnapshot.hz)} Hz
+                  <span className="ml-1.5 text-[10px] capitalize text-muted-foreground">
+                    · {pitchCategoryLabel(pitchSnapshot.category)}
+                  </span>
+                </span>
+              </div>
+              <div className="flex min-w-[120px] flex-col items-end">
+                <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
+                  Variasjon
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span
+                    aria-hidden
+                    className="inline-block h-1 w-14 overflow-hidden rounded-full"
+                    style={{ background: "oklch(1 0 0 / 0.08)" }}
+                  >
+                    <span
+                      className="block h-full rounded-full"
+                      style={{
+                        width: `${Math.round(pitchSnapshot.stability * 100)}%`,
+                        background:
+                          "linear-gradient(90deg, oklch(0.72 0.13 265 / 0.7), oklch(0.88 0.14 82 / 0.9))",
+                      }}
+                    />
+                  </span>
+                  <span className="text-[11px] text-foreground/80">
+                    {stabilityLabel(pitchSnapshot.stability)}
+                  </span>
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className={emotion ? "grid grid-cols-1 gap-3 md:grid-cols-[1fr_minmax(180px,220px)]" : ""}>
           <textarea
             value={draft}
