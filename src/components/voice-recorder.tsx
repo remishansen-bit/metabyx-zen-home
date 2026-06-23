@@ -52,6 +52,10 @@ export function VoiceRecorder({
   const [draft, setDraft] = useState("");
   const [speaking, setSpeaking] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
+  // Live volume (0..1), throttled — drives the small VAD bars.
+  const [volume, setVolume] = useState(0);
+  // EMA-smoothed pitch stability shown to the user — raw values are jumpy.
+  const [smoothedStability, setSmoothedStability] = useState(0);
   // User-tunable VAD (persisted). Falls back to props.
   const [userThreshold, setUserThreshold] = useState<number>(silenceThreshold);
   const [userSilenceMs, setUserSilenceMs] = useState<number>(silenceTimeoutMs);
@@ -109,6 +113,10 @@ export function VoiceRecorder({
   const pitchHistoryRef = useRef<number[]>([]);
   // Throttle pitch updates to keep React renders cheap (~5Hz).
   const lastPitchAtRef = useRef(0);
+  // Last volume push to React — keeps re-renders at ~12Hz.
+  const lastVolumeAtRef = useRef(0);
+  // Smoothed stability mirror so the rAF loop reads without re-creating closures.
+  const smoothedStabilityRef = useRef(0);
 
   // Detect low-end devices once. Conservative heuristics.
   useEffect(() => {
@@ -239,7 +247,9 @@ export function VoiceRecorder({
     }
 
     // Throttle to ~30fps on low-end devices to keep main thread free.
-    const minFrameMs = lowEndRef.current ? 33 : 0;
+    // Reduced-motion users get a calmer ~20fps update — visually steady,
+    // less peripheral movement.
+    const minFrameMs = reducedMotionRef.current ? 50 : lowEndRef.current ? 33 : 0;
 
     const render = (ts?: number) => {
       rafRef.current = requestAnimationFrame(render);
@@ -262,6 +272,12 @@ export function VoiceRecorder({
       }
       const rms = Math.sqrt(sum / bufferLength);
       const amp = Math.min(1, Math.pow(rms * 2.4, 0.85));
+
+      // Throttled volume push — feeds the "Speaking…" bars.
+      if (now - lastVolumeAtRef.current > 80) {
+        lastVolumeAtRef.current = now;
+        setVolume(amp);
+      }
 
       // --- Voice activity detection ---
       const isSpeech = rms > thresholdRef.current;
@@ -310,6 +326,12 @@ export function VoiceRecorder({
             hist.push(hz);
             if (hist.length > 20) hist.shift();
             const stability = pitchStability(hist);
+            // EMA smoothing — fast on rise, gentle on decay, prevents jitter.
+            const prev = smoothedStabilityRef.current;
+            const alpha = stability > prev ? 0.35 : 0.15;
+            const nextSmoothed = prev + (stability - prev) * alpha;
+            smoothedStabilityRef.current = nextSmoothed;
+            setSmoothedStability(nextSmoothed);
             setPitch({ hz, category: pitchCategory(hz), stability });
           }
         }
@@ -317,6 +339,9 @@ export function VoiceRecorder({
         // Decay history when user goes quiet so the badge can fade.
         pitchHistoryRef.current = [];
         setPitch({ hz: null, category: "unknown", stability: 0 });
+        // Decay smoothed stability gently so the bar doesn't snap to zero.
+        smoothedStabilityRef.current = smoothedStabilityRef.current * 0.6;
+        setSmoothedStability((s) => s * 0.6);
       }
 
       // Scroll a history buffer — voice-memo style left-to-right flow
