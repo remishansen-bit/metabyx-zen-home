@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Sunrise, Moon, Sparkles, Leaf, ChevronRight } from "lucide-react";
+import { Sunrise, Moon, Sparkles, Leaf, ChevronRight, LifeBuoy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { computeBmrStats, todaysAllBranches, todaysOpenBranches, useMetabyx } from "@/lib/store";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
@@ -58,8 +58,17 @@ function Index() {
                 <span className="text-gold italic">Adrien</span>
               </h1>
             </div>
-            <div className="glass flex h-11 w-11 items-center justify-center rounded-full">
-              <Sparkles className="h-4 w-4 text-gold" />
+            <div className="flex items-center gap-2">
+              <Link
+                to="/crisis"
+                aria-label="Open crisis mode"
+                className="glass flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95"
+              >
+                <LifeBuoy className="h-4 w-4 text-foreground" />
+              </Link>
+              <div className="glass flex h-11 w-11 items-center justify-center rounded-full">
+                <Sparkles className="h-4 w-4 text-gold" />
+              </div>
             </div>
           </header>
 
