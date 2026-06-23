@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, Square, Loader2, Check, AlertCircle, Keyboard } from "lucide-react";
+import { Mic, Loader2, Check, AlertCircle, Keyboard, X } from "lucide-react";
 import type { VoiceRecorderProps, VoiceRecorderState } from "@/types/voice-recorder";
 
 /**
@@ -33,6 +33,8 @@ export function VoiceRecorder({
   const startedAtRef = useRef<number>(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const mountedRef = useRef(true);
+  const cancelledRef = useRef(false);
+  const historyRef = useRef<number[]>([]);
 
   // Detect support once on mount
   useEffect(() => {
@@ -77,60 +79,77 @@ export function VoiceRecorder({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Match canvas backing-store size to its CSS size for crispness
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-    }
-
     const bufferLength = analyser.fftSize;
     const dataArray = new Uint8Array(bufferLength);
+    historyRef.current = [];
 
     const render = () => {
       rafRef.current = requestAnimationFrame(render);
+
+      // Keep canvas backing-store size in sync with CSS size each frame
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      const targetW = Math.max(1, Math.floor(rect.width * dpr));
+      const targetH = Math.max(1, Math.floor(rect.height * dpr));
+      if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
+      }
+
       analyser.getByteTimeDomainData(dataArray);
 
       const w = canvas.width;
       const h = canvas.height;
       ctx.clearRect(0, 0, w, h);
 
-      // Mid baseline
-      ctx.strokeStyle = "oklch(0.82 0.14 82 / 0.18)";
-      ctx.lineWidth = 1 * dpr;
+      // Compute current RMS amplitude (0..1)
+      let sum = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        const v = (dataArray[i] - 128) / 128;
+        sum += v * v;
+      }
+      const rms = Math.sqrt(sum / bufferLength);
+      const amp = Math.min(1, Math.pow(rms * 2.4, 0.85));
+
+      // Scroll a history buffer — voice-memo style left-to-right flow
+      const barGap = 3 * dpr;
+      const barW = 2 * dpr;
+      const stride = barW + barGap;
+      const barCount = Math.max(8, Math.floor(w / stride));
+      historyRef.current.push(amp);
+      if (historyRef.current.length > barCount) {
+        historyRef.current.splice(0, historyRef.current.length - barCount);
+      }
+
+      // Faint baseline
+      ctx.strokeStyle = "oklch(0.82 0.14 82 / 0.12)";
+      ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(0, h / 2);
       ctx.lineTo(w, h / 2);
       ctx.stroke();
 
-      // Soft gradient stroke for waveform
+      // Gradient: indigo → gold → indigo, with soft outer glow
       const grad = ctx.createLinearGradient(0, 0, w, 0);
-      grad.addColorStop(0, "oklch(0.82 0.14 82 / 0.2)");
-      grad.addColorStop(0.5, "oklch(0.86 0.14 82 / 0.95)");
-      grad.addColorStop(1, "oklch(0.82 0.14 82 / 0.2)");
-
-      // Vertical mirrored bars — minimal & elegant
-      const barCount = Math.floor(w / (6 * dpr));
-      const step = Math.floor(bufferLength / barCount);
-      const barW = 2 * dpr;
-
+      grad.addColorStop(0, "oklch(0.72 0.13 265 / 0.85)");
+      grad.addColorStop(0.5, "oklch(0.88 0.14 82 / 1)");
+      grad.addColorStop(1, "oklch(0.72 0.13 265 / 0.85)");
       ctx.fillStyle = grad;
-      for (let i = 0; i < barCount; i++) {
-        // RMS-ish amplitude across the bin
-        let sum = 0;
-        for (let j = 0; j < step; j++) {
-          const v = (dataArray[i * step + j] - 128) / 128;
-          sum += v * v;
-        }
-        const rms = Math.sqrt(sum / step);
-        const amp = Math.min(1, rms * 2.6);
-        const barH = Math.max(2 * dpr, amp * h * 0.9);
-        const x = i * (w / barCount) + (w / barCount - barW) / 2;
+      ctx.shadowColor = "oklch(0.88 0.14 82 / 0.55)";
+      ctx.shadowBlur = 10 * dpr;
+
+      const history = historyRef.current;
+      const offset = Math.max(0, barCount - history.length);
+      for (let i = 0; i < history.length; i++) {
+        const a = history[i];
+        // Newest bars (right side) are brightest
+        const ageBoost = 0.6 + 0.4 * (i / Math.max(1, history.length - 1));
+        const barH = Math.max(2 * dpr, a * h * 0.92 * ageBoost);
+        const x = (offset + i) * stride + barGap / 2;
         const y = (h - barH) / 2;
-        // Rounded caps via fillRect + arcs would cost too much; use radius via path
         roundedBar(ctx, x, y, barW, barH, barW / 2);
       }
+      ctx.shadowBlur = 0;
     };
     render();
   }, []);
@@ -207,6 +226,7 @@ export function VoiceRecorder({
   }
 
   function stop() {
+    cancelledRef.current = false;
     if (mediaRecorderRef.current?.state === "recording") {
       try {
         mediaRecorderRef.current.stop();
@@ -218,7 +238,39 @@ export function VoiceRecorder({
     timerRef.current = null;
   }
 
+  function cancel() {
+    cancelledRef.current = true;
+    chunksRef.current = [];
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = null;
+    try {
+      if (mediaRecorderRef.current?.state === "recording") {
+        mediaRecorderRef.current.stop();
+      }
+    } catch {}
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    try {
+      sourceRef.current?.disconnect();
+      analyserRef.current?.disconnect();
+      void audioCtxRef.current?.close();
+    } catch {}
+    sourceRef.current = null;
+    analyserRef.current = null;
+    audioCtxRef.current = null;
+    setElapsed(0);
+    setErrorMsg(null);
+    setState("idle");
+  }
+
   async function handleStop() {
+    if (cancelledRef.current) {
+      cancelledRef.current = false;
+      chunksRef.current = [];
+      return;
+    }
     streamRef.current?.getTracks().forEach((t) => t.stop());
     try {
       sourceRef.current?.disconnect();
@@ -326,11 +378,11 @@ export function VoiceRecorder({
         {/* Main control button */}
         <button
           type="button"
-          onClick={isRecording ? stop : start}
+          onClick={isRecording ? cancel : start}
           disabled={isProcessing}
           aria-label={
             ariaLabel ??
-            (isRecording ? "Stopp opptak" : isProcessing ? "Behandler" : "Start opptak")
+            (isRecording ? "Avbryt opptak" : isProcessing ? "Behandler" : "Start opptak")
           }
           className={`relative flex shrink-0 items-center justify-center rounded-full transition-all duration-300 active:scale-95 disabled:cursor-not-allowed ${
             compact ? "h-10 w-10" : "h-12 w-12"
@@ -374,7 +426,7 @@ export function VoiceRecorder({
           )}
 
           {isRecording ? (
-            <Square className="h-4 w-4 text-gold" fill="currentColor" />
+            <X className="h-4 w-4 text-foreground/80" />
           ) : isProcessing ? (
             <Loader2 className="h-5 w-5 animate-spin text-[oklch(0.8_0.08_240)]" />
           ) : isDone ? (
@@ -409,21 +461,39 @@ export function VoiceRecorder({
 
           {/* Live waveform + timer while recording */}
           {isRecording && (
-            <div className="animate-fade-in flex h-full items-center gap-3">
+            <div className="animate-fade-in flex h-full items-center gap-2">
               <canvas
                 ref={canvasRef}
-                className="h-10 flex-1 rounded-md"
+                className="h-11 flex-1 rounded-lg"
                 style={{
                   background:
-                    "linear-gradient(180deg, transparent, oklch(0.82 0.14 82 / 0.04), transparent)",
+                    "linear-gradient(180deg, oklch(0.72 0.13 265 / 0.05), oklch(0.82 0.14 82 / 0.04), oklch(0.72 0.13 265 / 0.05))",
+                  boxShadow: "inset 0 0 0 1px oklch(1 0 0 / 0.04)",
                 }}
               />
               <span
                 className="font-mono text-[11px] tabular-nums text-gold/90"
+                style={{ animation: "vr-tick 1s ease-in-out infinite" }}
                 aria-label={`Tid ${elapsed} sekunder`}
               >
                 {formatTime(elapsed)}
               </span>
+              <button
+                type="button"
+                onClick={stop}
+                aria-label="Fullfør opptak"
+                className="group relative ml-1 inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-foreground transition-all duration-300 active:scale-95"
+                style={{
+                  background:
+                    "linear-gradient(135deg, oklch(0.88 0.14 82 / 0.35), oklch(0.72 0.13 265 / 0.28))",
+                  border: "1px solid oklch(1 0 0 / 0.12)",
+                  boxShadow:
+                    "0 0 18px oklch(0.88 0.14 82 / 0.35), inset 0 0 0 1px oklch(0.88 0.14 82 / 0.25)",
+                }}
+              >
+                <Check className="h-3.5 w-3.5" />
+                <span>Ferdig</span>
+              </button>
             </div>
           )}
 
@@ -464,6 +534,10 @@ export function VoiceRecorder({
         @keyframes vr-shimmer {
           0%   { transform: translateX(-100%); }
           100% { transform: translateX(400%);  }
+        }
+        @keyframes vr-tick {
+          0%, 100% { opacity: 0.65; }
+          50%      { opacity: 1; }
         }
       `}</style>
     </div>
