@@ -9,10 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SessionRouteImport } from './routes/session'
 import { Route as MorningRouteImport } from './routes/morning'
 import { Route as EveningRouteImport } from './routes/evening'
 import { Route as IndexRouteImport } from './routes/index'
 
+const SessionRoute = SessionRouteImport.update({
+  id: '/session',
+  path: '/session',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MorningRoute = MorningRouteImport.update({
   id: '/morning',
   path: '/morning',
@@ -33,34 +39,45 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/evening': typeof EveningRoute
   '/morning': typeof MorningRoute
+  '/session': typeof SessionRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/evening': typeof EveningRoute
   '/morning': typeof MorningRoute
+  '/session': typeof SessionRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/evening': typeof EveningRoute
   '/morning': typeof MorningRoute
+  '/session': typeof SessionRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/evening' | '/morning'
+  fullPaths: '/' | '/evening' | '/morning' | '/session'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/evening' | '/morning'
-  id: '__root__' | '/' | '/evening' | '/morning'
+  to: '/' | '/evening' | '/morning' | '/session'
+  id: '__root__' | '/' | '/evening' | '/morning' | '/session'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   EveningRoute: typeof EveningRoute
   MorningRoute: typeof MorningRoute
+  SessionRoute: typeof SessionRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/session': {
+      id: '/session'
+      path: '/session'
+      fullPath: '/session'
+      preLoaderRoute: typeof SessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/morning': {
       id: '/morning'
       path: '/morning'
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   EveningRoute: EveningRoute,
   MorningRoute: MorningRoute,
+  SessionRoute: SessionRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

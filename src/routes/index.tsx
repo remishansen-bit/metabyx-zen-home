@@ -203,7 +203,8 @@ function Index() {
 
           {/* Actions */}
           <section className="flex flex-col gap-3">
-            <button
+            <Link
+              to="/session"
               className="relative overflow-hidden rounded-2xl px-5 py-4 text-left transition-transform active:scale-[0.99]"
               style={{
                 background: "var(--gradient-gold)",
@@ -219,7 +220,7 @@ function Index() {
                 </div>
                 <ChevronRight className="h-5 w-5" />
               </div>
-            </button>
+            </Link>
 
             <div className="grid grid-cols-2 gap-3">
               <Link
