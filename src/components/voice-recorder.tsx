@@ -1225,3 +1225,110 @@ function describeTranscribeError(status: number, serverMessage?: string): string
     "Klarte ikke å transkribere opptaket. Prøv igjen eller skriv teksten i stedet."
   );
 }
+/* ------------------------------------------------------------------ */
+/*  Pitch detection                                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Estimate the fundamental frequency of a voice signal using normalized
+ * autocorrelation (a.k.a. ACF / NSDF-lite). Cheap and reasonably robust
+ * for speech in the 60–500 Hz range.
+ *
+ * Algorithm:
+ *   1. Compute signal RMS — abort if too weak (avoids garbage on silence).
+ *   2. For each candidate lag τ in [minTau, maxTau], compute
+ *        r(τ) = Σ x[i] * x[i+τ]  (i = 0..N-1-τ)
+ *      The first prominent peak of r(τ) corresponds to one period of
+ *      the fundamental, so f₀ = sampleRate / τ.
+ *   3. Refine the peak with parabolic interpolation around the bin.
+ *
+ * We bound the search to 60–500 Hz to cover adult speech and avoid
+ * doubling/halving errors at the extremes.
+ */
+function estimatePitchAutocorrelation(
+  buf: Float32Array<ArrayBuffer>,
+  sampleRate: number,
+): number | null {
+  const N = buf.length;
+  // RMS gate — bail out on quiet frames.
+  let rms = 0;
+  for (let i = 0; i < N; i++) rms += buf[i] * buf[i];
+  rms = Math.sqrt(rms / N);
+  if (rms < 0.01) return null;
+
+  const minHz = 60;
+  const maxHz = 500;
+  const maxTau = Math.floor(sampleRate / minHz);
+  const minTau = Math.floor(sampleRate / maxHz);
+  if (maxTau >= N) return null;
+
+  // Compute autocorrelation for every candidate lag.
+  // We track the largest peak that is also a local maximum.
+  let bestTau = -1;
+  let bestVal = 0;
+  let prev = 0;
+  let rising = false;
+  for (let tau = minTau; tau <= maxTau; tau++) {
+    let sum = 0;
+    for (let i = 0; i < N - tau; i++) sum += buf[i] * buf[i + tau];
+    if (sum > prev) {
+      rising = true;
+    } else if (rising && sum < prev) {
+      // We just crossed a local max at tau - 1.
+      if (prev > bestVal) {
+        bestVal = prev;
+        bestTau = tau - 1;
+      }
+      rising = false;
+    }
+    prev = sum;
+  }
+  if (bestTau < 0) return null;
+
+  // Parabolic interpolation around bestTau for sub-bin accuracy.
+  const yLeft = autocorrAt(buf, bestTau - 1);
+  const yMid = bestVal;
+  const yRight = autocorrAt(buf, bestTau + 1);
+  const denom = yLeft - 2 * yMid + yRight;
+  const shift = denom === 0 ? 0 : (0.5 * (yLeft - yRight)) / denom;
+  const refinedTau = bestTau + shift;
+
+  const hz = sampleRate / refinedTau;
+  if (hz < minHz || hz > maxHz) return null;
+  return hz;
+}
+
+function autocorrAt(buf: Float32Array<ArrayBuffer>, tau: number): number {
+  if (tau <= 0 || tau >= buf.length) return 0;
+  let s = 0;
+  for (let i = 0; i < buf.length - tau; i++) s += buf[i] * buf[i + tau];
+  return s;
+}
+
+/** Stability ∈ [0,1] — 1 means rock-steady pitch, 0 means very erratic. */
+function pitchStability(samples: number[]): number {
+  if (samples.length < 4) return 0;
+  const mean = samples.reduce((a, b) => a + b, 0) / samples.length;
+  if (mean <= 0) return 0;
+  let varSum = 0;
+  for (const s of samples) varSum += (s - mean) * (s - mean);
+  const stdev = Math.sqrt(varSum / samples.length);
+  const cv = stdev / mean; // coefficient of variation
+  // Map cv: 0 → 1 (perfect), 0.15+ → 0 (very wobbly). Smooth in between.
+  return Math.max(0, Math.min(1, 1 - cv / 0.15));
+}
+
+function pitchCategory(hz: number): "low" | "medium" | "high" {
+  if (hz < 140) return "low";
+  if (hz < 230) return "medium";
+  return "high";
+}
+
+/** Light, supportive cue derived from pitch stability + category. */
+export function pitchCue(p: { hz: number | null; stability: number }): string | null {
+  if (p.hz == null) return null;
+  if (p.stability > 0.75) return "Rolig og stødig stemme";
+  if (p.stability > 0.45) return "Jevn stemme";
+  if (p.stability > 0.2) return "Litt variasjon i stemmen";
+  return "Stemmen virker litt anspent";
+}
