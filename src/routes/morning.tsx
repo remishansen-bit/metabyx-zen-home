@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ArrowLeft, Mic, MicOff, Sparkles, Check, Loader2 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { useVoiceInput } from "@/lib/use-voice-input";
+import { VoiceRecorder } from "@/components/voice-recorder";
 import { refineBranches } from "@/lib/checkin.functions";
 import { addBranches } from "@/lib/store";
 
