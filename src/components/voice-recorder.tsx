@@ -438,6 +438,12 @@ export function VoiceRecorder({
         source.connect(analyser);
         sourceRef.current = source;
         analyserRef.current = analyser;
+        // Pre-allocate the pitch buffer matching analyser.fftSize. Backed by a
+        // plain ArrayBuffer so it satisfies getFloatTimeDomainData typings.
+        pitchBufRef.current = new Float32Array(new ArrayBuffer(analyser.fftSize * 4));
+        pitchHistoryRef.current = [];
+        lastPitchAtRef.current = 0;
+        setPitch({ hz: null, category: "unknown", stability: 0 });
       }
     } catch {
       // Waveform is decorative — recording still works without it
