@@ -430,12 +430,14 @@ function IdentifyPhase({
   onSelectBranch,
   whatIf,
   setWhatIf,
+  children,
 }: {
   openBranches: Branch[];
   selectedBranchId: string | null;
   onSelectBranch: (id: string | null) => void;
   whatIf: string;
   setWhatIf: (v: string) => void;
+  children?: React.ReactNode;
 }) {
   return (
     <section className="flex flex-col gap-5">
@@ -486,6 +488,7 @@ function IdentifyPhase({
           <VoiceInputButton value={whatIf} onChange={setWhatIf} />
         </div>
       </div>
+      {children}
     </section>
   );
 }
