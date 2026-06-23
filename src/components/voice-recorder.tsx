@@ -1108,3 +1108,57 @@ function roundedBar(
   ctx.closePath();
   ctx.fill();
 }
+
+/**
+ * Map a getUserMedia DOMException into actionable Norwegian guidance.
+ * Each branch describes WHAT failed and WHAT to do next.
+ */
+function describeMicError(err: unknown): string {
+  const name =
+    err instanceof DOMException
+      ? err.name
+      : err && typeof err === "object" && "name" in err
+        ? String((err as { name: unknown }).name)
+        : "";
+  switch (name) {
+    case "NotAllowedError":
+    case "SecurityError":
+      return "Mikrofontilgang ble nektet. Åpne nettleserens nettstedsinnstillinger og tillat mikrofonen, eller skriv inn teksten.";
+    case "NotFoundError":
+    case "OverconstrainedError":
+      return "Fant ingen mikrofon. Koble til en mikrofon eller velg en annen enhet.";
+    case "NotReadableError":
+      return "Mikrofonen er opptatt av et annet program. Lukk andre apper som bruker mikrofonen og prøv igjen.";
+    case "AbortError":
+      return "Mikrofonen ble frakoblet før opptaket startet. Prøv igjen.";
+    case "TypeError":
+      return "Stemmeopptak krever en sikker tilkobling (HTTPS). Åpne siden over HTTPS og prøv igjen.";
+    default:
+      return "Kunne ikke åpne mikrofonen. Prøv igjen, eller skriv teksten i stedet.";
+  }
+}
+
+/**
+ * Map a transcribe API failure into actionable Norwegian guidance.
+ */
+function describeTranscribeError(status: number, serverMessage?: string): string {
+  if (status === 401 || status === 403) {
+    return "Transkripsjonstjenesten er ikke autorisert. Kontakt support.";
+  }
+  if (status === 413) {
+    return "Opptaket er for langt. Prøv et kortere opptak (under 2 minutter).";
+  }
+  if (status === 415) {
+    return "Lydformatet støttes ikke. Bytt nettleser eller skriv teksten i stedet.";
+  }
+  if (status === 429) {
+    return "For mange forespørsler akkurat nå. Vent et øyeblikk og prøv igjen.";
+  }
+  if (status >= 500) {
+    return "Transkripsjonstjenesten er midlertidig nede. Prøv igjen om litt.";
+  }
+  return (
+    serverMessage ||
+    "Klarte ikke å transkribere opptaket. Prøv igjen eller skriv teksten i stedet."
+  );
+}
