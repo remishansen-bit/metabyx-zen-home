@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowLeft,
@@ -10,6 +10,8 @@ import {
   Leaf,
   Sparkles,
   PenLine,
+  Volume2,
+  Square,
 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { VoiceInputButton } from "@/components/voice-input-button";
@@ -17,6 +19,7 @@ import { VoiceRecorder } from "@/components/voice-recorder";
 import { suggestPaths } from "@/lib/gcmp.functions";
 import { analyzeVoiceEmotion, type VoiceEmotion } from "@/lib/emotion.functions";
 import { EmotionInsight } from "@/components/emotion-insight";
+import { streamTts, type TtsController } from "@/lib/tts-stream";
 import {
   metabolizeBranch,
   todaysOpenBranches,
