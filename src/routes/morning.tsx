@@ -115,6 +115,26 @@ function MorningPage() {
             </div>
           </div>
 
+          {/* Richer voice flow: full transcription with editable preview
+              before it lands in the textarea above. */}
+          <details className="glass rounded-2xl px-4 py-3">
+            <summary className="flex cursor-pointer items-center justify-between text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+              <span>Speak the check-in aloud</span>
+              <span className="text-gold">+ Voice</span>
+            </summary>
+            <div className="mt-3">
+              <VoiceRecorder
+                language="en-US"
+                compact
+                showHistory={false}
+                ariaLabel="Record the morning check-in"
+                onTranscription={(t) =>
+                  setText(text ? `${text.trim()} ${t}` : t)
+                }
+              />
+            </div>
+          </details>
+
           {error && (
             <p className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
               {error}
