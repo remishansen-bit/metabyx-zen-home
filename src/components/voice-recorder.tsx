@@ -287,6 +287,33 @@ export function VoiceRecorder({
         return;
       }
 
+      // --- Pitch detection (throttled to ~5Hz) ---
+      // Only attempt to find a fundamental when there's actual voice energy.
+      // Skipping on silence avoids wasted CPU and noisy "Hz" jitter.
+      if (isSpeech && now - lastPitchAtRef.current > 200) {
+        lastPitchAtRef.current = now;
+        const ctxAudio = audioCtxRef.current;
+        if (ctxAudio && pitchBufRef.current) {
+          analyser.getFloatTimeDomainData(pitchBufRef.current);
+          const hz = estimatePitchAutocorrelation(
+            pitchBufRef.current,
+            ctxAudio.sampleRate,
+          );
+          if (hz !== null) {
+            // Maintain a sliding window of recent pitch samples for stability.
+            const hist = pitchHistoryRef.current;
+            hist.push(hz);
+            if (hist.length > 20) hist.shift();
+            const stability = pitchStability(hist);
+            setPitch({ hz, category: pitchCategory(hz), stability });
+          }
+        }
+      } else if (!isSpeech && pitchHistoryRef.current.length && now - lastPitchAtRef.current > 600) {
+        // Decay history when user goes quiet so the badge can fade.
+        pitchHistoryRef.current = [];
+        setPitch({ hz: null, category: "unknown", stability: 0 });
+      }
+
       // Scroll a history buffer — voice-memo style left-to-right flow
       const barGap = 3 * dpr;
       const barW = 2 * dpr;
