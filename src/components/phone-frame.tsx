@@ -1,6 +1,13 @@
 import type { ReactNode } from "react";
+import { TabBar } from "./tab-bar";
 
-export function PhoneFrame({ children }: { children: ReactNode }) {
+export function PhoneFrame({
+  children,
+  hideTabBar = false,
+}: {
+  children: ReactNode;
+  hideTabBar?: boolean;
+}) {
   return (
     <div className="min-h-screen w-full flex justify-center px-4 py-6 sm:py-10">
       <div className="relative w-full max-w-[420px] overflow-hidden rounded-[40px] glass-strong">
@@ -16,7 +23,12 @@ export function PhoneFrame({ children }: { children: ReactNode }) {
             background: "radial-gradient(circle, var(--indigo-glow), transparent 70%)",
           }}
         />
-        <div className="relative z-10 flex flex-col gap-8 px-6 pb-8 pt-10">{children}</div>
+        <div
+          className={`relative z-10 flex flex-col gap-8 px-6 pt-10 animate-rise ${hideTabBar ? "pb-8" : "pb-28"}`}
+        >
+          {children}
+        </div>
+        {!hideTabBar && <TabBar />}
       </div>
     </div>
   );

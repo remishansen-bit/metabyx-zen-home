@@ -195,7 +195,6 @@ function EveningPage() {
         </section>
       )}
 
-      <div className="mx-auto mt-2 h-1 w-28 rounded-full bg-[oklch(1_0_0/0.2)]" />
     </PhoneFrame>
   );
 }
