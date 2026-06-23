@@ -923,6 +923,10 @@ export function VoiceRecorder({
       <span className="sr-only" role="alert" aria-live="assertive">
         {isError && errorMsg ? errorMsg : ""}
       </span>
+      {/* Dedicated live region for throttled, deduped VAD + pitch updates. */}
+      <span className="sr-only" aria-live="polite" aria-atomic="true">
+        {liveMessage}
+      </span>
 
       {/* Ambient breathing glow during record */}
       {isRecording && !reducedMotion && (
