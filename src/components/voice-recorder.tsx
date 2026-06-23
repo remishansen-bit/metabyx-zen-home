@@ -1218,17 +1218,33 @@ export function VoiceRecorder({
                   }}
                 >
                   <span
-                    className="inline-block h-1 w-1 rounded-full"
-                    style={{
-                      background: speaking
-                        ? "oklch(0.9 0.15 82)"
-                        : "oklch(0.78 0.08 265)",
-                      animation:
-                        speaking && !reducedMotion
-                          ? "vr-tick 0.9s ease-in-out infinite"
-                          : undefined,
-                    }}
-                  />
+                    aria-hidden
+                    className="inline-flex items-end gap-[2px]"
+                    style={{ height: 8 }}
+                  >
+                    {[0, 1, 2, 3].map((i) => {
+                      // Each bar lights up at progressively higher thresholds.
+                      const lit = speaking && volume > 0.06 + i * 0.08;
+                      const h = lit
+                        ? Math.max(2, Math.min(8, 2 + volume * 10 - i))
+                        : 2;
+                      return (
+                        <span
+                          key={i}
+                          className="block w-[2px] rounded-full"
+                          style={{
+                            height: `${h}px`,
+                            background: lit
+                              ? "oklch(0.9 0.15 82)"
+                              : "oklch(0.78 0.08 265 / 0.55)",
+                            transition: reducedMotion
+                              ? undefined
+                              : "height 120ms ease-out, background 200ms ease-out",
+                          }}
+                        />
+                      );
+                    })}
+                  </span>
                   {speaking ? "Snakker" : "Lytter"}
                 </span>
               </div>
@@ -1236,7 +1252,7 @@ export function VoiceRecorder({
             {pitch.hz != null && (
               <div
                 role="status"
-                aria-label={`Tonehøyde ${Math.round(pitch.hz)} hertz, stabilitet ${Math.round(pitch.stability * 100)} prosent`}
+                aria-label={`Tonehøyde ${Math.round(pitch.hz)} hertz, stabilitet ${Math.round(smoothedStability * 100)} prosent`}
                 className="hidden flex-col items-end gap-0.5 sm:flex"
               >
                 <div className="flex items-center gap-1.5">
@@ -1246,9 +1262,11 @@ export function VoiceRecorder({
                     style={{ background: "oklch(1 0 0 / 0.08)" }}
                   >
                     <span
-                      className="block h-full rounded-full transition-[width,background] duration-300"
+                      className={`block h-full rounded-full ${
+                        reducedMotion ? "" : "transition-[width,background] duration-500 ease-out"
+                      }`}
                       style={{
-                        width: `${Math.round(pitch.stability * 100)}%`,
+                        width: `${Math.round(smoothedStability * 100)}%`,
                         background:
                           "linear-gradient(90deg, oklch(0.72 0.13 265 / 0.7), oklch(0.88 0.14 82 / 0.9))",
                       }}
@@ -1258,9 +1276,15 @@ export function VoiceRecorder({
                     {Math.round(pitch.hz)} Hz
                   </span>
                 </div>
-                {pitchCue(pitch) && (
+                {/* Low-confidence fallback — when we don't have enough stable
+                    samples yet, prefer a calm waiting message over a noisy cue. */}
+                {smoothedStability < 0.2 || pitch.stability === 0 ? (
+                  <span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/70">
+                    Lytter etter tydeligere stemme
+                  </span>
+                ) : pitchCue({ hz: pitch.hz, stability: smoothedStability }) && (
                   <span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">
-                    {pitchCue(pitch)}
+                    {pitchCue({ hz: pitch.hz, stability: smoothedStability })}
                   </span>
                 )}
               </div>
