@@ -1,0 +1,50 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "back": "Atrás",
+    "close": "Cerrar",
+    "loading": "Cargando…",
+    "today": "Hoy",
+    "language": "Idioma"
+  },
+  "nav": {
+    "home": "Inicio",
+    "checkin": "Registro",
+    "guided": "Guiado",
+    "circles": "Círculos",
+    "library": "Biblioteca",
+    "profile": "Perfil"
+  },
+  "home": {
+    "greetingMorning": "Buenos días",
+    "greetingAfternoon": "Buenas tardes",
+    "greetingEvening": "Buenas noches",
+    "welcome": "Bienvenido",
+    "crisis": "Abrir modo crisis"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "preferences": "Preferencias y ajustes",
+    "language": "Idioma",
+    "languageDesc": "Idioma de la aplicación",
+    "morningReminder": "Recordatorio matutino",
+    "eveningReminder": "Recordatorio nocturno",
+    "theme": "Tema",
+    "aiModel": "Modelo de IA",
+    "notifications": "Notificaciones",
+    "signOut": "Cerrar sesión",
+    "deleteAccount": "Eliminar cuenta"
+  },
+  "profile": {
+    "title": "Perfil",
+    "streak": "Racha",
+    "integrated": "Integrado",
+    "checkins": "Registros",
+    "signedInAs": "sesión como {{email}}"
+  },
+  "library": {
+    "title": "Biblioteca",
+    "empty": "Aún no hay nada"
+  }
+}

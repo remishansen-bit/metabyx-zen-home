@@ -1,0 +1,50 @@
+{
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "back": "رجوع",
+    "close": "إغلاق",
+    "loading": "جارٍ التحميل…",
+    "today": "اليوم",
+    "language": "اللغة"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "checkin": "تسجيل",
+    "guided": "موجَّه",
+    "circles": "الدوائر",
+    "library": "المكتبة",
+    "profile": "الملف"
+  },
+  "home": {
+    "greetingMorning": "صباح الخير",
+    "greetingAfternoon": "مساء الخير",
+    "greetingEvening": "مساء الخير",
+    "welcome": "مرحبًا",
+    "crisis": "فتح وضع الأزمات"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "preferences": "التفضيلات والإعدادات",
+    "language": "اللغة",
+    "languageDesc": "لغة عرض التطبيق",
+    "morningReminder": "تذكير الصباح",
+    "eveningReminder": "تذكير المساء",
+    "theme": "السمة",
+    "aiModel": "نموذج الذكاء الاصطناعي",
+    "notifications": "الإشعارات",
+    "signOut": "تسجيل الخروج",
+    "deleteAccount": "حذف الحساب"
+  },
+  "profile": {
+    "title": "الملف الشخصي",
+    "streak": "تتابع",
+    "integrated": "مُدمج",
+    "checkins": "التسجيلات",
+    "signedInAs": "مسجَّل الدخول باسم {{email}}"
+  },
+  "library": {
+    "title": "المكتبة",
+    "empty": "لا يوجد شيء بعد"
+  }
+}

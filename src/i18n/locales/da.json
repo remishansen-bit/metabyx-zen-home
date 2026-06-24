@@ -1,0 +1,50 @@
+{
+  "common": {
+    "save": "Gem",
+    "cancel": "Annuller",
+    "back": "Tilbage",
+    "close": "Luk",
+    "loading": "Indlæser…",
+    "today": "I dag",
+    "language": "Sprog"
+  },
+  "nav": {
+    "home": "Hjem",
+    "checkin": "Tjek-ind",
+    "guided": "Guidet",
+    "circles": "Cirkler",
+    "library": "Bibliotek",
+    "profile": "Profil"
+  },
+  "home": {
+    "greetingMorning": "Godmorgen",
+    "greetingAfternoon": "God eftermiddag",
+    "greetingEvening": "Godaften",
+    "welcome": "Velkommen",
+    "crisis": "Åbn krisetilstand"
+  },
+  "settings": {
+    "title": "Indstillinger",
+    "preferences": "Præferencer og indstillinger",
+    "language": "Sprog",
+    "languageDesc": "Appens visningssprog",
+    "morningReminder": "Morgenpåmindelse",
+    "eveningReminder": "Aftenpåmindelse",
+    "theme": "Tema",
+    "aiModel": "AI-model",
+    "notifications": "Notifikationer",
+    "signOut": "Log ud",
+    "deleteAccount": "Slet konto"
+  },
+  "profile": {
+    "title": "Profil",
+    "streak": "Stime",
+    "integrated": "Integreret",
+    "checkins": "Tjek-ind",
+    "signedInAs": "logget ind som {{email}}"
+  },
+  "library": {
+    "title": "Bibliotek",
+    "empty": "Intet her endnu"
+  }
+}
