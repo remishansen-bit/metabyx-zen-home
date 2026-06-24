@@ -67,9 +67,10 @@ export function initI18n() {
       supportedLngs: LANGUAGES.map((l) => l.code),
       load: "languageOnly",
       interpolation: { escapeValue: false },
-      // Resources are bundled inline above, so init can complete synchronously.
-      // Without this, useTranslation() returns raw keys on first render.
-      initImmediate: false,
+      // Resources are bundled inline above. Mark them as preloaded so
+      // react-i18next doesn't fall back to "loading" (which returns raw keys).
+      preload: LANGUAGES.map((l) => l.code),
+      react: { useSuspense: false },
       detection: {
         order: ["localStorage", "navigator", "htmlTag"],
         caches: ["localStorage"],
