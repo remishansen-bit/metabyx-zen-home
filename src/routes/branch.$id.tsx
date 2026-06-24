@@ -2,6 +2,7 @@ import { RequireAuth } from "@/lib/auth";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, CheckCircle2, Leaf, Sparkles, Calendar, Tag, Share2, Check } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { Screen, Section } from "@/components/layout/Screen";
 import { useMetabyx } from "@/lib/store";
@@ -19,16 +20,23 @@ export const Route = createFileRoute("/branch/$id")({
     <PhoneFrame>
       <StatusBar title="BRANCH" />
       <Screen>
-        <p className="text-sm text-muted-foreground">
-          This branch is no longer in your library.
-        </p>
-        <Link to="/library" className="text-xs text-gold underline">
-          Back to library
-        </Link>
+        <BranchNotFound />
       </Screen>
     </PhoneFrame>
   ),
 });
+
+function BranchNotFound() {
+  const { t } = useTranslation();
+  return (
+    <>
+      <p className="text-sm text-muted-foreground">{t("branchFull.notFoundBody")}</p>
+      <Link to="/library" className="text-xs text-gold underline">
+        {t("branchFull.backToLibrary")}
+      </Link>
+    </>
+  );
+}
 
 function fmtDate(t: number) {
   return new Date(t).toLocaleDateString(undefined, {
@@ -41,6 +49,7 @@ function fmtDate(t: number) {
 }
 
 function BranchDetailPage() {
+  const { t } = useTranslation();
   const { id } = Route.useParams();
   const state = useMetabyx();
   const branch = state.branches.find((b) => b.id === id);
@@ -55,18 +64,16 @@ function BranchDetailPage() {
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share(data);
-        notify.info("Shared");
+        notify.info(t("branchFull.shared"));
         return;
       }
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      notify.saved("Link copied", "Paste it anywhere to revisit this branch.");
+      notify.saved(t("branchFull.linkCopiedTitle"), t("branchFull.linkCopiedBody"));
       window.setTimeout(() => setCopied(false), 1800);
     } catch (err) {
-      // navigator.share rejects with AbortError when the user dismisses the
-      // share sheet — that's a deliberate "no", not a failure to surface.
       if (err instanceof Error && err.name === "AbortError") return;
-      notify.error("Couldn't share link", "Try copying the address bar instead.");
+      notify.error(t("branchFull.shareError"), t("branchFull.shareErrorBody"));
     }
   }
 
@@ -78,17 +85,17 @@ function BranchDetailPage() {
         <Link
           to="/library"
           className="glass flex h-10 w-10 items-center justify-center rounded-full"
-          aria-label="Back"
+          aria-label={t("branchFull.backAria")}
         >
           <ArrowLeft className="h-4 w-4 text-foreground" />
         </Link>
         <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-          {done ? "Metabolized" : "Open"}
+          {done ? t("branchFull.statusMetabolized") : t("branchFull.statusOpen")}
         </p>
         <button
           type="button"
           onClick={share}
-          aria-label={copied ? "Link copied" : "Share branch link"}
+          aria-label={copied ? t("branchFull.shareCopiedAria") : t("branchFull.shareAria")}
           className="glass flex h-10 w-10 items-center justify-center rounded-full transition-all active:scale-95"
         >
           {copied ? (
@@ -129,14 +136,14 @@ function BranchDetailPage() {
         <div className="glass rounded-2xl px-4 py-3">
           <div className="flex items-center gap-2">
             <Tag className="h-3.5 w-3.5 text-gold" />
-            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Category</p>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">{t("branchFull.category")}</p>
           </div>
           <p className="mt-1 text-sm capitalize text-foreground">{branch.category}</p>
         </div>
         <div className="glass rounded-2xl px-4 py-3">
           <div className="flex items-center gap-2">
             <Calendar className="h-3.5 w-3.5 text-gold" />
-            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Noticed</p>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">{t("branchFull.noticed")}</p>
           </div>
           <p className="mt-1 text-xs text-foreground">{fmtDate(branch.createdAt)}</p>
         </div>
@@ -144,12 +151,12 @@ function BranchDetailPage() {
 
       {done ? (
         <section className="flex flex-col gap-3">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-gold">How it integrated</p>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-gold">{t("branchFull.howIntegrated")}</p>
 
           {typeof branch.rating === "number" && (
             <div className="glass rounded-2xl p-4">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                Integration depth
+                {t("branchFull.integrationDepth")}
               </p>
               <div className="mt-3 flex items-center justify-between">
                 {[1, 2, 3, 4, 5].map((n) => {
@@ -188,7 +195,7 @@ function BranchDetailPage() {
             >
               <div className="flex items-center gap-2">
                 <Sparkles className="h-3.5 w-3.5 text-gold" />
-                <p className="text-[10px] uppercase tracking-[0.3em] text-gold">The new story</p>
+                <p className="text-[10px] uppercase tracking-[0.3em] text-gold">{t("branchFull.newStory")}</p>
               </div>
               <p
                 className="mt-3 text-base leading-relaxed text-foreground"
@@ -199,14 +206,14 @@ function BranchDetailPage() {
             </div>
           ) : (
             <p className="glass rounded-2xl px-4 py-3 text-xs text-muted-foreground">
-              Closed without a written reflection.
+              {t("branchFull.closedNoReflection")}
             </p>
           )}
         </section>
       ) : (
         <section className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">
-            This branch is still open. A guided session helps it settle.
+            {t("branchFull.stillOpen")}
           </p>
           <Link
             to="/session"
@@ -218,7 +225,7 @@ function BranchDetailPage() {
             }}
           >
             <Sparkles className="h-4 w-4" />
-            Walk it through
+            {t("branchFull.walkThrough")}
           </Link>
         </section>
       )}

@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ChevronLeft,
   Send,
@@ -49,6 +50,7 @@ const PAGE_SIZE = 8;
 const POSTS_CHANGE_EVENT = "metabyx:circle:posts:change";
 
 function CircleDetailPage() {
+  const { t } = useTranslation();
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { tier, loading: subLoading } = useSubscription();
@@ -60,7 +62,7 @@ function CircleDetailPage() {
   const auth = useAuth();
   const state = useMetabyx();
 
-  const displayName = auth.profile?.display_name ?? "Friend";
+  const displayName = auth.profile?.display_name ?? t("circleThread.friend");
   const authorId = auth.user?.id ?? "";
 
   const [body, setBody] = useState("");
@@ -97,7 +99,7 @@ function CircleDetailPage() {
       try {
         setPage(listPostsPage(id, { limit }));
       } catch (err) {
-        setPageError(err instanceof Error ? err.message : "Couldn't load posts.");
+        setPageError(err instanceof Error ? err.message : t("circleThread.couldNotLoadPosts"));
       } finally {
         setPageLoading(false);
       }
@@ -127,7 +129,7 @@ function CircleDetailPage() {
           <Link
             to="/circles"
             className="glass flex h-9 w-9 items-center justify-center rounded-full"
-            aria-label="Back to circles"
+            aria-label={t("circleThread.backAria")}
           >
             <ChevronLeft className="h-4 w-4 text-foreground" />
           </Link>
@@ -136,8 +138,8 @@ function CircleDetailPage() {
         </header>
         <PaywallLockedCard
           required="pro"
-          title="Circle threads are part of Pro"
-          description="Share reflections and BMR insights inside small rooms — anonymous when you want it."
+          title={t("circleThread.paywallTitle")}
+          description={t("circleThread.paywallDesc")}
           onUnlock={() => navigate({ to: "/settings" })}
         />
       </PhoneFrame>
@@ -152,13 +154,13 @@ function CircleDetailPage() {
           <Link
             to="/circles"
             className="glass flex h-9 w-9 items-center justify-center rounded-full"
-            aria-label="Back to circles"
+            aria-label={t("circleThread.backAria")}
           >
             <ChevronLeft className="h-4 w-4 text-foreground" />
           </Link>
         </header>
         <div className="glass rounded-2xl p-5 text-center text-sm text-muted-foreground">
-          That circle isn't on this device. Open it from your Circles list.
+          {t("circleThread.notOnDevice")}
         </div>
       </PhoneFrame>
     );
@@ -172,7 +174,7 @@ function CircleDetailPage() {
     setLastFailedDraft(null);
     const trimmed = body.trim();
     if (!trimmed) {
-      setPostError("Add a few words first.");
+      setPostError(t("circleThread.addWordsFirst"));
       return;
     }
     const optimistic: CirclePost = {
@@ -181,7 +183,7 @@ function CircleDetailPage() {
       body: trimmed,
       kind,
       authorId: authorId || "local",
-      authorName: anonymous ? "Anonymous" : displayName,
+      authorName: anonymous ? t("circleThread.anonymous") : displayName,
       anonymous,
       shareProgress: shareProgress && prefs.allowProgressVisibility,
       progress:
@@ -206,11 +208,11 @@ function CircleDetailPage() {
       });
       setBody("");
       notify.saved(
-        "Posted",
-        anonymous ? "Shared anonymously." : "Shared with the circle.",
+        t("circleThread.postedTitle"),
+        anonymous ? t("circleThread.postedAnon") : t("circleThread.postedToCircle"),
       );
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Couldn't post.";
+      const msg = err instanceof Error ? err.message : t("circleThread.couldNotPostShort");
       setPostError(msg);
       setLastFailedDraft({
         body: trimmed,
@@ -219,8 +221,8 @@ function CircleDetailPage() {
         shareProgress: shareProgress && prefs.allowProgressVisibility,
       });
       notify.error(
-        "Couldn't post",
-        err instanceof Error ? err.message : "Try again.",
+        t("circleThread.couldNotPost"),
+        err instanceof Error ? err.message : t("circleThread.tryAgain"),
       );
     } finally {
       // Drop the optimistic placeholder either way — the store-backed list
@@ -247,11 +249,11 @@ function CircleDetailPage() {
     try {
       await new Promise((r) => setTimeout(r, 50));
       editPost(post.id, authorId || "local", next);
-      notify.saved("Updated", "Post edited.");
+      notify.saved(t("circleThread.updatedTitle"), t("circleThread.postEdited"));
     } catch (err) {
       notify.error(
-        "Couldn't edit",
-        err instanceof Error ? err.message : "Try again.",
+        t("circleThread.couldNotEdit"),
+        err instanceof Error ? err.message : t("circleThread.tryAgain"),
       );
       throw err;
     } finally {
@@ -267,11 +269,11 @@ function CircleDetailPage() {
     try {
       await new Promise((r) => setTimeout(r, 50));
       deletePost(post.id, authorId || "local");
-      notify.info("Deleted", "Post removed.");
+      notify.info(t("circleThread.deletedTitle"), t("circleThread.postRemoved"));
     } catch (err) {
       notify.error(
-        "Couldn't delete",
-        err instanceof Error ? err.message : "Try again.",
+        t("circleThread.couldNotDelete"),
+        err instanceof Error ? err.message : t("circleThread.tryAgain"),
       );
     } finally {
       setBusyIds((s) => {
@@ -294,7 +296,7 @@ function CircleDetailPage() {
         <Link
           to="/circles"
           className="glass flex h-9 w-9 items-center justify-center rounded-full"
-          aria-label="Back to circles"
+          aria-label={t("circleThread.backAria")}
         >
           <ChevronLeft className="h-4 w-4 text-foreground" />
         </Link>
@@ -325,7 +327,7 @@ function CircleDetailPage() {
                 onClick={() => setKind(k.value)}
                 className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-[10px] uppercase tracking-[0.2em] transition-all ${active ? "bg-[oklch(0.82_0.14_82/0.18)] text-gold" : "glass text-muted-foreground"}`}
               >
-                <k.icon className="h-3 w-3" /> {k.label}
+                <k.icon className="h-3 w-3" /> {t(k.labelKey)}
               </button>
             );
           })}
@@ -341,22 +343,22 @@ function CircleDetailPage() {
           }}
           rows={3}
           maxLength={600}
-          aria-label={`Compose a ${kind} for ${circle.name}. Cmd or Ctrl plus Enter to post.`}
+          aria-label={t("circleThread.composerAria", { kind: t(`circleThread.kind${kind === "reflection" ? "Reflect" : kind === "insight" ? "Insight" : "Support"}`), name: circle.name })}
           aria-invalid={Boolean(postError)}
           aria-describedby={postError ? "composer-error" : undefined}
           placeholder={
             kind === "reflection"
-              ? "A few words on what you're metabolising right now…"
+              ? t("circleThread.placeholderReflection")
               : kind === "insight"
-                ? "A BMR insight or pattern you've noticed…"
-                : "Something supportive for the circle…"
+                ? t("circleThread.placeholderInsight")
+                : t("circleThread.placeholderSupport")
           }
           className="glass mt-2 w-full resize-none rounded-2xl bg-transparent px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-gold"
         />
         <div className="mt-2 flex flex-col gap-1.5">
           <ToggleRow
             icon={anonymous ? EyeOff : Eye}
-            label={anonymous ? "Posting anonymously" : `Posting as ${displayName}`}
+            label={anonymous ? t("circleThread.anonymously") : t("circleThread.postingAs", { name: displayName })}
             checked={anonymous}
             onChange={(v) => {
               setAnonymous(v);
@@ -367,8 +369,8 @@ function CircleDetailPage() {
             icon={Activity}
             label={
               prefs.allowProgressVisibility
-                ? "Share my BMR snapshot"
-                : "Progress sharing is off in your prefs"
+                ? t("circleThread.shareSnapshot")
+                : t("circleThread.shareOff")
             }
             checked={shareProgress && prefs.allowProgressVisibility}
             disabled={!prefs.allowProgressVisibility}
@@ -394,14 +396,14 @@ function CircleDetailPage() {
                 onClick={retryFailedPost}
                 className="glass inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-foreground hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-gold"
               >
-                <Loader2 className="h-3 w-3" /> Retry
+                <Loader2 className="h-3 w-3" /> {t("circleThread.retry")}
               </button>
             )}
           </div>
         )}
         <div className="mt-3 flex items-center justify-between">
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            {body.length}/600
+            {t("circleThread.charsCount", { count: body.length })}
           </p>
           <button
             onClick={submit}
@@ -414,7 +416,7 @@ function CircleDetailPage() {
             ) : (
               <Send className="h-3.5 w-3.5" />
             )}
-            {posting ? "Posting…" : "Post"}
+            {posting ? t("circleThread.postingState") : t("circleThread.post")}
           </button>
         </div>
       </section>
@@ -422,7 +424,7 @@ function CircleDetailPage() {
       <section className="glass rounded-2xl p-3">
         <ToggleRow
           icon={prefs.allowProgressVisibility ? Eye : EyeOff}
-          label="Let circles see my progress when I share it"
+          label={t("circleThread.letCirclesSee")}
           checked={prefs.allowProgressVisibility}
           onChange={(v) => {
             setPrefs({ allowProgressVisibility: v });
@@ -434,7 +436,7 @@ function CircleDetailPage() {
       {/* Thread */}
       <section className="flex flex-col gap-2 pb-4">
         <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-          Thread · {visiblePosts.length}
+          {t("circleThread.thread", { count: visiblePosts.length })}
         </p>
         {pageError ? (
           <div role="alert" className="glass rounded-2xl p-4 text-center text-xs text-rose-300">
@@ -445,14 +447,14 @@ function CircleDetailPage() {
               onClick={() => setPage(listPostsPage(id, { limit }))}
               className="glass mx-auto mt-2 inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-foreground"
             >
-              <Loader2 className="h-3 w-3" /> Retry
+              <Loader2 className="h-3 w-3" /> {t("circleThread.retry")}
             </button>
           </div>
         ) : pageLoading && visiblePosts.length === 0 ? (
           <PostSkeletons count={3} />
         ) : visiblePosts.length === 0 ? (
           <div className="glass rounded-2xl p-4 text-center text-xs text-muted-foreground">
-            No posts yet. Be the first to drop a reflection.
+            {t("circleThread.noPostsYet")}
           </div>
         ) : (
           visiblePosts.map((p) => (
@@ -470,10 +472,10 @@ function CircleDetailPage() {
         {page.nextBefore && !pageLoading && (
           <button
             onClick={() => setLimit((l) => l + PAGE_SIZE)}
-            aria-label="Load older posts"
+            aria-label={t("circleThread.loadOlderAria")}
             className="glass mx-auto mt-1 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
           >
-            <ChevronDown className="h-3 w-3" /> Load older
+            <ChevronDown className="h-3 w-3" /> {t("circleThread.loadOlder")}
           </button>
         )}
         {pageLoading && visiblePosts.length > 0 && <PostSkeletons count={2} />}
@@ -484,12 +486,12 @@ function CircleDetailPage() {
 
 const KINDS: {
   value: CirclePost["kind"];
-  label: string;
+  labelKey: string;
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
-  { value: "reflection", label: "Reflect", icon: Sparkles },
-  { value: "insight", label: "Insight", icon: Lightbulb },
-  { value: "support", label: "Support", icon: Heart },
+  { value: "reflection", labelKey: "circleThread.kindReflect", icon: Sparkles },
+  { value: "insight", labelKey: "circleThread.kindInsight", icon: Lightbulb },
+  { value: "support", labelKey: "circleThread.kindSupport", icon: Heart },
 ];
 
 function ToggleRow({
@@ -542,6 +544,7 @@ function PostCard({
   onEdit: (next: string) => Promise<void>;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   const Icon =
     post.kind === "reflection" ? Sparkles : post.kind === "insight" ? Lightbulb : Heart;
   const [editing, setEditing] = useState(false);
@@ -554,7 +557,7 @@ function PostCard({
       await onEdit(draft);
       setEditing(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save.");
+      setError(err instanceof Error ? err.message : t("circleThread.couldNotSave"));
     }
   };
 
@@ -570,10 +573,10 @@ function PostCard({
           <div>
             <p className="text-xs font-medium text-foreground">{post.authorName}</p>
             <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
-              {post.kind} ·{" "}
+              {t(`circleThread.kind${post.kind === "reflection" ? "Reflect" : post.kind === "insight" ? "Insight" : "Support"}`)} ·{" "}
               {pending
-                ? "sending…"
-                : `${relative(post.createdAt)}${post.editedAt ? " · edited" : ""}`}
+                ? t("circleThread.sending")
+                : `${relative(post.createdAt, t)}${post.editedAt ? ` · ${t("circleThread.edited")}` : ""}`}
             </p>
           </div>
         </div>
@@ -585,7 +588,7 @@ function PostCard({
                 setEditing((v) => !v);
                 setError(null);
               }}
-              aria-label="Edit post"
+              aria-label={t("circleThread.editAria")}
               disabled={busy !== null}
               className="rounded-md px-1.5 py-1 text-muted-foreground hover:text-foreground disabled:opacity-40"
             >
@@ -597,7 +600,7 @@ function PostCard({
             </button>
             <button
               onClick={onDelete}
-              aria-label="Delete post"
+              aria-label={t("circleThread.deleteAria")}
               disabled={busy !== null}
               className="rounded-md px-1.5 py-1 text-muted-foreground hover:text-rose-300 disabled:opacity-40"
             >
@@ -629,7 +632,7 @@ function PostCard({
               onClick={() => setEditing(false)}
               className="glass rounded-xl px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
             >
-              Cancel
+              {t("circleThread.cancel")}
             </button>
             <button
               onClick={saveEdit}
@@ -638,7 +641,7 @@ function PostCard({
               style={{ background: "var(--gradient-gold)" }}
             >
               {busy === "edit" && <Loader2 className="h-3 w-3 animate-spin" />}
-              Save
+              {t("circleThread.save")}
             </button>
           </div>
         </div>
@@ -653,12 +656,12 @@ function PostCard({
             <Chip icon={Activity} label={`BMR ${post.progress.bmr}`} />
           )}
           {typeof post.progress.streak === "number" && post.progress.streak > 0 && (
-            <Chip icon={Flame} label={`${post.progress.streak}d streak`} />
+            <Chip icon={Flame} label={t("circleThread.streakSuffix", { count: post.progress.streak })} />
           )}
         </div>
       )}
       <div className="mt-3 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-        <MessageCircle className="h-3 w-3" /> in circle
+        <MessageCircle className="h-3 w-3" /> {t("circleThread.inCircle")}
       </div>
     </article>
   );
@@ -679,8 +682,9 @@ function Chip({
 }
 
 function PostSkeletons({ count }: { count: number }) {
+  const { t } = useTranslation();
   return (
-    <div className="flex flex-col gap-2" aria-busy="true" aria-label="Loading posts">
+    <div className="flex flex-col gap-2" aria-busy="true" aria-label={t("circleThread.loadingPostsAria")}>
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="glass animate-pulse rounded-2xl p-4">
           <div className="flex items-center gap-2">
@@ -701,13 +705,13 @@ function PostSkeletons({ count }: { count: number }) {
   );
 }
 
-function relative(ts: number): string {
+function relative(ts: number, t: (k: string, opts?: Record<string, unknown>) => string): string {
   const diff = Date.now() - ts;
   const m = Math.floor(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
+  if (m < 1) return t("circleThread.justNow");
+  if (m < 60) return t("circleThread.minutesAgo", { count: m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
+  if (h < 24) return t("circleThread.hoursAgo", { count: h });
   const d = Math.floor(h / 24);
-  return `${d}d ago`;
+  return t("circleThread.daysAgo", { count: d });
 }

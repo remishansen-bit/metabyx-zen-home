@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ChevronLeft,
   Users,
@@ -56,6 +57,7 @@ export const Route = createFileRoute("/circles")({
 });
 
 function CirclesPage() {
+  const { t } = useTranslation();
   const { tier, loading: subLoading } = useSubscription();
   const navigate = useNavigate();
   const allowed = canAccess(tier, "pro");
@@ -80,7 +82,7 @@ function CirclesPage() {
         <Link
           to="/profile"
           className="glass flex h-9 w-9 items-center justify-center rounded-full"
-          aria-label="Back"
+          aria-label={t("circlesFull.backAria")}
         >
           <ChevronLeft className="h-4 w-4 text-foreground" />
         </Link>
@@ -88,7 +90,7 @@ function CirclesPage() {
           className="text-xl font-light text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          Metabolic Circles
+          {t("circlesFull.header")}
         </h1>
         <span className="w-9" aria-hidden />
       </header>
@@ -96,8 +98,8 @@ function CirclesPage() {
       {!subLoading && !allowed && (
         <PaywallLockedCard
           required="pro"
-          title="Circles are part of Pro"
-          description="Small shared rooms — invite a few people in, hold one collective pulse together."
+          title={t("circlesFull.paywallTitle")}
+          description={t("circlesFull.paywallDesc")}
           onUnlock={() => navigate({ to: "/settings" })}
         />
       )}
@@ -109,26 +111,25 @@ function CirclesPage() {
           <Users className="h-5 w-5 text-gold" />
         </div>
         <p className="mt-3 text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
-          Shared rooms · early
+          {t("circlesFull.earlyEyebrow")}
         </p>
         <p
           className="mt-2 text-base font-light leading-relaxed text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          Small rooms where a few people metabolise life together — gentle
-          rhythms, shared check-ins, one collective pulse.
+          {t("circlesFull.earlyBody")}
         </p>
       </section>
 
       <section className="flex flex-col gap-2">
         <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-          Your circles
+          {t("circlesFull.yourCircles")}
         </p>
         {circles.length === 0 ? (
           <EmptyState
             icon={<Users className="h-5 w-5" />}
-            title="No circles yet"
-            description="Create one to gather a few people, or paste an invite code to join an existing room."
+            title={t("circlesFull.noCirclesTitle")}
+            description={t("circlesFull.noCirclesBody")}
           />
         ) : (
           circles.map((c) => (
@@ -138,7 +139,7 @@ function CirclesPage() {
               onOpen={() => navigate({ to: "/circles/$id", params: { id: c.id } })}
               onLeave={() => {
                 leaveCircle(c.id);
-                notify.info("Left circle", `You're no longer in ${c.name}.`);
+                notify.info(t("circlesFull.leftTitle"), t("circlesFull.leftBody", { name: c.name }));
               }}
             />
           ))
@@ -151,34 +152,35 @@ function CirclesPage() {
           className="flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-medium text-background"
           style={{ background: "var(--gradient-gold)" }}
         >
-          <Plus className="h-4 w-4" /> Create
+          <Plus className="h-4 w-4" /> {t("circlesFull.create")}
         </button>
         <button
           onClick={() => setOpenJoin(true)}
           className="glass flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-medium text-foreground"
         >
-          <ArrowRight className="h-4 w-4" /> Join with code
+          <ArrowRight className="h-4 w-4" /> {t("circlesFull.joinWithCode")}
         </button>
       </section>
 
       {openCreate && (
         <SheetDialog
-          title="Create a circle"
-          intro="Name your room and choose how open it is. We'll generate a private join code you can share."
-          confirmLabel="Create circle"
+          title={t("circlesFull.createTitle")}
+          intro={t("circlesFull.createIntro")}
+          confirmLabel={t("circlesFull.createConfirm")}
+          cancelLabel={t("circlesFull.cancel")}
           onClose={() => {
             setOpenCreate(false);
             setNewName("");
           }}
           onConfirm={() => {
-            const c = createCircle(newName || "Untitled circle", newVisibility);
-            notify.saved("Circle created", `Share code ${c.joinCode} to invite people.`);
+            const c = createCircle(newName || t("circlesFull.untitled"), newVisibility);
+            notify.saved(t("circlesFull.createdTitle"), t("circlesFull.createdBody", { code: c.joinCode }));
             setOpenCreate(false);
             setNewName("");
           }}
         >
           <label htmlFor="circle-name-input" className="mt-3 block text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Circle name
+            {t("circlesFull.circleNameLabel")}
           </label>
           <input
             id="circle-name-input"
@@ -187,16 +189,16 @@ function CirclesPage() {
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                const c = createCircle(newName || "Untitled circle", newVisibility);
-                notify.saved("Circle created", `Share code ${c.joinCode} to invite people.`);
+                const c = createCircle(newName || t("circlesFull.untitled"), newVisibility);
+                notify.saved(t("circlesFull.createdTitle"), t("circlesFull.createdBody", { code: c.joinCode }));
                 setOpenCreate(false);
                 setNewName("");
               }
             }}
-            placeholder="e.g. Weekly Reset"
+            placeholder={t("circlesFull.circleNamePlaceholder")}
             autoFocus
             maxLength={60}
-            aria-label="Circle name"
+            aria-label={t("circlesFull.circleNameAria")}
             className="glass mt-1 w-full rounded-2xl bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-gold"
           />
           <div className="glass mt-2 flex rounded-2xl p-1 text-[11px] uppercase tracking-[0.2em]">
@@ -207,7 +209,7 @@ function CirclesPage() {
                 onClick={() => setNewVisibility(v)}
                 className={`flex-1 rounded-xl py-2 transition-all ${newVisibility === v ? "bg-[oklch(0.82_0.14_82/0.18)] text-gold" : "text-muted-foreground"}`}
               >
-                {v}
+                {v === "private" ? t("circlesFull.private") : t("circlesFull.public")}
               </button>
             ))}
           </div>
@@ -215,21 +217,19 @@ function CirclesPage() {
       )}
       {openJoin && (
         <SheetDialog
-          title="Join a circle"
-          intro="Paste the invite code a friend shared. You'll be added to their room."
-          confirmLabel="Join circle"
+          title={t("circlesFull.joinTitle")}
+          intro={t("circlesFull.joinIntro")}
+          confirmLabel={t("circlesFull.joinConfirm")}
+          cancelLabel={t("circlesFull.cancel")}
           onClose={() => {
             setOpenJoin(false);
             setJoinCode("");
             setJoinError(null);
           }}
           onConfirm={() => {
-            // Always go through joinByCode so the throttle counts even bad
-            // shapes — we don't want a "shape valid?" client check to let
-            // attackers probe codes without burning their rate limit.
             try {
               const c = joinByCode(joinCode);
-              notify.saved("Joined", `You're in ${c.name}.`);
+              notify.saved(t("circlesFull.joinedTitle"), t("circlesFull.joinedBody", { name: c.name }));
               setOpenJoin(false);
               setJoinCode("");
               setJoinError(null);
@@ -237,17 +237,14 @@ function CirclesPage() {
               const msg =
                 err instanceof Error
                   ? err.message
-                  : "That invite code isn't valid or has expired.";
+                  : t("circlesFull.invalidCode");
               setJoinError(msg);
-              notify.error(
-                "Couldn't join",
-                msg,
-              );
+              notify.error(t("circlesFull.couldNotJoin"), msg);
             }
           }}
         >
           <label htmlFor="join-code-input" className="mt-3 block text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Invite code
+            {t("circlesFull.inviteCodeLabel")}
           </label>
           <input
             id="join-code-input"
@@ -260,10 +257,9 @@ function CirclesPage() {
               if (e.key === "Enter") {
                 e.preventDefault();
                 (e.currentTarget.form ?? e.currentTarget).blur?.();
-                // Submit via the dialog's confirm path.
                 try {
                   const c = joinByCode(joinCode);
-                  notify.saved("Joined", `You're in ${c.name}.`);
+                  notify.saved(t("circlesFull.joinedTitle"), t("circlesFull.joinedBody", { name: c.name }));
                   setOpenJoin(false);
                   setJoinCode("");
                   setJoinError(null);
@@ -271,13 +267,13 @@ function CirclesPage() {
                   const msg =
                     err instanceof Error
                       ? err.message
-                      : "That invite code isn't valid or has expired.";
+                      : t("circlesFull.invalidCode");
                   setJoinError(msg);
-                  notify.error("Couldn't join", msg);
+                  notify.error(t("circlesFull.couldNotJoin"), msg);
                 }
               }
             }}
-            placeholder="ABCD-1234"
+            placeholder={t("circlesFull.inviteCodePlaceholder")}
             inputMode="text"
             autoCapitalize="characters"
             autoComplete="off"
@@ -285,11 +281,11 @@ function CirclesPage() {
             maxLength={9}
             aria-invalid={Boolean(joinError) || (joinCode.length > 0 && !shapeOk)}
             aria-describedby={`${joinHintId}${joinError || (joinCode.length > 0 && !shapeOk) ? ` ${joinErrorId}` : ""}`}
-            aria-label="Circle invite code, formatted four characters dash four characters"
+            aria-label={t("circlesFull.inviteCodeAria")}
             className="glass mt-1 w-full rounded-2xl bg-transparent px-4 py-3 text-sm uppercase tracking-[0.2em] text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-gold"
           />
           <p id={joinHintId} className="mt-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Format: 4 chars · dash · 4 chars · {attemptsLeft}/{JOIN_LIMIT} attempts left
+            {t("circlesFull.formatHint", { left: attemptsLeft, max: JOIN_LIMIT })}
           </p>
           {(joinError || (joinCode.length > 0 && !shapeOk)) && (
             <p
@@ -300,7 +296,7 @@ function CirclesPage() {
             >
               {joinError ?? (
                 <>
-                  Codes look like <span className="font-mono">ABCD-1234</span>.
+                  {t("circlesFull.codesLook")} <span className="font-mono">ABCD-1234</span>.
                 </>
               )}
             </p>
@@ -322,14 +318,15 @@ function CircleRow({
   onLeave: () => void;
   onOpen: () => void;
 }) {
+  const { t } = useTranslation();
   const Visibility = circle.visibility === "private" ? Lock : Globe;
   const copyCode = async () => {
     if (!circle.joinCode) return;
     try {
       await navigator.clipboard.writeText(circle.joinCode);
-      notify.info("Code copied", circle.joinCode);
+      notify.info(t("circlesFull.codeCopiedTitle"), circle.joinCode);
     } catch {
-      notify.error("Couldn't copy", "Try selecting it manually.");
+      notify.error(t("circlesFull.couldNotCopy"), t("circlesFull.copyManually"));
     }
   };
   return (
@@ -368,18 +365,18 @@ function CircleRow({
               e.stopPropagation();
               const next = rotateJoinCode(circle.id);
               if (next?.joinCode) {
-                notify.saved("Code rotated", `New invite: ${next.joinCode}`);
+                notify.saved(t("circlesFull.rotatedTitle"), t("circlesFull.rotatedBody", { code: next.joinCode }));
               }
             }}
             role="button"
             tabIndex={0}
             className="ml-2 mt-1 inline-flex cursor-pointer items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
           >
-            <RotateCw className="h-3 w-3" /> rotate
+            <RotateCw className="h-3 w-3" /> {t("circlesFull.rotateAria")}
           </span>
         )}
         <span className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-          <MessageCircle className="h-3 w-3" /> open thread
+          <MessageCircle className="h-3 w-3" /> {t("circlesFull.openThread")}
         </span>
       </button>
       <div className="text-right">
@@ -390,15 +387,15 @@ function CircleRow({
           {circle.pulse}
         </p>
         <p className="text-[9px] uppercase tracking-wider text-muted-foreground">
-          {circle.members} in
+          {t("circlesFull.membersIn", { count: circle.members })}
         </p>
         {circle.source !== "preview" && (
           <button
             onClick={onLeave}
-            aria-label={`Leave ${circle.name}`}
+            aria-label={t("circlesFull.leaveAria", { name: circle.name })}
             className="mt-1 inline-flex items-center gap-1 text-[9px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
           >
-            <X className="h-3 w-3" /> Leave
+            <X className="h-3 w-3" /> {t("circlesFull.leave")}
           </button>
         )}
       </div>
@@ -410,6 +407,7 @@ function SheetDialog({
   title,
   intro,
   confirmLabel,
+  cancelLabel,
   onClose,
   onConfirm,
   children,
@@ -417,6 +415,7 @@ function SheetDialog({
   title: string;
   intro: string;
   confirmLabel: string;
+  cancelLabel: string;
   onClose: () => void;
   onConfirm: () => void;
   children?: React.ReactNode;
@@ -446,7 +445,7 @@ function SheetDialog({
             onClick={onClose}
             className="glass flex-1 rounded-2xl px-4 py-3 text-xs uppercase tracking-[0.2em] text-muted-foreground"
           >
-            Cancel
+            {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
