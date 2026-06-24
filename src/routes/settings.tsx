@@ -302,6 +302,7 @@ function SettingsPage() {
       </header>
 
       <SubscriptionCard />
+      <SubscriptionHistory />
 
       <Section icon={Bell} title="Daily reminders">
         <Toggle
@@ -542,6 +543,7 @@ function SettingsPage() {
           </p>
         </Dialog>
       )}
+      {gate.paywall}
     </PhoneFrame>
   );
 }
