@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import type { Branch, MetabyxState } from "./store";
+import type { LearningInsights } from "./learning";
 
 /**
  * Generate a calm, printable PDF report of branches + BMR history and trigger
@@ -127,6 +128,7 @@ export function exportSummaryPdf(
     archetype?: string | null;
     baselineBmr?: number | null;
     preferences?: Record<string, unknown>;
+    insights?: LearningInsights;
   } = {},
 ) {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -197,6 +199,30 @@ export function exportSummaryPdf(
         : JSON.stringify(v);
       doc.text(label, margin, y);
       doc.text(value.slice(0, 60), pageW - margin, y, { align: "right" });
+      y += 14;
+    }
+    y += 8;
+  }
+
+  if (meta.insights) {
+    doc.setFontSize(12);
+    doc.setTextColor(20, 20, 30);
+    doc.text("Personal learning", margin, y);
+    y += 16;
+    doc.setFontSize(10);
+    doc.setTextColor(60);
+    const i = meta.insights;
+    const rows: [string, string][] = [
+      ["Preference changes", String(i.totalPrefChanges)],
+      ["Most tuned preference", i.mostTunedPref ?? "—"],
+      ["Preferred reminder slot", i.preferredReminderSlot],
+      ["Reminders fired", String(i.remindersFired)],
+      ["Reminders skipped", String(i.remindersSkipped)],
+      ["Consistency", `${Math.round(i.consistency * 100)}%`],
+    ];
+    for (const [k, v] of rows) {
+      doc.text(k, margin, y);
+      doc.text(v, pageW - margin, y, { align: "right" });
       y += 14;
     }
   }

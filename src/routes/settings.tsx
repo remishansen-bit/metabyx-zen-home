@@ -28,6 +28,7 @@ import {
   formatRelative,
 } from "@/lib/reminders";
 import { recordPrefChange } from "@/lib/learning";
+import { summarize } from "@/lib/learning";
 import { exportSummaryPdf } from "@/lib/library-pdf";
 import type { MetabyxState } from "@/lib/store";
 
@@ -208,6 +209,7 @@ function SettingsPage() {
           archetype: auth.profile?.archetype,
           baselineBmr: auth.profile?.baseline_bmr,
           preferences: prefs,
+          insights: summarize(),
         },
       );
       notify.saved("PDF ready", "Your summary was downloaded.");

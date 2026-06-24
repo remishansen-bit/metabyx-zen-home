@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sparkles, Mail, Loader2, ArrowRight } from "lucide-react";
+import { Sparkles, Mail, Loader2, ArrowRight, MailCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/lib/auth";
@@ -145,14 +145,19 @@ function OAuthButton({ provider }: { provider: "apple" | "google" }) {
 }
 
 function EmailForm({ onBack }: { onBack: () => void }) {
-  const [tab, setTab] = useState<"signin" | "signup">("signin");
+  const [tab, setTab] = useState<"signin" | "signup" | "reset">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sentTo, setSentTo] = useState<null | { kind: "verify" | "reset"; email: string }>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || password.length < 6) {
+    if (!email) {
+      notify.error("Add your email", "We need it to continue.");
+      return;
+    }
+    if (tab !== "reset" && password.length < 6) {
       notify.error("Check your details", "Password must be at least 6 characters.");
       return;
     }
@@ -161,18 +166,28 @@ function EmailForm({ onBack }: { onBack: () => void }) {
       if (tab === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-      } else {
+      } else if (tab === "signup") {
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: { emailRedirectTo: window.location.origin },
         });
         if (error) throw error;
-        notify.saved("Check your inbox", "We sent a confirmation link to finish signing up.");
+        setSentTo({ kind: "verify", email });
+      } else {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        setSentTo({ kind: "reset", email });
       }
     } catch (err) {
       notify.error(
-        tab === "signin" ? "Couldn't sign in" : "Couldn't sign up",
+        tab === "signin"
+          ? "Couldn't sign in"
+          : tab === "signup"
+            ? "Couldn't sign up"
+            : "Couldn't send reset email",
         err instanceof Error ? err.message : "Please try again.",
       );
     } finally {
@@ -180,10 +195,40 @@ function EmailForm({ onBack }: { onBack: () => void }) {
     }
   };
 
+  if (sentTo) {
+    return (
+      <div className="flex flex-col items-center gap-3 text-center">
+        <div className="glass flex h-12 w-12 items-center justify-center rounded-2xl">
+          <MailCheck className="h-5 w-5 text-gold" />
+        </div>
+        <p
+          className="text-lg font-light text-foreground"
+          style={{ fontFamily: "Fraunces, serif" }}
+        >
+          {sentTo.kind === "verify" ? "Confirm your email" : "Check your inbox"}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          We sent {sentTo.kind === "verify" ? "a confirmation link" : "a reset link"} to{" "}
+          <span className="text-foreground">{sentTo.email}</span>. It can take a moment.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setSentTo(null);
+            setTab("signin");
+          }}
+          className="glass mt-2 w-full rounded-2xl px-4 py-3 text-xs uppercase tracking-[0.2em] text-muted-foreground"
+        >
+          Back to sign in
+        </button>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
       <div className="glass flex rounded-2xl p-1 text-[11px] uppercase tracking-[0.2em]">
-        {(["signin", "signup"] as const).map((t) => (
+        {(["signin", "signup", "reset"] as const).map((t) => (
           <button
             type="button"
             key={t}
@@ -192,7 +237,7 @@ function EmailForm({ onBack }: { onBack: () => void }) {
               tab === t ? "bg-[oklch(0.82_0.14_82/0.18)] text-gold" : "text-muted-foreground"
             }`}
           >
-            {t === "signin" ? "Sign in" : "Sign up"}
+            {t === "signin" ? "Sign in" : t === "signup" ? "Sign up" : "Reset"}
           </button>
         ))}
       </div>
@@ -205,15 +250,17 @@ function EmailForm({ onBack }: { onBack: () => void }) {
         onChange={(e) => setEmail(e.target.value)}
         className="glass rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-gold/40"
       />
-      <input
-        type="password"
-        required
-        autoComplete={tab === "signin" ? "current-password" : "new-password"}
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        className="glass rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-gold/40"
-      />
+      {tab !== "reset" && (
+        <input
+          type="password"
+          required
+          autoComplete={tab === "signin" ? "current-password" : "new-password"}
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="glass rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-gold/40"
+        />
+      )}
       <button
         type="submit"
         disabled={loading}
@@ -221,8 +268,21 @@ function EmailForm({ onBack }: { onBack: () => void }) {
         style={{ background: "var(--gradient-gold)" }}
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-        {tab === "signin" ? "Sign in" : "Create account"}
+        {tab === "signin"
+          ? "Sign in"
+          : tab === "signup"
+            ? "Create account"
+            : "Send reset link"}
       </button>
+      {tab === "signin" && (
+        <button
+          type="button"
+          onClick={() => setTab("reset")}
+          className="text-center text-[11px] uppercase tracking-[0.2em] text-muted-foreground hover:text-gold"
+        >
+          Forgot password?
+        </button>
+      )}
       <button
         type="button"
         onClick={onBack}

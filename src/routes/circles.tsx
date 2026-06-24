@@ -8,24 +8,33 @@ import {
   Globe,
   Sparkles,
   ArrowRight,
+  X,
+  Copy,
 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { RequireAuth } from "@/lib/auth";
 import { notify } from "@/lib/feedback";
+import {
+  createCircle,
+  joinByCode,
+  leaveCircle,
+  useCircles,
+  type Circle,
+} from "@/lib/circles";
 
 /**
- * Sketch screen for "Metabolic Circles" — shared rooms where small groups
- * could metabolise together. No backend yet; this is the visual contract
- * we want the future shared-state implementation to land into.
+ * Metabolic Circles — sketch screen for shared rooms. Rooms persist to
+ * localStorage via @/lib/circles so what the user creates or joins survives
+ * reloads. Group state (members, pulse) is still local-only; the backend
+ * sync ships later.
  */
-
 export const Route = createFileRoute("/circles")({
   head: () => ({
     meta: [
       { title: "Circles · METABYX" },
       {
         name: "description",
-        content: "Shared rooms for metabolising together — coming soon.",
+        content: "Shared rooms for metabolising together.",
       },
     ],
   }),
@@ -36,45 +45,13 @@ export const Route = createFileRoute("/circles")({
   ),
 });
 
-type Circle = {
-  id: string;
-  name: string;
-  members: number;
-  pulse: number; // group BMR
-  visibility: "private" | "public";
-  hint: string;
-};
-
-const PREVIEW: Circle[] = [
-  {
-    id: "kin",
-    name: "Kin",
-    members: 4,
-    pulse: 74,
-    visibility: "private",
-    hint: "Quiet evening reflections with the people closest in.",
-  },
-  {
-    id: "founders",
-    name: "Founders' Quiet Room",
-    members: 11,
-    pulse: 68,
-    visibility: "private",
-    hint: "For founders metabolising the week's open loops.",
-  },
-  {
-    id: "dawn",
-    name: "Dawn Practice",
-    members: 32,
-    pulse: 71,
-    visibility: "public",
-    hint: "An open morning circle. Drop in, set one intention.",
-  },
-];
-
 function CirclesPage() {
+  const circles = useCircles();
   const [openCreate, setOpenCreate] = useState(false);
   const [openJoin, setOpenJoin] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newVisibility, setNewVisibility] = useState<"private" | "public">("private");
+  const [joinCode, setJoinCode] = useState("");
 
   return (
     <PhoneFrame>
@@ -102,7 +79,7 @@ function CirclesPage() {
           <Users className="h-5 w-5 text-gold" />
         </div>
         <p className="mt-3 text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
-          A future feature
+          Shared rooms · early
         </p>
         <p
           className="mt-2 text-base font-light leading-relaxed text-foreground"
@@ -115,11 +92,24 @@ function CirclesPage() {
 
       <section className="flex flex-col gap-2">
         <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-          Preview
+          Your circles
         </p>
-        {PREVIEW.map((c) => (
-          <CircleRow key={c.id} circle={c} />
-        ))}
+        {circles.length === 0 ? (
+          <div className="glass rounded-2xl p-4 text-center text-xs text-muted-foreground">
+            You're not in any circles yet. Create one or join with a code.
+          </div>
+        ) : (
+          circles.map((c) => (
+            <CircleRow
+              key={c.id}
+              circle={c}
+              onLeave={() => {
+                leaveCircle(c.id);
+                notify.info("Left circle", `You're no longer in ${c.name}.`);
+              }}
+            />
+          ))
+        )}
       </section>
 
       <section className="grid grid-cols-2 gap-2">
@@ -141,34 +131,82 @@ function CirclesPage() {
       {openCreate && (
         <SheetDialog
           title="Create a circle"
-          intro="Name your room. You'll get a private code to invite a few people in."
-          confirmLabel="Notify me when it's ready"
-          onClose={() => setOpenCreate(false)}
-          onConfirm={() => {
-            notify.saved("Saved", "We'll let you know when Circles ships.");
+          intro="Name your room and choose how open it is. We'll generate a private join code you can share."
+          confirmLabel="Create circle"
+          onClose={() => {
             setOpenCreate(false);
+            setNewName("");
           }}
-        />
+          onConfirm={() => {
+            const c = createCircle(newName || "Untitled circle", newVisibility);
+            notify.saved("Circle created", `Share code ${c.joinCode} to invite people.`);
+            setOpenCreate(false);
+            setNewName("");
+          }}
+        >
+          <input
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="Circle name"
+            className="glass mt-3 w-full rounded-2xl bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          />
+          <div className="glass mt-2 flex rounded-2xl p-1 text-[11px] uppercase tracking-[0.2em]">
+            {(["private", "public"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setNewVisibility(v)}
+                className={`flex-1 rounded-xl py-2 transition-all ${newVisibility === v ? "bg-[oklch(0.82_0.14_82/0.18)] text-gold" : "text-muted-foreground"}`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+        </SheetDialog>
       )}
       {openJoin && (
         <SheetDialog
           title="Join a circle"
-          intro="Got an invite code? Paste it here and we'll save your interest."
-          confirmLabel="Hold my spot"
-          inputPlaceholder="ABCD-1234"
-          onClose={() => setOpenJoin(false)}
-          onConfirm={() => {
-            notify.saved("Saved", "Your spot is held for the first wave.");
+          intro="Paste the invite code a friend shared. You'll be added to their room."
+          confirmLabel="Join circle"
+          onClose={() => {
             setOpenJoin(false);
+            setJoinCode("");
           }}
-        />
+          onConfirm={() => {
+            try {
+              const c = joinByCode(joinCode);
+              notify.saved("Joined", `You're in ${c.name}.`);
+              setOpenJoin(false);
+              setJoinCode("");
+            } catch (err) {
+              notify.error("Couldn't join", err instanceof Error ? err.message : "Try a longer code.");
+            }
+          }}
+        >
+          <input
+            value={joinCode}
+            onChange={(e) => setJoinCode(e.target.value)}
+            placeholder="ABCD-1234"
+            className="glass mt-3 w-full rounded-2xl bg-transparent px-4 py-3 text-sm uppercase tracking-[0.2em] text-foreground outline-none placeholder:text-muted-foreground"
+          />
+        </SheetDialog>
       )}
     </PhoneFrame>
   );
 }
 
-function CircleRow({ circle }: { circle: Circle }) {
+function CircleRow({ circle, onLeave }: { circle: Circle; onLeave: () => void }) {
   const Visibility = circle.visibility === "private" ? Lock : Globe;
+  const copyCode = async () => {
+    if (!circle.joinCode) return;
+    try {
+      await navigator.clipboard.writeText(circle.joinCode);
+      notify.info("Code copied", circle.joinCode);
+    } catch {
+      notify.error("Couldn't copy", "Try selecting it manually.");
+    }
+  };
   return (
     <div className="glass flex items-center gap-3 rounded-2xl px-4 py-3">
       <div
@@ -186,6 +224,14 @@ function CircleRow({ circle }: { circle: Circle }) {
           <Visibility className="h-3 w-3 text-muted-foreground" />
         </div>
         <p className="text-xs text-muted-foreground">{circle.hint}</p>
+        {circle.joinCode && (
+          <button
+            onClick={copyCode}
+            className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-gold hover:underline"
+          >
+            <Copy className="h-3 w-3" /> {circle.joinCode}
+          </button>
+        )}
       </div>
       <div className="text-right">
         <p
@@ -197,6 +243,15 @@ function CircleRow({ circle }: { circle: Circle }) {
         <p className="text-[9px] uppercase tracking-wider text-muted-foreground">
           {circle.members} in
         </p>
+        {circle.source !== "preview" && (
+          <button
+            onClick={onLeave}
+            aria-label={`Leave ${circle.name}`}
+            className="mt-1 inline-flex items-center gap-1 text-[9px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3 w-3" /> Leave
+          </button>
+        )}
       </div>
     </div>
   );
@@ -206,16 +261,16 @@ function SheetDialog({
   title,
   intro,
   confirmLabel,
-  inputPlaceholder,
   onClose,
   onConfirm,
+  children,
 }: {
   title: string;
   intro: string;
   confirmLabel: string;
-  inputPlaceholder?: string;
   onClose: () => void;
   onConfirm: () => void;
+  children?: React.ReactNode;
 }) {
   return (
     <div
@@ -236,12 +291,7 @@ function SheetDialog({
           {title}
         </h2>
         <p className="mt-2 text-xs text-muted-foreground">{intro}</p>
-        {inputPlaceholder && (
-          <input
-            placeholder={inputPlaceholder}
-            className="glass mt-3 w-full rounded-2xl bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
-          />
-        )}
+        {children}
         <div className="mt-4 flex gap-2">
           <button
             onClick={onClose}
