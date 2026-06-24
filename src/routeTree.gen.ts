@@ -23,6 +23,7 @@ import { Route as CirclesRouteImport } from './routes/circles'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as STokenRouteImport } from './routes/s.$token'
+import { Route as LegalTermsRouteImport } from './routes/legal.terms'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as CirclesIdRouteImport } from './routes/circles.$id'
 import { Route as BranchIdRouteImport } from './routes/branch.$id'
@@ -100,6 +101,11 @@ const STokenRoute = STokenRouteImport.update({
   path: '/s/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LegalTermsRoute = LegalTermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => LegalRoute,
+} as any)
 const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/branch/$id': typeof BranchIdRoute
   '/circles/$id': typeof CirclesIdRoute
   '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/s/$token': typeof STokenRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -173,6 +180,7 @@ export interface FileRoutesByTo {
   '/branch/$id': typeof BranchIdRoute
   '/circles/$id': typeof CirclesIdRoute
   '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/s/$token': typeof STokenRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -196,6 +204,7 @@ export interface FileRoutesById {
   '/branch/$id': typeof BranchIdRoute
   '/circles/$id': typeof CirclesIdRoute
   '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/s/$token': typeof STokenRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -220,6 +229,7 @@ export interface FileRouteTypes {
     | '/branch/$id'
     | '/circles/$id'
     | '/legal/privacy'
+    | '/legal/terms'
     | '/s/$token'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -242,6 +252,7 @@ export interface FileRouteTypes {
     | '/branch/$id'
     | '/circles/$id'
     | '/legal/privacy'
+    | '/legal/terms'
     | '/s/$token'
     | '/api/public/payments/webhook'
   id:
@@ -264,6 +275,7 @@ export interface FileRouteTypes {
     | '/branch/$id'
     | '/circles/$id'
     | '/legal/privacy'
+    | '/legal/terms'
     | '/s/$token'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
@@ -389,6 +401,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof STokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/legal/terms': {
+      id: '/legal/terms'
+      path: '/terms'
+      fullPath: '/legal/terms'
+      preLoaderRoute: typeof LegalTermsRouteImport
+      parentRoute: typeof LegalRoute
+    }
     '/legal/privacy': {
       id: '/legal/privacy'
       path: '/privacy'
@@ -447,10 +466,12 @@ const CirclesRouteWithChildren =
 
 interface LegalRouteChildren {
   LegalPrivacyRoute: typeof LegalPrivacyRoute
+  LegalTermsRoute: typeof LegalTermsRoute
 }
 
 const LegalRouteChildren: LegalRouteChildren = {
   LegalPrivacyRoute: LegalPrivacyRoute,
+  LegalTermsRoute: LegalTermsRoute,
 }
 
 const LegalRouteWithChildren = LegalRoute._addFileChildren(LegalRouteChildren)
