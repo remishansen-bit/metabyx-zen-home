@@ -472,6 +472,7 @@ function IdentifyPhase({
   setWhatIf: (v: string) => void;
   children?: ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <section className="flex flex-col gap-5">
       <div>
@@ -479,17 +480,26 @@ function IdentifyPhase({
           className="text-2xl font-light leading-snug text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          What is the <span className="text-gold italic">"what if"</span> thought right now?
+          <Trans
+            i18nKey="sessionFull.identify.titleFull"
+            defaults='{{pre}} <1>{{hi}}</1> {{post}}'
+            values={{
+              pre: t("sessionFull.identify.titlePre"),
+              hi: t("sessionFull.identify.titleHi"),
+              post: t("sessionFull.identify.titlePost"),
+            }}
+            components={{ 1: <span className="text-gold italic" /> }}
+          />
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Begin where the branch lives in language. One sentence is enough.
+          {t("sessionFull.identify.subtitle")}
         </p>
       </div>
 
       {openBranches.length > 0 && (
         <div className="flex flex-col gap-2">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            Or choose an existing branch
+            {t("sessionFull.identify.orExisting")}
           </p>
           <div className="flex flex-wrap gap-2">
             {openBranches.map((b) => {
@@ -512,7 +522,7 @@ function IdentifyPhase({
         <textarea
           value={whatIf}
           onChange={(e) => setWhatIf(e.target.value)}
-          placeholder="What if I'm not ready for the conversation tomorrow…"
+          placeholder={t("sessionFull.identify.placeholder")}
           rows={5}
           className="w-full resize-none bg-transparent text-base leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
           style={{ fontFamily: "Fraunces, serif" }}
@@ -526,15 +536,15 @@ function IdentifyPhase({
           the textarea above, where it remains fully editable. */}
       <details className="glass rounded-2xl px-4 py-3">
         <summary className="flex cursor-pointer items-center justify-between text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-          <span>Speak the branch aloud</span>
-          <span className="text-gold">+ Voice</span>
+          <span>{t("sessionFull.identify.speakAloud")}</span>
+          <span className="text-gold">{t("sessionFull.identify.voiceLabel")}</span>
         </summary>
         <div className="mt-3">
           <VoiceRecorder
             language="en-US"
             compact
             showHistory={false}
-            ariaLabel="Record the what-if branch"
+            ariaLabel={t("sessionFull.identify.recordAria")}
             onTranscription={(text) =>
               setWhatIf(whatIf ? `${whatIf.trim()} ${text}` : text)
             }
