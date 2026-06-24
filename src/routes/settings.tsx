@@ -31,6 +31,7 @@ import { recordPrefChange } from "@/lib/learning";
 import { summarize } from "@/lib/learning";
 import { exportSummaryPdf } from "@/lib/library-pdf";
 import type { MetabyxState } from "@/lib/store";
+import { SubscriptionCard } from "@/components/subscription-card";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings · METABYX" }] }),
@@ -278,6 +279,8 @@ function SettingsPage() {
           saved
         </span>
       </header>
+
+      <SubscriptionCard />
 
       <Section icon={Bell} title="Daily reminders">
         <Toggle
