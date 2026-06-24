@@ -73,6 +73,25 @@ export function initI18n() {
         lookupLocalStorage: "metabyx.lang",
       },
       returnNull: false,
+      // When a key is missing in the active locale, react-i18next falls back
+      // to `fallbackLng` ("en") automatically. We additionally:
+      //   - In dev: log a warning so missing keys are surfaced loudly.
+      //   - In prod: stay silent and return the English string so users never
+      //     see raw key paths like `home.greetingMorning`.
+      saveMissing: import.meta.env.DEV,
+      missingKeyHandler: (lngs, _ns, key, fallbackValue) => {
+        if (!import.meta.env.DEV) return;
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[i18n] missing translation: key="${key}" lng="${lngs.join(",")}" fallback="${fallbackValue ?? key}"`,
+        );
+      },
+      parseMissingKeyHandler: (key) => {
+        // Last-resort display string: humanize the dotted key so we never
+        // render "settings.morningReminder" in the UI.
+        const last = key.split(".").pop() ?? key;
+        return last.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase()).trim();
+      },
     });
 
   return i18n;
