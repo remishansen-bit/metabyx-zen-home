@@ -34,6 +34,7 @@ import type { MetabyxState } from "@/lib/store";
 import { SubscriptionCard } from "@/components/subscription-card";
 import { SubscriptionHistory } from "@/components/SubscriptionHistory";
 import { PaywallAnalyticsCard } from "@/components/PaywallAnalyticsCard";
+import { ShareLinksCard } from "@/components/ShareLinksCard";
 import { useFeatureGate } from "@/hooks/useFeatureGate";
 
 export const Route = createFileRoute("/settings")({
@@ -305,6 +306,7 @@ function SettingsPage() {
       <SubscriptionCard />
       <SubscriptionHistory />
       <PaywallAnalyticsCard />
+      <ShareLinksCard />
 
       <Section icon={Bell} title="Daily reminders">
         <Toggle
