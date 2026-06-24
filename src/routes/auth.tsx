@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/lib/auth";
 import { notify } from "@/lib/feedback";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/auth")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -61,22 +62,22 @@ function AuthPage() {
 
 function WelcomeCard() {
   const [mode, setMode] = useState<"welcome" | "email">("welcome");
+  const { t } = useTranslation();
   return (
     <div className="glass-strong rounded-[32px] p-8">
       <div className="flex flex-col items-center text-center">
         <div className="glass mb-5 flex h-14 w-14 items-center justify-center rounded-2xl">
           <Sparkles className="h-6 w-6 text-gold" />
         </div>
-        <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground">METABYX</p>
+        <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground">{t("auth.eyebrow")}</p>
         <h1
           className="mt-3 text-3xl font-light leading-tight text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          Metabolise your day,
-          <br />gently.
+          {t("auth.headline")}
         </h1>
         <p className="mt-3 max-w-[280px] text-sm leading-relaxed text-muted-foreground">
-          A calm space to notice, name and integrate what moves through you.
+          {t("auth.subhead")}
         </p>
       </div>
 
@@ -90,7 +91,7 @@ function WelcomeCard() {
               className="glass flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-medium text-foreground transition-all hover:bg-[oklch(1_0_0/0.06)]"
             >
               <Mail className="h-4 w-4" />
-              Continue with email
+              {t("auth.continueEmail")}
             </button>
           </>
         ) : (
@@ -99,7 +100,7 @@ function WelcomeCard() {
       </div>
 
       <p className="mt-6 text-center text-[10px] leading-relaxed text-muted-foreground">
-        By continuing you agree to a kind, mindful use of this space.
+        {t("auth.terms")}
       </p>
     </div>
   );
@@ -107,7 +108,8 @@ function WelcomeCard() {
 
 function OAuthButton({ provider }: { provider: "apple" | "google" }) {
   const [loading, setLoading] = useState(false);
-  const label = provider === "apple" ? "Continue with Apple" : "Continue with Google";
+  const { t } = useTranslation();
+  const label = provider === "apple" ? t("auth.continueApple") : t("auth.continueGoogle");
 
   const onClick = async () => {
     setLoading(true);
@@ -116,12 +118,12 @@ function OAuthButton({ provider }: { provider: "apple" | "google" }) {
         redirect_uri: window.location.origin,
       });
       if (result.error) {
-        notify.error("Couldn't sign in", result.error.message ?? "Please try again.");
+        notify.error(t("auth.couldNotSignIn"), result.error.message ?? t("auth.tryAgain"));
         setLoading(false);
       }
       // if redirected, browser handles navigation
     } catch (err) {
-      notify.error("Couldn't sign in", err instanceof Error ? err.message : "Please try again.");
+      notify.error(t("auth.couldNotSignIn"), err instanceof Error ? err.message : t("auth.tryAgain"));
       setLoading(false);
     }
   };
@@ -150,15 +152,16 @@ function EmailForm({ onBack }: { onBack: () => void }) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [sentTo, setSentTo] = useState<null | { kind: "verify" | "reset"; email: string }>(null);
+  const { t } = useTranslation();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      notify.error("Add your email", "We need it to continue.");
+      notify.error(t("auth.addEmail"), t("auth.addEmailBody"));
       return;
     }
     if (tab !== "reset" && password.length < 6) {
-      notify.error("Check your details", "Password must be at least 6 characters.");
+      notify.error(t("auth.checkDetails"), t("auth.passwordTooShort"));
       return;
     }
     setLoading(true);
@@ -184,11 +187,11 @@ function EmailForm({ onBack }: { onBack: () => void }) {
     } catch (err) {
       notify.error(
         tab === "signin"
-          ? "Couldn't sign in"
+          ? t("auth.couldNotSignIn")
           : tab === "signup"
-            ? "Couldn't sign up"
-            : "Couldn't send reset email",
-        err instanceof Error ? err.message : "Please try again.",
+            ? t("auth.couldNotSignUp")
+            : t("auth.couldNotSendReset"),
+        err instanceof Error ? err.message : t("auth.tryAgain"),
       );
     } finally {
       setLoading(false);
@@ -205,11 +208,11 @@ function EmailForm({ onBack }: { onBack: () => void }) {
           className="text-lg font-light text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          {sentTo.kind === "verify" ? "Confirm your email" : "Check your inbox"}
+          {sentTo.kind === "verify" ? t("auth.confirmEmailTitle") : t("auth.checkInboxTitle")}
         </p>
         <p className="text-xs text-muted-foreground">
-          We sent {sentTo.kind === "verify" ? "a confirmation link" : "a reset link"} to{" "}
-          <span className="text-foreground">{sentTo.email}</span>. It can take a moment.
+          {sentTo.kind === "verify" ? t("auth.sentConfirmation") : t("auth.sentReset")}{" "}
+          <span className="text-foreground">{sentTo.email}</span>. {t("auth.canTakeAMoment")}
         </p>
         <button
           type="button"
@@ -219,7 +222,7 @@ function EmailForm({ onBack }: { onBack: () => void }) {
           }}
           className="glass mt-2 w-full rounded-2xl px-4 py-3 text-xs uppercase tracking-[0.2em] text-muted-foreground"
         >
-          Back to sign in
+          {t("auth.backToSignIn")}
         </button>
       </div>
     );
@@ -228,16 +231,16 @@ function EmailForm({ onBack }: { onBack: () => void }) {
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
       <div className="glass flex rounded-2xl p-1 text-[11px] uppercase tracking-[0.2em]">
-        {(["signin", "signup", "reset"] as const).map((t) => (
+        {(["signin", "signup", "reset"] as const).map((key) => (
           <button
             type="button"
-            key={t}
-            onClick={() => setTab(t)}
+            key={key}
+            onClick={() => setTab(key)}
             className={`flex-1 rounded-xl py-2 transition-all ${
-              tab === t ? "bg-[oklch(0.82_0.14_82/0.18)] text-gold" : "text-muted-foreground"
+              tab === key ? "bg-[oklch(0.82_0.14_82/0.18)] text-gold" : "text-muted-foreground"
             }`}
           >
-            {t === "signin" ? "Sign in" : t === "signup" ? "Sign up" : "Reset"}
+            {key === "signin" ? t("auth.signIn") : key === "signup" ? t("auth.signUp") : t("auth.reset")}
           </button>
         ))}
       </div>
@@ -245,7 +248,7 @@ function EmailForm({ onBack }: { onBack: () => void }) {
         type="email"
         required
         autoComplete="email"
-        placeholder="you@example.com"
+        placeholder={t("auth.emailPlaceholder")}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         className="glass rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-gold/40"
@@ -255,7 +258,7 @@ function EmailForm({ onBack }: { onBack: () => void }) {
           type="password"
           required
           autoComplete={tab === "signin" ? "current-password" : "new-password"}
-          placeholder="Password"
+          placeholder={t("auth.passwordPlaceholder")}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="glass rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-gold/40"
@@ -269,10 +272,10 @@ function EmailForm({ onBack }: { onBack: () => void }) {
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
         {tab === "signin"
-          ? "Sign in"
+          ? t("auth.signIn")
           : tab === "signup"
-            ? "Create account"
-            : "Send reset link"}
+            ? t("auth.createAccount")
+            : t("auth.sendResetLink")}
       </button>
       {tab === "signin" && (
         <button
@@ -280,7 +283,7 @@ function EmailForm({ onBack }: { onBack: () => void }) {
           onClick={() => setTab("reset")}
           className="text-center text-[11px] uppercase tracking-[0.2em] text-muted-foreground hover:text-gold"
         >
-          Forgot password?
+          {t("auth.forgotPassword")}
         </button>
       )}
       <button
@@ -288,7 +291,7 @@ function EmailForm({ onBack }: { onBack: () => void }) {
         onClick={onBack}
         className="text-center text-xs text-muted-foreground hover:text-foreground"
       >
-        ← Back
+        ← {t("common.back")}
       </button>
     </form>
   );
