@@ -12,6 +12,7 @@ import {
   baselineBmrFor,
   type Area,
 } from "@/lib/onboarding";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: "Welcome · METABYX" }] }),
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/onboarding")({
 function OnboardingFlow() {
   const auth = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<number[]>(() => QUESTIONS.map(() => 3));
   const [saving, setSaving] = useState(false);
@@ -57,10 +59,10 @@ function OnboardingFlow() {
         .eq("user_id", auth.user.id);
       if (error) throw error;
       await refreshProfile();
-      notify.saved("You're in", "Your baseline is set.");
+      notify.saved(t("onboarding.welcomeSaved.title"), t("onboarding.welcomeSaved.body"));
       navigate({ to: "/" });
     } catch (err) {
-      notify.error("Couldn't save", err instanceof Error ? err.message : "Please try again.");
+      notify.error(t("onboarding.couldNotSave"), err instanceof Error ? err.message : t("auth.tryAgain"));
     } finally {
       setSaving(false);
     }
@@ -68,7 +70,7 @@ function OnboardingFlow() {
 
   return (
     <PhoneFrame hideTabBar>
-      <StatusBar title="WELCOME" />
+      <StatusBar title={t("onboarding.titleBar")} />
       <div className="h-1 w-full overflow-hidden rounded-full bg-[oklch(1_0_0/0.05)]">
         <div
           className="h-full rounded-full transition-all duration-500"
@@ -102,6 +104,7 @@ function OnboardingFlow() {
 }
 
 function WelcomeStep({ onNext }: { onNext: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center gap-6 text-center">
       <div className="glass-strong flex h-20 w-20 items-center justify-center rounded-3xl">
@@ -109,36 +112,29 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
       </div>
       <div>
         <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
-          A gentle beginning
+          {t("onboarding.welcomeEyebrow")}
         </p>
         <h1
           className="mt-2 text-3xl font-light text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          Your metabolic rhythm starts here.
+          {t("onboarding.welcomeTitle")}
         </h1>
       </div>
       <div className="glass w-full rounded-3xl p-5 text-left">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-gold">What is BMR?</p>
-        <p className="mt-2 text-sm leading-relaxed text-foreground/90">
-          Your <span className="text-gold">Basal Metabolisation Rate</span> reflects how well
-          you're moving life through, not just storing it. We track gently — no scores to
-          chase, only patterns to notice.
-        </p>
+        <p className="text-[10px] uppercase tracking-[0.3em] text-gold">{t("onboarding.bmrTitle")}</p>
+        <p className="mt-2 text-sm leading-relaxed text-foreground/90">{t("onboarding.bmrBody")}</p>
       </div>
       <div className="glass w-full rounded-3xl p-5 text-left">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-gold">Narrative metabolism</p>
-        <p className="mt-2 text-sm leading-relaxed text-foreground/90">
-          Each unfinished thought becomes a <span className="italic">branch</span>. Naming it,
-          feeling it, integrating it — that's how it gets metabolised.
-        </p>
+        <p className="text-[10px] uppercase tracking-[0.3em] text-gold">{t("onboarding.narrativeTitle")}</p>
+        <p className="mt-2 text-sm leading-relaxed text-foreground/90">{t("onboarding.narrativeBody")}</p>
       </div>
       <button
         onClick={onNext}
         className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-medium text-background"
         style={{ background: "var(--gradient-gold)" }}
       >
-        Begin <ArrowRight className="h-4 w-4" />
+        {t("common.begin")} <ArrowRight className="h-4 w-4" />
       </button>
     </div>
   );
@@ -158,12 +154,19 @@ function QuestionStep({
   onBack: () => void;
 }) {
   const q = QUESTIONS[index];
-  const labels = ["rarely", "sometimes", "often", "a lot", "constantly"];
+  const { t } = useTranslation();
+  const labels = [
+    t("onboarding.scale.rarely"),
+    t("onboarding.scale.sometimes"),
+    t("onboarding.scale.often"),
+    t("onboarding.scale.aLot"),
+    t("onboarding.scale.constantly"),
+  ];
   return (
     <div className="flex flex-col gap-6">
       <div>
         <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-          Question {index + 1} of {QUESTIONS.length}
+          {t("onboarding.questionOf", { current: index + 1, total: QUESTIONS.length })}
         </p>
         <h2
           className="mt-3 text-2xl font-light leading-snug text-foreground"
@@ -206,14 +209,14 @@ function QuestionStep({
           onClick={onBack}
           className="glass rounded-2xl px-4 py-3 text-xs uppercase tracking-[0.2em] text-muted-foreground"
         >
-          Back
+          {t("common.back")}
         </button>
         <button
           onClick={onNext}
           className="flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-medium text-background"
           style={{ background: "var(--gradient-gold)" }}
         >
-          Continue <ArrowRight className="h-4 w-4" />
+          {t("common.continue")} <ArrowRight className="h-4 w-4" />
         </button>
       </div>
     </div>
@@ -233,11 +236,12 @@ function SummaryStep({
   saving: boolean;
   onBack: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-5 text-center">
       <div>
         <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
-          Your archetype
+          {t("onboarding.archetypeEyebrow")}
         </p>
         <h2
           className="mt-2 text-3xl font-light text-foreground"
@@ -249,7 +253,7 @@ function SummaryStep({
       </div>
       <div className="glass-strong rounded-3xl p-6">
         <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-          Baseline BMR
+          {t("onboarding.baselineEyebrow")}
         </p>
         <p
           className="mt-2 text-6xl font-light text-foreground"
@@ -257,14 +261,14 @@ function SummaryStep({
         >
           {baseline}
         </p>
-        <p className="mt-2 text-xs text-gold">starting point · no need to compare</p>
+        <p className="mt-2 text-xs text-gold">{t("onboarding.baselineHint")}</p>
       </div>
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
           className="glass rounded-2xl px-4 py-3 text-xs uppercase tracking-[0.2em] text-muted-foreground"
         >
-          Back
+          {t("common.back")}
         </button>
         <button
           onClick={onFinish}
@@ -273,7 +277,7 @@ function SummaryStep({
           style={{ background: "var(--gradient-gold)" }}
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-          Enter METABYX
+          {t("onboarding.enterApp")}
         </button>
       </div>
     </div>
