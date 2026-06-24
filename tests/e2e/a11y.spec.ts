@@ -1,5 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
 import { installFakeSpeechRecognition, signInIfPossible } from "./_helpers";
 
 /**
@@ -79,13 +81,46 @@ async function expectVisibleFocusStyles(page: Page, presses = 8) {
   return order;
 }
 
-/** Run axe-core and fail on serious/critical violations. We exclude
- *  decorative blur layers and known third-party widgets via selector. */
-async function runAxe(page: Page) {
+const A11Y_REPORT_DIR = "a11y-report";
+
+function appendAxeHtmlReport(label: string, results: import("axe-core").AxeResults) {
+  mkdirSync(A11Y_REPORT_DIR, { recursive: true });
+  const indexPath = join(A11Y_REPORT_DIR, "index.html");
+  const seed = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : `<!doctype html><html><head><meta charset="utf-8"><title>METABYX axe-core report</title>
+<style>body{font:14px/1.5 ui-sans-serif,system-ui;margin:24px;color:#111;background:#fff}
+h1{font-size:22px}h2{margin-top:32px;border-bottom:1px solid #ddd;padding-bottom:6px}
+.v{border-left:4px solid #c00;padding:8px 12px;margin:8px 0;background:#fff5f5}
+.v.minor{border-color:#888;background:#f6f6f6}.v.moderate{border-color:#d80}
+.tag{display:inline-block;font-size:11px;background:#eee;padding:2px 6px;border-radius:4px;margin-right:4px}
+pre{background:#0b1020;color:#e6edf3;padding:8px;border-radius:6px;overflow:auto;font-size:12px}
+</style></head><body><h1>METABYX axe-core report</h1><div id="r"></div></body></html>`;
+  const section = `
+<h2>${label} — ${results.violations.length} violation(s)</h2>
+${results.violations
+  .map(
+    (v) => `<div class="v ${v.impact ?? ""}">
+  <strong>${v.id}</strong> <span class="tag">${v.impact ?? "n/a"}</span> ${v.help}<br/>
+  <a href="${v.helpUrl}" target="_blank" rel="noopener">${v.helpUrl}</a>
+  <pre>${v.nodes
+    .slice(0, 4)
+    .map((n) => (n.html ?? "").replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]!)))
+    .join("\n\n")}</pre>
+</div>`,
+  )
+  .join("\n") || "<p>✓ No violations.</p>"}`;
+  const next = seed.replace('<div id="r"></div>', `<div id="r"></div>${section}`);
+  writeFileSync(indexPath, next, "utf8");
+}
+
+/** Run axe-core, write findings to an HTML report, fail on serious/critical. */
+async function runAxe(page: Page, label = "page") {
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .disableRules(["color-contrast"]) // glass UI is intentionally low-contrast in places
     .analyze();
+  appendAxeHtmlReport(label, results);
   const serious = results.violations.filter(
     (v) => v.impact === "serious" || v.impact === "critical",
   );
@@ -101,7 +136,7 @@ test.describe("Accessibility — onboarding", () => {
     await expectInteractiveHasName(page);
     await expectFocusOrderAdvances(page);
     await expectVisibleFocusStyles(page);
-    await runAxe(page);
+    await runAxe(page, "onboarding");
   });
 });
 
@@ -116,7 +151,7 @@ test.describe("Accessibility — check-in (morning)", () => {
     await expectInteractiveHasName(page);
     await expectFocusOrderAdvances(page);
     await expectVisibleFocusStyles(page);
-    await runAxe(page);
+    await runAxe(page, "morning");
   });
 
   test("evening reflection screen interactive elements are named", async ({ page }) => {
@@ -124,7 +159,7 @@ test.describe("Accessibility — check-in (morning)", () => {
     await expectInteractiveHasName(page);
     await expectFocusOrderAdvances(page);
     await expectVisibleFocusStyles(page);
-    await runAxe(page);
+    await runAxe(page, "evening");
   });
 });
 
@@ -142,6 +177,6 @@ test.describe("Accessibility — voice input", () => {
       const text = (await mic.textContent()) ?? "";
       expect((name ?? "").length + text.trim().length).toBeGreaterThan(0);
     }
-    await runAxe(page);
+    await runAxe(page, "voice-input");
   });
 });
