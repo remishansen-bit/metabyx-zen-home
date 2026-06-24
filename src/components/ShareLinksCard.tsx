@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Share2,
   Loader2,
@@ -32,6 +33,7 @@ import { useMetabyx } from "@/lib/store";
  * every link they've made, and rotate or revoke each one.
  */
 export function ShareLinksCard() {
+  const { t } = useTranslation();
   const state = useMetabyx();
   const [links, setLinks] = useState<ShareLink[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,7 +47,7 @@ export function ShareLinksCard() {
     try {
       setLinks(await listShareLinks());
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : "Couldn't load links.");
+      setLoadError(err instanceof Error ? err.message : t("share.couldNotLoad"));
     } finally {
       setLoading(false);
     }
@@ -59,10 +61,10 @@ export function ShareLinksCard() {
     setBusyId(link.id);
     try {
       await revokeShareLink(link.id);
-      notify.saved("Revoked", "Anyone with the link will get a 404.");
+      notify.saved(t("share.revokedToast"), t("share.revokedBody"));
       await refresh();
     } catch (err) {
-      notify.error("Couldn't revoke", err instanceof Error ? err.message : "Try again.");
+      notify.error(t("share.couldNotRevoke"), err instanceof Error ? err.message : t("share.tryAgain"));
     } finally {
       setBusyId(null);
     }
@@ -73,10 +75,10 @@ export function ShareLinksCard() {
     try {
       const next = await rotateShareLink(link);
       await navigator.clipboard?.writeText(shareUrl(next.token)).catch(() => {});
-      notify.saved("Rotated", "New link copied. Old link no longer works.");
+      notify.saved(t("share.rotatedToast"), t("share.rotatedBody"));
       await refresh();
     } catch (err) {
-      notify.error("Couldn't rotate", err instanceof Error ? err.message : "Try again.");
+      notify.error(t("share.couldNotRotate"), err instanceof Error ? err.message : t("share.tryAgain"));
     } finally {
       setBusyId(null);
     }
@@ -88,7 +90,7 @@ export function ShareLinksCard() {
         <div className="flex items-center gap-2">
           <Share2 className="h-3.5 w-3.5 text-gold" />
           <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-            Share links
+            {t("share.cardEyebrow")}
           </p>
         </div>
         <button
@@ -96,7 +98,7 @@ export function ShareLinksCard() {
           className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-background"
           style={{ background: "var(--gradient-gold)" }}
         >
-          <Plus className="h-3 w-3" /> New
+          <Plus className="h-3 w-3" /> {t("share.new")}
         </button>
       </header>
 
@@ -115,7 +117,7 @@ export function ShareLinksCard() {
 
       {loading ? (
         <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="h-3 w-3 animate-spin" /> Loading links…
+          <Loader2 className="h-3 w-3 animate-spin" /> {t("share.loading")}
         </div>
       ) : loadError ? (
         <p className="mt-3 inline-flex items-center gap-1 text-[11px] text-rose-300">
@@ -123,7 +125,7 @@ export function ShareLinksCard() {
         </p>
       ) : (links?.length ?? 0) === 0 ? (
         <p className="mt-3 text-xs text-muted-foreground">
-          No share links yet. New links live until you revoke or rotate them.
+          {t("share.emptyList")}
         </p>
       ) : (
         <ul className="mt-3 flex flex-col gap-2">
