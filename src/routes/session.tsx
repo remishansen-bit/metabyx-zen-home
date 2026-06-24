@@ -985,6 +985,7 @@ function RecapView({
   recap: { branch: Branch; bmr: number; reflection: string };
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const ctlRef = useRef<TtsController | null>(null);
   const [playState, setPlayState] = useState<"idle" | "playing" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -992,11 +993,13 @@ function RecapView({
   const narrative = useMemo(() => {
     const r = recap.reflection?.trim();
     return [
-      `You noticed ${recap.branch.title}.`,
-      r ? `You closed it with this thought: ${r}` : "You let it settle, gently.",
-      `Your metabolic rhythm today is ${recap.bmr}. It is held now. Rest well.`,
+      t("sessionFull.finish.narrNoticed", { title: recap.branch.title }),
+      r
+        ? t("sessionFull.finish.narrClosed", { thought: r })
+        : t("sessionFull.finish.narrSettled"),
+      t("sessionFull.finish.narrBmr", { bmr: recap.bmr }),
     ].join(" ");
-  }, [recap]);
+  }, [recap, t]);
 
   useEffect(() => () => ctlRef.current?.stop(), []);
 
@@ -1006,7 +1009,7 @@ function RecapView({
     // (the `prefers-reduced-motion: reduce` CSS already kills the rest of
     // the app's micro-animations). Nothing here starts without a click.
     if (typeof window !== "undefined" && !("AudioContext" in window)) {
-      const msg = "This browser can't play the voice-over.";
+      const msg = t("sessionFull.finish.unsupportedBrowser");
       setErrorMsg(msg);
       setPlayState("error");
       notify.error(msg);
@@ -1021,10 +1024,10 @@ function RecapView({
       .then(() => setPlayState((s) => (s === "playing" ? "idle" : s)))
       .catch((err: unknown) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
-        const msg = err instanceof Error ? err.message : "Voice-over failed.";
+        const msg = err instanceof Error ? err.message : t("sessionFull.finish.voiceoverFailed");
         setErrorMsg(msg);
         setPlayState("error");
-        notify.error("Voice-over unavailable", msg);
+        notify.error(t("sessionFull.finish.voiceoverUnavailable"), msg);
       });
   };
   const stop = () => {
@@ -1042,17 +1045,26 @@ function RecapView({
         >
           <Check className="h-6 w-6" style={{ color: "var(--primary-foreground)" }} />
         </div>
-        <p className="text-[10px] uppercase tracking-[0.35em] text-gold">Branch metabolized</p>
+        <p className="text-[10px] uppercase tracking-[0.35em] text-gold">{t("sessionFull.finish.eyebrow")}</p>
         <h1
           className="text-2xl font-light leading-snug text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          It is <span className="text-gold italic">held now</span>.
+          <Trans
+            i18nKey="sessionFull.finish.heldFull"
+            defaults='{{pre}} <1>{{hi}}</1>{{post}}'
+            values={{
+              pre: t("sessionFull.finish.heldPre"),
+              hi: t("sessionFull.finish.heldHi"),
+              post: t("sessionFull.finish.heldPost"),
+            }}
+            components={{ 1: <span className="text-gold italic" /> }}
+          />
         </h1>
       </header>
 
       <div className="glass rounded-2xl p-4">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Saved to library</p>
+        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">{t("sessionFull.finish.savedToLibrary")}</p>
         <p
           className="mt-2 text-base leading-relaxed text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
@@ -1078,14 +1090,14 @@ function RecapView({
           boxShadow: "var(--shadow-gold)",
         }}
       >
-        <p className="text-[10px] uppercase tracking-[0.3em] text-gold">Updated BMR</p>
+        <p className="text-[10px] uppercase tracking-[0.3em] text-gold">{t("sessionFull.finish.updatedBmr")}</p>
         <p
           className="mt-1 text-5xl font-light text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
           {recap.bmr}
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">Your metabolic rhythm, today.</p>
+        <p className="mt-1 text-xs text-muted-foreground">{t("sessionFull.finish.bmrSubtitle")}</p>
       </div>
 
       <button
@@ -1093,22 +1105,22 @@ function RecapView({
         onClick={playState === "playing" ? stop : play}
         aria-label={
           playState === "playing"
-            ? "Stop closing voice-over"
+            ? t("sessionFull.finish.ariaStop")
             : playState === "error"
-              ? "Retry closing voice-over"
-              : "Play closing voice-over"
+              ? t("sessionFull.finish.ariaRetry")
+              : t("sessionFull.finish.ariaPlay")
         }
         className="glass flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm text-foreground transition-all active:scale-[0.99]"
       >
         {playState === "playing" ? (
           <>
             <Square className="h-4 w-4 text-gold" />
-            Stop voice-over
+            {t("sessionFull.finish.stopVoiceover")}
           </>
         ) : (
           <>
             <Volume2 className="h-4 w-4 text-gold" />
-            {playState === "error" ? "Try voice-over again" : "Play closing voice-over"}
+            {playState === "error" ? t("sessionFull.finish.retryVoiceover") : t("sessionFull.finish.playVoiceover")}
           </>
         )}
       </button>
@@ -1123,7 +1135,7 @@ function RecapView({
           to="/library"
           className="glass flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm text-foreground"
         >
-          Open the library
+          {t("sessionFull.finish.openLibrary")}
         </Link>
         <button
           onClick={onDone}
@@ -1134,7 +1146,7 @@ function RecapView({
             boxShadow: "var(--shadow-gold)",
           }}
         >
-          Return home
+          {t("sessionFull.finish.returnHome")}
         </button>
       </div>
     </section>
