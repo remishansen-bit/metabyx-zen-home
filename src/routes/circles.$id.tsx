@@ -678,6 +678,29 @@ function Chip({
   );
 }
 
+function PostSkeletons({ count }: { count: number }) {
+  return (
+    <div className="flex flex-col gap-2" aria-busy="true" aria-label="Loading posts">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="glass animate-pulse rounded-2xl p-4">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg bg-foreground/10" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-2 w-24 rounded bg-foreground/10" />
+              <div className="h-2 w-16 rounded bg-foreground/10" />
+            </div>
+          </div>
+          <div className="mt-3 space-y-1.5">
+            <div className="h-2 w-full rounded bg-foreground/10" />
+            <div className="h-2 w-5/6 rounded bg-foreground/10" />
+            <div className="h-2 w-3/4 rounded bg-foreground/10" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function relative(ts: number): string {
   const diff = Date.now() - ts;
   const m = Math.floor(diff / 60000);
