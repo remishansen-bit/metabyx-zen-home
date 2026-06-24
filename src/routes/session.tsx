@@ -22,6 +22,8 @@ import { analyzeVoiceEmotion, type VoiceEmotion } from "@/lib/emotion.functions"
 import { EmotionInsight } from "@/components/emotion-insight";
 import { streamTts, type TtsController } from "@/lib/tts-stream";
 import { notify } from "@/lib/feedback";
+import { useFeatureGate } from "@/hooks/useFeatureGate";
+import { canAccess } from "@/lib/feature-access";
 import {
   metabolizeBranch,
   todaysOpenBranches,
@@ -143,6 +145,8 @@ function SessionPage() {
   const openToday = useMemo(() => todaysOpenBranches(state), [state]);
   const suggest = useServerFn(suggestPaths);
   const analyzeEmotion = useServerFn(analyzeVoiceEmotion);
+  const gate = useFeatureGate();
+  const aiAllowed = canAccess(gate.tier, "plus");
 
   const [phase, setPhase] = useState<Phase>(
     (search.phase as Phase | undefined) ?? 0,
@@ -197,6 +201,19 @@ function SessionPage() {
     });
     if (sig === suggestedFor) return;
     if (!whatIf.trim()) return;
+    if (!aiAllowed) {
+      setSuggestions(null);
+      setSuggestIntro("");
+      setSuggestError(null);
+      setSuggestLoading(false);
+      setSuggestedFor(sig);
+      gate.show("plus", {
+        feature: "AI-guided paths are part of Plus",
+        description:
+          "Plus tailors the three counterfactual paths to your branch — Free shows preset paths only.",
+      });
+      return;
+    }
     let cancelled = false;
     setSuggestLoading(true);
     setSuggestError(null);
