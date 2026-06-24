@@ -7,6 +7,7 @@
  *   3. records the fire in the local learning log
  *   4. degrades to an in-app toast when permission is revoked
  */
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { scheduleReminders } from "./reminders";
 import { readLearning, clearLearning } from "./learning";
