@@ -67,6 +67,9 @@ export function initI18n() {
       supportedLngs: LANGUAGES.map((l) => l.code),
       load: "languageOnly",
       interpolation: { escapeValue: false },
+      // Resources are bundled inline above, so init can complete synchronously.
+      // Without this, useTranslation() returns raw keys on first render.
+      initImmediate: false,
       detection: {
         order: ["localStorage", "navigator", "htmlTag"],
         caches: ["localStorage"],
