@@ -143,6 +143,11 @@ function SharedCard({ link }: { link: PublicShareLink }) {
       <p className="mt-5 text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
         Shared from METABYX
       </p>
+      {link.expires_at && (
+        <p className="mt-1 text-[10px] uppercase tracking-[0.3em] text-muted-foreground/70">
+          Expires {new Date(link.expires_at).toLocaleDateString()}
+        </p>
+      )}
     </article>
   );
 }
