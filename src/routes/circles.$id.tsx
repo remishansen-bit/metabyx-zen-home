@@ -50,6 +50,7 @@ const PAGE_SIZE = 8;
 const POSTS_CHANGE_EVENT = "metabyx:circle:posts:change";
 
 function CircleDetailPage() {
+  const { t } = useTranslation();
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { tier, loading: subLoading } = useSubscription();
@@ -61,7 +62,7 @@ function CircleDetailPage() {
   const auth = useAuth();
   const state = useMetabyx();
 
-  const displayName = auth.profile?.display_name ?? "Friend";
+  const displayName = auth.profile?.display_name ?? t("circleThread.friend");
   const authorId = auth.user?.id ?? "";
 
   const [body, setBody] = useState("");
@@ -98,7 +99,7 @@ function CircleDetailPage() {
       try {
         setPage(listPostsPage(id, { limit }));
       } catch (err) {
-        setPageError(err instanceof Error ? err.message : "Couldn't load posts.");
+        setPageError(err instanceof Error ? err.message : t("circleThread.couldNotLoadPosts"));
       } finally {
         setPageLoading(false);
       }
@@ -128,7 +129,7 @@ function CircleDetailPage() {
           <Link
             to="/circles"
             className="glass flex h-9 w-9 items-center justify-center rounded-full"
-            aria-label="Back to circles"
+            aria-label={t("circleThread.backAria")}
           >
             <ChevronLeft className="h-4 w-4 text-foreground" />
           </Link>
@@ -137,8 +138,8 @@ function CircleDetailPage() {
         </header>
         <PaywallLockedCard
           required="pro"
-          title="Circle threads are part of Pro"
-          description="Share reflections and BMR insights inside small rooms — anonymous when you want it."
+          title={t("circleThread.paywallTitle")}
+          description={t("circleThread.paywallDesc")}
           onUnlock={() => navigate({ to: "/settings" })}
         />
       </PhoneFrame>
@@ -153,13 +154,13 @@ function CircleDetailPage() {
           <Link
             to="/circles"
             className="glass flex h-9 w-9 items-center justify-center rounded-full"
-            aria-label="Back to circles"
+            aria-label={t("circleThread.backAria")}
           >
             <ChevronLeft className="h-4 w-4 text-foreground" />
           </Link>
         </header>
         <div className="glass rounded-2xl p-5 text-center text-sm text-muted-foreground">
-          That circle isn't on this device. Open it from your Circles list.
+          {t("circleThread.notOnDevice")}
         </div>
       </PhoneFrame>
     );
