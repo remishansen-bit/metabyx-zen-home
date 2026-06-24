@@ -296,7 +296,7 @@ function CircleDetailPage() {
         <Link
           to="/circles"
           className="glass flex h-9 w-9 items-center justify-center rounded-full"
-          aria-label="Back to circles"
+          aria-label={t("circleThread.backAria")}
         >
           <ChevronLeft className="h-4 w-4 text-foreground" />
         </Link>
@@ -327,7 +327,7 @@ function CircleDetailPage() {
                 onClick={() => setKind(k.value)}
                 className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-[10px] uppercase tracking-[0.2em] transition-all ${active ? "bg-[oklch(0.82_0.14_82/0.18)] text-gold" : "glass text-muted-foreground"}`}
               >
-                <k.icon className="h-3 w-3" /> {k.label}
+                <k.icon className="h-3 w-3" /> {t(k.labelKey)}
               </button>
             );
           })}
@@ -343,22 +343,22 @@ function CircleDetailPage() {
           }}
           rows={3}
           maxLength={600}
-          aria-label={`Compose a ${kind} for ${circle.name}. Cmd or Ctrl plus Enter to post.`}
+          aria-label={t("circleThread.composerAria", { kind: t(`circleThread.kind${kind === "reflection" ? "Reflect" : kind === "insight" ? "Insight" : "Support"}`), name: circle.name })}
           aria-invalid={Boolean(postError)}
           aria-describedby={postError ? "composer-error" : undefined}
           placeholder={
             kind === "reflection"
-              ? "A few words on what you're metabolising right now…"
+              ? t("circleThread.placeholderReflection")
               : kind === "insight"
-                ? "A BMR insight or pattern you've noticed…"
-                : "Something supportive for the circle…"
+                ? t("circleThread.placeholderInsight")
+                : t("circleThread.placeholderSupport")
           }
           className="glass mt-2 w-full resize-none rounded-2xl bg-transparent px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-gold"
         />
         <div className="mt-2 flex flex-col gap-1.5">
           <ToggleRow
             icon={anonymous ? EyeOff : Eye}
-            label={anonymous ? "Posting anonymously" : `Posting as ${displayName}`}
+            label={anonymous ? t("circleThread.anonymously") : t("circleThread.postingAs", { name: displayName })}
             checked={anonymous}
             onChange={(v) => {
               setAnonymous(v);
@@ -369,8 +369,8 @@ function CircleDetailPage() {
             icon={Activity}
             label={
               prefs.allowProgressVisibility
-                ? "Share my BMR snapshot"
-                : "Progress sharing is off in your prefs"
+                ? t("circleThread.shareSnapshot")
+                : t("circleThread.shareOff")
             }
             checked={shareProgress && prefs.allowProgressVisibility}
             disabled={!prefs.allowProgressVisibility}
@@ -396,14 +396,14 @@ function CircleDetailPage() {
                 onClick={retryFailedPost}
                 className="glass inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-foreground hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-gold"
               >
-                <Loader2 className="h-3 w-3" /> Retry
+                <Loader2 className="h-3 w-3" /> {t("circleThread.retry")}
               </button>
             )}
           </div>
         )}
         <div className="mt-3 flex items-center justify-between">
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            {body.length}/600
+            {t("circleThread.charsCount", { count: body.length })}
           </p>
           <button
             onClick={submit}
@@ -416,7 +416,7 @@ function CircleDetailPage() {
             ) : (
               <Send className="h-3.5 w-3.5" />
             )}
-            {posting ? "Posting…" : "Post"}
+            {posting ? t("circleThread.postingState") : t("circleThread.post")}
           </button>
         </div>
       </section>
@@ -424,7 +424,7 @@ function CircleDetailPage() {
       <section className="glass rounded-2xl p-3">
         <ToggleRow
           icon={prefs.allowProgressVisibility ? Eye : EyeOff}
-          label="Let circles see my progress when I share it"
+          label={t("circleThread.letCirclesSee")}
           checked={prefs.allowProgressVisibility}
           onChange={(v) => {
             setPrefs({ allowProgressVisibility: v });
@@ -436,7 +436,7 @@ function CircleDetailPage() {
       {/* Thread */}
       <section className="flex flex-col gap-2 pb-4">
         <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-          Thread · {visiblePosts.length}
+          {t("circleThread.thread", { count: visiblePosts.length })}
         </p>
         {pageError ? (
           <div role="alert" className="glass rounded-2xl p-4 text-center text-xs text-rose-300">
@@ -447,14 +447,14 @@ function CircleDetailPage() {
               onClick={() => setPage(listPostsPage(id, { limit }))}
               className="glass mx-auto mt-2 inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-foreground"
             >
-              <Loader2 className="h-3 w-3" /> Retry
+              <Loader2 className="h-3 w-3" /> {t("circleThread.retry")}
             </button>
           </div>
         ) : pageLoading && visiblePosts.length === 0 ? (
           <PostSkeletons count={3} />
         ) : visiblePosts.length === 0 ? (
           <div className="glass rounded-2xl p-4 text-center text-xs text-muted-foreground">
-            No posts yet. Be the first to drop a reflection.
+            {t("circleThread.noPostsYet")}
           </div>
         ) : (
           visiblePosts.map((p) => (
@@ -472,10 +472,10 @@ function CircleDetailPage() {
         {page.nextBefore && !pageLoading && (
           <button
             onClick={() => setLimit((l) => l + PAGE_SIZE)}
-            aria-label="Load older posts"
+            aria-label={t("circleThread.loadOlderAria")}
             className="glass mx-auto mt-1 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
           >
-            <ChevronDown className="h-3 w-3" /> Load older
+            <ChevronDown className="h-3 w-3" /> {t("circleThread.loadOlder")}
           </button>
         )}
         {pageLoading && visiblePosts.length > 0 && <PostSkeletons count={2} />}
@@ -486,12 +486,12 @@ function CircleDetailPage() {
 
 const KINDS: {
   value: CirclePost["kind"];
-  label: string;
+  labelKey: string;
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
-  { value: "reflection", label: "Reflect", icon: Sparkles },
-  { value: "insight", label: "Insight", icon: Lightbulb },
-  { value: "support", label: "Support", icon: Heart },
+  { value: "reflection", labelKey: "circleThread.kindReflect", icon: Sparkles },
+  { value: "insight", labelKey: "circleThread.kindInsight", icon: Lightbulb },
+  { value: "support", labelKey: "circleThread.kindSupport", icon: Heart },
 ];
 
 function ToggleRow({
