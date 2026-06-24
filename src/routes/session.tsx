@@ -2,6 +2,7 @@ import { RequireAuth } from "@/lib/auth";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useTranslation, Trans } from "react-i18next";
 import {
   ArrowLeft,
   ArrowRight,
@@ -56,90 +57,49 @@ export const Route = createFileRoute("/session")({
   component: () => (<RequireAuth><SessionPage /></RequireAuth>),
 });
 
+type PathId = "action" | "story" | "symbolic" | "prayer";
 type Path = {
-  id: "action" | "story" | "symbolic" | "prayer";
+  id: PathId;
   icon: typeof Footprints;
-  title: string;
-  blurb: string;
-  guidance: string[];
 };
 
 type Suggestion = {
-  id: Path["id"];
+  id: PathId;
   title: string;
   description: string;
   firstStep: string;
 };
 
 const PATHS: Path[] = [
-  {
-    id: "action",
-    icon: Footprints,
-    title: "Take an action",
-    blurb: "A small concrete move that loosens the branch.",
-    guidance: [
-      "Name the smallest possible next step — under 2 minutes.",
-      "Do it now, or place it on tomorrow's calendar with a time.",
-      "Notice the relief of moving, not the size of the move.",
-    ],
-  },
-  {
-    id: "story",
-    icon: PenLine,
-    title: "Write a new story",
-    blurb: "Re-author the meaning so the branch can settle.",
-    guidance: [
-      "Find the old sentence you've been telling yourself.",
-      "Rewrite it in a kinder, truer voice.",
-      "Read the new sentence aloud, slowly, three times.",
-    ],
-  },
-  {
-    id: "symbolic",
-    icon: Leaf,
-    title: "Symbolic gesture",
-    blurb: "An embodied act that marks the shift.",
-    guidance: [
-      "Choose a small symbol — a candle, a stone, an exhale.",
-      "Hold or perform it while naming what you release.",
-      "Let the gesture stand in for the work, then return.",
-    ],
-  },
-  {
-    id: "prayer",
-    icon: Heart,
-    title: "Reflection or prayer",
-    blurb: "Hand the branch to something larger than yourself.",
-    guidance: [
-      "Sit still. Take three slow breaths through the nose.",
-      "Offer the branch up in your own words.",
-      "Listen — without expectation — for one quiet sentence back.",
-    ],
-  },
+  { id: "action", icon: Footprints },
+  { id: "story", icon: PenLine },
+  { id: "symbolic", icon: Leaf },
+  { id: "prayer", icon: Heart },
 ];
 
-const FRICTIONS = [
-  { id: "tight-chest", label: "Tight chest", body: "body" },
-  { id: "knot-stomach", label: "Knot in stomach", body: "body" },
-  { id: "racing-mind", label: "Racing mind", body: "mind" },
-  { id: "heavy", label: "Heaviness", body: "body" },
-  { id: "looping", label: "Looping thought", body: "mind" },
-  { id: "numb", label: "Numb / blank", body: "mind" },
-  { id: "restless", label: "Restless energy", body: "body" },
-  { id: "fearful", label: "Quiet fear", body: "mind" },
+const FRICTIONS: { id: string; labelKey: string; body: "body" | "mind" }[] = [
+  { id: "tight-chest", labelKey: "tightChest", body: "body" },
+  { id: "knot-stomach", labelKey: "knotStomach", body: "body" },
+  { id: "racing-mind", labelKey: "racingMind", body: "mind" },
+  { id: "heavy", labelKey: "heavy", body: "body" },
+  { id: "looping", labelKey: "looping", body: "mind" },
+  { id: "numb", labelKey: "numb", body: "mind" },
+  { id: "restless", labelKey: "restless", body: "body" },
+  { id: "fearful", labelKey: "fearful", body: "mind" },
 ];
 
-const PHASES = [
-  "Identify",
-  "Map friction",
-  "Explore paths",
-  "Walk it through",
-  "Close the branch",
+const PHASE_KEYS = [
+  "identify",
+  "mapFriction",
+  "explorePaths",
+  "walkThrough",
+  "closeBranchPhase",
 ] as const;
 
 type Phase = 0 | 1 | 2 | 3 | 4;
 
 function SessionPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const search = Route.useSearch();
   const state = useMetabyx();
@@ -158,7 +118,7 @@ function SessionPage() {
   const [whatIf, setWhatIf] = useState("");
   const [frictions, setFrictions] = useState<Set<string>>(new Set());
   const [frictionNote, setFrictionNote] = useState("");
-  const [pathId, setPathId] = useState<Path["id"] | null>(null);
+  const [pathId, setPathId] = useState<PathId | null>(null);
   const [pathDone, setPathDone] = useState(false);
   const [newStory, setNewStory] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null);
@@ -209,9 +169,8 @@ function SessionPage() {
       setSuggestLoading(false);
       setSuggestedFor(sig);
       gate.show("plus", {
-        feature: "AI-guided paths are part of Plus",
-        description:
-          "Plus tailors the three counterfactual paths to your branch — Free shows preset paths only.",
+        feature: t("sessionFull.paths.aiFeature"),
+        description: t("sessionFull.paths.aiDescription"),
       });
       return;
     }
@@ -233,7 +192,7 @@ function SessionPage() {
       })
       .catch(() => {
         if (cancelled) return;
-        setSuggestError("Could not reach guidance — choose any path that draws you.");
+        setSuggestError(t("sessionFull.paths.errorFallback"));
       })
       .finally(() => {
         if (!cancelled) setSuggestLoading(false);
@@ -241,7 +200,7 @@ function SessionPage() {
     return () => {
       cancelled = true;
     };
-  }, [phase, whatIf, frictions, frictionNote, suggest, suggestedFor]);
+  }, [phase, whatIf, frictions, frictionNote, suggest, suggestedFor, aiAllowed, gate, t]);
 
   // Debounced emotional analysis for Phase 0 (whatIf) and Phase 4 (newStory)
   useEffect(() => {
@@ -283,7 +242,7 @@ function SessionPage() {
         .catch(() => {
           setEmotionError((m) => ({
             ...m,
-            [phase]: "Couldn't read the tone just now — your words still land.",
+            [phase]: t("voice.announceTense"),
           }));
         })
         .finally(() => {
@@ -309,12 +268,12 @@ function SessionPage() {
     }
     const reflection = [
       newStory.trim(),
-      path ? `Path: ${path.title}` : null,
+      path ? `${t("sessionFull.finish.pathLabel")}: ${t(`sessionFull.path.${path.id}.title`)}` : null,
     ]
       .filter(Boolean)
       .join(" · ");
     metabolizeBranch(activeBranch.id, 5, reflection);
-    notify.saved("Branch saved to library", `${activeBranch.title}`);
+    notify.saved(t("sessionFull.finish.savedTitle"), `${activeBranch.title}`);
     // Compute BMR against the just-mutated branch list so the recap shows the
     // post-session score (the live store updates a tick later via the hook).
     const projected: Branch = { ...activeBranch, status: "metabolized", rating: 5, reflection };
@@ -347,21 +306,21 @@ function SessionPage() {
         <button
           onClick={back}
           className="glass flex h-10 w-10 items-center justify-center rounded-full"
-          aria-label="Back"
+          aria-label={t("sessionFull.ariaBack")}
         >
           <ArrowLeft className="h-4 w-4 text-foreground" />
         </button>
         <div className="flex flex-col items-center">
           <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-            Phase {phase + 1} of 5
+            {t("sessionFull.eyebrowPhase", { n: phase + 1 })}
           </p>
-          <p className="text-xs text-gold">{PHASES[phase]}</p>
+          <p className="text-xs text-gold">{t(`sessionFull.phase.${PHASE_KEYS[phase]}`)}</p>
         </div>
         <Link
           to="/"
           className="text-[10px] uppercase tracking-wider text-muted-foreground"
         >
-          Exit
+          {t("sessionFull.exit")}
         </Link>
       </header>
 
@@ -446,7 +405,7 @@ function SessionPage() {
               boxShadow: "var(--shadow-gold)",
             }}
           >
-            Continue
+            {t("sessionFull.continue")}
             <ArrowRight className="h-4 w-4" />
           </button>
         ) : (
@@ -461,11 +420,11 @@ function SessionPage() {
             }}
           >
             <Check className="h-4 w-4" />
-            Close the branch
+            {t("sessionFull.closeBranch")}
           </button>
         )}
         <p className="text-center text-[10px] uppercase tracking-wider text-muted-foreground">
-          Breathe. There is no hurry.
+          {t("sessionFull.breathe")}
         </p>
       </div>
 
