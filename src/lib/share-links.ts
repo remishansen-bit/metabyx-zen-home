@@ -158,3 +158,26 @@ export function formatExpiresIn(
   const d = Math.floor(h / 24);
   return `Expires in ${d}d`;
 }
+
+/**
+ * React hook: returns a `formatExpiresIn`-style label that refreshes itself
+ * automatically. Tick interval adapts so we don't burn CPU on links that are
+ * days away — 30s under a minute left, 30s under an hour, 60s otherwise.
+ */
+export function useExpiresInLabel(
+  expiresAt: string | null | undefined,
+): string | null {
+  const [now, setNow] = useReactState(() => Date.now());
+  useReactEffect(() => {
+    if (!expiresAt) return;
+    const tick = () => setNow(Date.now());
+    const diff = new Date(expiresAt).getTime() - Date.now();
+    // Sub-minute → refresh every 5s so "Expires soon" → "Expired" is snappy.
+    // Sub-hour → every 30s. Otherwise → every 60s.
+    const interval =
+      diff < 60_000 ? 5_000 : diff < 3_600_000 ? 30_000 : 60_000;
+    const id = setInterval(tick, interval);
+    return () => clearInterval(id);
+  }, [expiresAt]);
+  return formatExpiresIn(expiresAt, now);
+}

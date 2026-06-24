@@ -83,6 +83,27 @@ export type Database = {
         }
         Relationships: []
       }
+      share_link_cleanup_runs: {
+        Row: {
+          duration_ms: number
+          id: string
+          pruned_count: number
+          ran_at: string
+        }
+        Insert: {
+          duration_ms?: number
+          id?: string
+          pruned_count?: number
+          ran_at?: string
+        }
+        Update: {
+          duration_ms?: number
+          id?: string
+          pruned_count?: number
+          ran_at?: string
+        }
+        Relationships: []
+      }
       share_link_views: {
         Row: {
           id: string
