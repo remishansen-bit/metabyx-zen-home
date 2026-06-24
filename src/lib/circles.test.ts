@@ -48,8 +48,8 @@ describe("circles persistence", () => {
   });
 
   it("rejects codes that don't match ABCD-1234 shape with a generic error", () => {
-    expect(() => joinByCode("AB")).toThrow(/invalid or has expired/i);
-    expect(() => joinByCode("ABCDEFGH")).toThrow(/invalid or has expired/i);
+    expect(() => joinByCode("AB")).toThrow(/isn't valid or has expired/i);
+    expect(() => joinByCode("ABCDEFGH")).toThrow(/isn't valid or has expired/i);
     expect(isValidCodeShape("ABCD-1234")).toBe(true);
     expect(isValidCodeShape("abcd-1234")).toBe(true); // normalized in joinByCode
     expect(isValidCodeShape("AB-CD")).toBe(false);
@@ -68,7 +68,7 @@ describe("invite-only join hardening", () => {
     for (let i = 0; i < JOIN_LIMIT; i++) {
       // bad-shape attempts must also burn the rate limit so attackers can't
       // probe codes for free by sending garbage.
-      expect(() => joinByCode("XX")).toThrow(/invalid or has expired/i);
+      expect(() => joinByCode("XX")).toThrow(/isn't valid or has expired/i);
     }
     expect(joinAttemptsRemaining()).toBe(0);
     expect(() => joinByCode("ABCD-1234")).toThrow(/too many join attempts/i);
@@ -78,7 +78,7 @@ describe("invite-only join hardening", () => {
     const c = createCircle("Old room", "private");
     const code = c.joinCode!;
     const expiredAt = (c.codeCreatedAt ?? Date.now()) + CODE_TTL_MS + 1;
-    expect(() => joinByCode(code, expiredAt)).toThrow(/invalid or has expired/i);
+    expect(() => joinByCode(code, expiredAt)).toThrow(/isn't valid or has expired/i);
   });
 
   it("never reveals whether a private code matches a real circle (no enumeration)", () => {
@@ -98,7 +98,7 @@ describe("invite-only join hardening", () => {
     const placeholder = joinByCode("NOPE-9999");
     expect(placeholder.name).not.toContain(real.name);
     expect(placeholder.source).toBe("joined");
-    expect(badShapeMsg).toMatch(/invalid or has expired/i);
+    expect(badShapeMsg).toMatch(/isn't valid or has expired/i);
   });
 
   it("rotateJoinCode mints a fresh code and resets the timer", () => {
@@ -107,8 +107,11 @@ describe("invite-only join hardening", () => {
     const rotated = rotateJoinCode(c.id)!;
     expect(rotated.joinCode).not.toBe(first);
     expect(rotated.codeCreatedAt).toBeGreaterThanOrEqual(c.codeCreatedAt ?? 0);
-    // Old code no longer resolves.
-    expect(() => joinByCode(first)).toThrow(/invalid or has expired/i);
+    // Old code no longer resolves to the original circle — joining with it
+    // creates a fresh placeholder room rather than landing in the rotated one.
+    const placeholder = joinByCode(first);
+    expect(placeholder.id).not.toBe(c.id);
+    expect(placeholder.source).toBe("joined");
   });
 
   it("rotateJoinCode only works for circles you created (not joined / seeds)", () => {
