@@ -117,6 +117,7 @@ export async function refreshProfile() {
  */
 export async function persistLanguage(code: LanguageCode) {
   if (!state.user) return;
+  const user = state.user;
   const prev = state.profile?.preferences ?? {};
   const nextPrefs = { ...prev, language: code };
   // Optimistic local update so UI is consistent immediately.
@@ -128,7 +129,7 @@ export async function persistLanguage(code: LanguageCode) {
     await supabase
       .from("profiles")
       .update({ preferences: nextPrefs })
-      .eq("user_id", state.user.id);
+      .eq("user_id", user.id);
   } catch (err) {
     console.warn("[auth] could not persist language to profile", err);
   }
