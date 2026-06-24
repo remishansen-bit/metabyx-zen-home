@@ -280,6 +280,8 @@ function SettingsPage() {
         </span>
       </header>
 
+      <SubscriptionCard />
+
       <Section icon={Bell} title="Daily reminders">
         <Toggle
           icon={Sunrise}
