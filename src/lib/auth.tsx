@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import i18n, { LANGUAGES, applyDocumentDirection, type LanguageCode } from "@/i18n";
 
 export type Profile = {
   user_id: string;
@@ -38,6 +39,20 @@ async function loadProfile(userId: string): Promise<Profile | null> {
   return (data as Profile | null) ?? null;
 }
 
+/**
+ * If the user has a saved language in their profile preferences, switch the
+ * UI to it. Falls back gracefully when the field is missing or unsupported.
+ */
+function applyProfileLanguage(profile: Profile | null) {
+  if (!profile) return;
+  const lang = (profile.preferences as { language?: string } | null)?.language;
+  if (!lang) return;
+  const code = lang.split("-")[0] as LanguageCode;
+  if (!LANGUAGES.some((l) => l.code === code)) return;
+  if (i18n.language === code) return;
+  void i18n.changeLanguage(code).then(() => applyDocumentDirection(code));
+}
+
 function init() {
   if (initialized || typeof window === "undefined") return;
   initialized = true;
@@ -47,6 +62,7 @@ function init() {
     if (session?.user) {
       loadProfile(session.user.id).then((profile) => {
         state = { ...state, profile };
+        applyProfileLanguage(profile);
         emit();
       });
     } else {
@@ -65,6 +81,7 @@ function init() {
     if (data.session?.user) {
       loadProfile(data.session.user.id).then((profile) => {
         state = { ...state, profile };
+        applyProfileLanguage(profile);
         emit();
       });
     }
@@ -89,7 +106,32 @@ export async function refreshProfile() {
   if (!state.user) return;
   const p = await loadProfile(state.user.id);
   state = { ...state, profile: p };
+  applyProfileLanguage(p);
   emit();
+}
+
+/**
+ * Persist the selected language to the user's profile (when signed in).
+ * Always writes to localStorage via i18next-browser-languagedetector cache, so
+ * signed-out visitors still keep their choice across launches.
+ */
+export async function persistLanguage(code: LanguageCode) {
+  if (!state.user) return;
+  const prev = state.profile?.preferences ?? {};
+  const nextPrefs = { ...prev, language: code };
+  // Optimistic local update so UI is consistent immediately.
+  if (state.profile) {
+    state = { ...state, profile: { ...state.profile, preferences: nextPrefs } };
+    emit();
+  }
+  try {
+    await supabase
+      .from("profiles")
+      .update({ preferences: nextPrefs })
+      .eq("user_id", state.user.id);
+  } catch (err) {
+    console.warn("[auth] could not persist language to profile", err);
+  }
 }
 
 export async function signOut() {
