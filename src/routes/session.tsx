@@ -794,10 +794,16 @@ function WalkPhase({
   done: boolean;
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const Icon = path.icon;
-  const steps = suggestion?.firstStep
-    ? [suggestion.firstStep, ...path.guidance]
-    : path.guidance;
+  const guidance = [
+    t(`sessionFull.path.${path.id}.g1`),
+    t(`sessionFull.path.${path.id}.g2`),
+    t(`sessionFull.path.${path.id}.g3`),
+  ];
+  const steps: string[] = suggestion?.firstStep
+    ? [suggestion.firstStep, ...guidance]
+    : guidance;
   return (
     <section className="flex flex-col gap-5">
       <div className="flex items-center gap-3">
@@ -811,12 +817,12 @@ function WalkPhase({
           />
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-[0.3em] text-gold">Your path</p>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-gold">{t("sessionFull.walk.yourPath")}</p>
           <h1
             className="text-xl font-light text-foreground"
             style={{ fontFamily: "Fraunces, serif" }}
           >
-            {suggestion?.title || path.title}
+            {suggestion?.title || t(`sessionFull.path.${path.id}.title`)}
           </h1>
         </div>
       </div>
@@ -865,7 +871,7 @@ function WalkPhase({
         {done ? (
           <>
             <Check className="h-4 w-4 text-gold" />
-            <span className="text-foreground">I walked it through</span>
+            <span className="text-foreground">{t("sessionFull.walk.walked")}</span>
           </>
         ) : (
           <>
