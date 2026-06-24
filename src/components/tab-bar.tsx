@@ -31,7 +31,10 @@ const TABS: Tab[] = [
 export function TabBar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
-    <nav className="pointer-events-none absolute inset-x-3 bottom-3 z-20">
+    <nav
+      className="pointer-events-none absolute inset-x-3 z-20"
+      style={{ bottom: "max(env(safe-area-inset-bottom), 0.75rem)" }}
+    >
       <div
         className="glass-strong pointer-events-auto flex items-center justify-between rounded-[28px] px-2 py-2"
         style={{ boxShadow: "0 24px 60px -20px oklch(0 0 0 / 0.8)" }}

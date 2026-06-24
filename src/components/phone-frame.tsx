@@ -9,8 +9,8 @@ export function PhoneFrame({
   hideTabBar?: boolean;
 }) {
   return (
-    <div className="min-h-dvh w-full flex justify-center px-4 py-6 sm:py-10">
-      <div className="relative w-full max-w-[420px] overflow-hidden rounded-[40px] glass-strong">
+    <div className="min-h-dvh w-full flex justify-center px-3 sm:px-4 py-3 sm:py-8 phone-shell-outer">
+      <div className="phone-shell relative w-full max-w-[420px] overflow-hidden rounded-[40px] glass-strong flex flex-col">
         <div
           aria-hidden
           className="pointer-events-none absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full opacity-40 blur-3xl"
@@ -24,7 +24,7 @@ export function PhoneFrame({
           }}
         />
         <div
-          className={`relative z-10 flex flex-col gap-8 px-6 pt-10 animate-rise ${hideTabBar ? "pb-8" : "pb-28"}`}
+          className={`phone-shell-scroll relative z-10 flex flex-1 flex-col gap-7 px-6 pt-8 sm:pt-10 animate-rise overflow-y-auto ${hideTabBar ? "phone-pad-bottom-safe" : "phone-pad-bottom-tabs"}`}
         >
           {children}
         </div>
