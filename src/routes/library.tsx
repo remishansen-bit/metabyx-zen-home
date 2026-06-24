@@ -1,8 +1,11 @@
 import { RequireAuth } from "@/lib/auth";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookHeart, Leaf, CheckCircle2, Search, ChevronRight, X, Download, Upload, LifeBuoy, FileText } from "lucide-react";
+import { BookHeart, Leaf, CheckCircle2, Search, ChevronRight, X, Download, Upload, LifeBuoy, FileText, Sunrise } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
+import { Screen, Section, Stack } from "@/components/layout/Screen";
+import { ScreenHeader } from "@/components/layout/Typography";
+import { EmptyState, ScreenTransition } from "@/components/feedback";
 import { useMetabyx, importMetabyxJson, type Branch } from "@/lib/store";
 import { exportLibraryPdf } from "@/lib/library-pdf";
 import { notify } from "@/lib/feedback";
@@ -78,18 +81,17 @@ function LibraryPage() {
   return (
     <PhoneFrame>
       <StatusBar title="LIBRARY" />
-
-      <header className="flex items-start justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Your branches</p>
-          <h1
-            className="mt-2 text-3xl font-light leading-tight text-foreground"
-            style={{ fontFamily: "Fraunces, serif" }}
-          >
-            Quietly <span className="text-gold italic">remembered</span>
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
+      <Screen
+        header={
+          <ScreenHeader
+            eyebrow="Your branches"
+            title={
+              <span style={{ fontFamily: "Fraunces, serif", fontWeight: 300 }}>
+                Quietly <span className="text-gold italic">remembered</span>
+              </span>
+            }
+            action={
+              <Stack direction="horizontal" gap="xs">
           <Link
             to="/crisis"
             aria-label="Open crisis mode"
@@ -166,8 +168,11 @@ function LibraryPage() {
           <div className="glass flex h-11 w-11 items-center justify-center rounded-full">
             <BookHeart className="h-4 w-4 text-gold" />
           </div>
-        </div>
-      </header>
+              </Stack>
+            }
+          />
+        }
+      >
 
       <input
         ref={fileRef}
@@ -208,7 +213,7 @@ function LibraryPage() {
         }}
       />
 
-      <section className="grid grid-cols-2 gap-3">
+      <Section className="grid grid-cols-2 gap-3">
         <div className="glass rounded-2xl p-4">
           <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Noticed</p>
           <p
@@ -227,7 +232,7 @@ function LibraryPage() {
             {closed}
           </p>
         </div>
-      </section>
+      </Section>
 
       {/* Search */}
       <div className="glass flex items-center gap-2 rounded-2xl px-4 py-3">
@@ -277,23 +282,28 @@ function LibraryPage() {
         })}
       </div>
 
+      <ScreenTransition phase={total === 0 ? "empty" : groups.length === 0 ? "no-match" : "content"}>
       {total === 0 ? (
-        <div className="glass rounded-2xl p-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            Your library is empty. Begin with a morning check-in.
-          </p>
-          <Link
-            to="/morning"
-            className="mt-4 inline-block rounded-full px-4 py-2 text-xs font-semibold"
-            style={{ background: "var(--gradient-gold)", color: "var(--primary-foreground)" }}
-          >
-            Morning check-in
-          </Link>
-        </div>
+        <EmptyState
+          icon={<BookHeart className="h-5 w-5" />}
+          title="Your library is quiet"
+          description="Each branch you notice settles here. A morning check-in is a gentle place to begin."
+          action={
+            <Link
+              to="/morning"
+              className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold"
+              style={{ background: "var(--gradient-gold)", color: "var(--primary-foreground)", boxShadow: "var(--shadow-gold)" }}
+            >
+              <Sunrise className="h-3.5 w-3.5" /> Morning check-in
+            </Link>
+          }
+        />
       ) : groups.length === 0 ? (
-        <p className="glass rounded-2xl px-4 py-6 text-center text-xs text-muted-foreground">
-          Nothing matches — try another word.
-        </p>
+        <EmptyState
+          icon={<Search className="h-5 w-5" />}
+          title="Nothing matches"
+          description="Try another word, or clear the search to see everything."
+        />
       ) : (
         <section id="library-results" className="flex flex-col gap-5">
           {groups.map(([day, items], gi) => (
@@ -357,7 +367,9 @@ function LibraryPage() {
           ))}
         </section>
       )}
+      </ScreenTransition>
       {gate.paywall}
+      </Screen>
     </PhoneFrame>
   );
 }
