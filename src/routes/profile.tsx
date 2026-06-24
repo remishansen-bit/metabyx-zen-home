@@ -17,6 +17,9 @@ import { useMetabyx } from "@/lib/store";
 import { RequireAuth, useAuth } from "@/lib/auth";
 import { summarize } from "@/lib/learning";
 import { useEffect, useState } from "react";
+import { useFeatureGate } from "@/hooks/useFeatureGate";
+import { canAccess } from "@/lib/feature-access";
+import { PaywallLockedCard } from "@/components/PaywallSheet";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -43,6 +46,8 @@ const DAYS = 14;
 function ProfilePage() {
   const state = useMetabyx();
   const auth = useAuth();
+  const gate = useFeatureGate();
+  const learningAllowed = canAccess(gate.tier, "plus");
   const [insights, setInsights] = useState(() => summarize());
   useEffect(() => {
     const sync = () => setInsights(summarize());
