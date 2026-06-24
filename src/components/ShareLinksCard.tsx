@@ -19,7 +19,7 @@ import {
   revokeShareLink,
   rotateShareLink,
   shareUrl,
-  formatExpiresIn,
+  useExpiresInLabel,
   isShareLinkExpired,
   type ShareKind,
   type ShareLink,
@@ -156,7 +156,7 @@ function LinkRow({
   const url = shareUrl(link.token);
   const revoked = !!link.revoked_at;
   const expired = isShareLinkExpired(link);
-  const expiresLabel = formatExpiresIn(link.expires_at);
+  const expiresLabel = useExpiresInLabel(link.expires_at);
   return (
     <li className="glass rounded-2xl p-3">
       <div className="flex items-center justify-between gap-2">

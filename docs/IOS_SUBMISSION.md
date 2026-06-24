@@ -164,6 +164,46 @@ If `cap sync` warns about a plugin version mismatch, run
 | Open Xcode workspace | `bun run ios:open` |
 | App Store screenshots (empty + populated) | `bun run appstore:screenshots` |
 
+## CI: iOS smoke test
+
+`.github/workflows/ios-smoke.yml` runs on every PR that touches
+`capacitor.config.ts`, `src/`, `public/`, `ios/`, or the workflow itself.
+It runs on `macos-14`, ensures the `ios/` project exists, runs
+`cap sync ios`, installs CocoaPods, and runs an unsigned `xcodebuild`
+against the iOS simulator. Native config regressions (missing keys,
+broken plugin install, bad bundle id) fail the PR before merge.
+
+No signing certs are needed — the smoke build sets
+`CODE_SIGNING_ALLOWED=NO`. Distribution builds (Archive → Upload) still
+happen on your Mac or via EAS.
+
+## Final pre-submission checklist (run on a Mac)
+
+These steps require macOS + Xcode and cannot run in the Lovable sandbox.
+Run them in order from a clean clone:
+
+```bash
+bun install
+bun run build
+bun run ios:add            # only the first time
+bun run ios:assets         # after placing resources/icon.png + resources/splash.png
+bun run ios:sync           # copies dist/ + plugin changes into ios/
+bunx cap doctor            # verifies plugin/native versions match
+open ios/App/App.xcworkspace
+```
+
+In Xcode:
+
+1. Target **App** → **Signing & Capabilities** → pick your Team, confirm
+   the bundle id matches `capacitor.config.ts` (`com.metabyx.app`).
+2. Verify `ios/App/App/Info.plist` contains the three keys from
+   "iOS permissions (Info.plist)" above (mic, speech, encryption).
+3. Bump the build number (CFBundleVersion) — every TestFlight upload
+   needs a higher number than the last.
+4. Destination = **Any iOS Device (arm64)** → **Product → Archive**.
+5. Organizer → **Distribute App → App Store Connect → Upload**.
+6. App Store Connect (≈10 min later): attach the screenshots from
+   `/mnt/documents/appstore/`, fill metadata, and submit for review.
 ## Future: native rewrite (Expo / React Native)
 
 If we later need deep native features (HealthKit, rich background
