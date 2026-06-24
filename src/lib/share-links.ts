@@ -112,6 +112,7 @@ export type PublicShareLink = {
   anonymous: boolean;
   author_label: string;
   created_at: string;
+  expires_at: string;
 };
 
 export async function fetchPublicShareLink(token: string): Promise<PublicShareLink | null> {
@@ -127,4 +128,11 @@ export async function fetchPublicShareLink(token: string): Promise<PublicShareLi
 export function shareUrl(token: string): string {
   if (typeof window === "undefined") return `/s/${token}`;
   return `${window.location.origin}/s/${token}`;
+}
+
+/** True when a share link row is expired (or already revoked). */
+export function isShareLinkExpired(link: Pick<ShareLink, "expires_at" | "revoked_at">): boolean {
+  if (link.revoked_at) return true;
+  if (!link.expires_at) return false;
+  return new Date(link.expires_at).getTime() <= Date.now();
 }
