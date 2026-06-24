@@ -17,6 +17,7 @@ import {
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { VoiceInputButton } from "@/components/voice-input-button";
 import { VoiceRecorder } from "@/components/voice-recorder";
+import { ScreenTransition, SkeletonList } from "@/components/feedback";
 import { suggestPaths } from "@/lib/gcmp.functions";
 import { analyzeVoiceEmotion, type VoiceEmotion } from "@/lib/emotion.functions";
 import { EmotionInsight } from "@/components/emotion-insight";
@@ -366,7 +367,7 @@ function SessionPage() {
 
       <PhaseProgress phase={phase} />
 
-      <div key={phase} className="animate-fade-in">
+      <ScreenTransition phase={`phase-${phase}`}>
         {phase === 0 && (
           <IdentifyPhase
             openBranches={openToday}
@@ -431,7 +432,7 @@ function SessionPage() {
             />
           </ClosePhase>
         )}
-      </div>
+      </ScreenTransition>
 
       <div className="mt-2 flex flex-col gap-2">
         {phase < 4 ? (
