@@ -318,14 +318,15 @@ function CircleRow({
   onLeave: () => void;
   onOpen: () => void;
 }) {
+  const { t } = useTranslation();
   const Visibility = circle.visibility === "private" ? Lock : Globe;
   const copyCode = async () => {
     if (!circle.joinCode) return;
     try {
       await navigator.clipboard.writeText(circle.joinCode);
-      notify.info("Code copied", circle.joinCode);
+      notify.info(t("circlesFull.codeCopiedTitle"), circle.joinCode);
     } catch {
-      notify.error("Couldn't copy", "Try selecting it manually.");
+      notify.error(t("circlesFull.couldNotCopy"), t("circlesFull.copyManually"));
     }
   };
   return (
@@ -364,18 +365,18 @@ function CircleRow({
               e.stopPropagation();
               const next = rotateJoinCode(circle.id);
               if (next?.joinCode) {
-                notify.saved("Code rotated", `New invite: ${next.joinCode}`);
+                notify.saved(t("circlesFull.rotatedTitle"), t("circlesFull.rotatedBody", { code: next.joinCode }));
               }
             }}
             role="button"
             tabIndex={0}
             className="ml-2 mt-1 inline-flex cursor-pointer items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
           >
-            <RotateCw className="h-3 w-3" /> rotate
+            <RotateCw className="h-3 w-3" /> {t("circlesFull.rotateAria")}
           </span>
         )}
         <span className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-          <MessageCircle className="h-3 w-3" /> open thread
+          <MessageCircle className="h-3 w-3" /> {t("circlesFull.openThread")}
         </span>
       </button>
       <div className="text-right">
@@ -386,15 +387,15 @@ function CircleRow({
           {circle.pulse}
         </p>
         <p className="text-[9px] uppercase tracking-wider text-muted-foreground">
-          {circle.members} in
+          {t("circlesFull.membersIn", { count: circle.members })}
         </p>
         {circle.source !== "preview" && (
           <button
             onClick={onLeave}
-            aria-label={`Leave ${circle.name}`}
+            aria-label={t("circlesFull.leaveAria", { name: circle.name })}
             className="mt-1 inline-flex items-center gap-1 text-[9px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
           >
-            <X className="h-3 w-3" /> Leave
+            <X className="h-3 w-3" /> {t("circlesFull.leave")}
           </button>
         )}
       </div>
@@ -406,6 +407,7 @@ function SheetDialog({
   title,
   intro,
   confirmLabel,
+  cancelLabel,
   onClose,
   onConfirm,
   children,
@@ -413,6 +415,7 @@ function SheetDialog({
   title: string;
   intro: string;
   confirmLabel: string;
+  cancelLabel: string;
   onClose: () => void;
   onConfirm: () => void;
   children?: React.ReactNode;
@@ -442,7 +445,7 @@ function SheetDialog({
             onClick={onClose}
             className="glass flex-1 rounded-2xl px-4 py-3 text-xs uppercase tracking-[0.2em] text-muted-foreground"
           >
-            Cancel
+            {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
