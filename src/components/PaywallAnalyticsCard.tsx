@@ -8,6 +8,7 @@ import {
   Calendar,
   ChevronDown,
   ChevronRight,
+  Download,
 } from "lucide-react";
 import {
   clearLocalPaywallEvents,
@@ -49,6 +50,15 @@ export function PaywallAnalyticsCard() {
   const totals = useMemo(() => bucketTotals(filtered), [filtered]);
   const timeline = useMemo(() => buildTimeline(filtered), [filtered]);
 
+  const exportCsv = () => {
+    const rangeLabel = RANGES.find((r) => r.key === range)?.label ?? range;
+    const csv = buildTimelineCsv(timeline);
+    const filename = `paywall-funnel_${rangeLabel}_${tierFilter}_${new Date()
+      .toISOString()
+      .slice(0, 10)}.csv`;
+    downloadCsv(filename, csv);
+  };
+
   return (
     <section className="glass-strong rounded-3xl p-5">
       <header className="flex items-center justify-between">
@@ -58,13 +68,23 @@ export function PaywallAnalyticsCard() {
             Paywall funnel
           </p>
         </div>
-        <button
-          onClick={() => clearLocalPaywallEvents()}
-          className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
-          aria-label="Clear paywall history"
-        >
-          <RefreshCw className="h-3 w-3" /> reset
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={exportCsv}
+            disabled={timeline.length === 0}
+            className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground disabled:opacity-40"
+            aria-label={`Export paywall funnel CSV for ${RANGES.find((r) => r.key === range)?.label ?? range} ${tierFilter}`}
+          >
+            <Download className="h-3 w-3" /> CSV
+          </button>
+          <button
+            onClick={() => clearLocalPaywallEvents()}
+            className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
+            aria-label="Clear paywall history"
+          >
+            <RefreshCw className="h-3 w-3" /> reset
+          </button>
+        </div>
       </header>
 
       {/* Filters */}
@@ -262,6 +282,54 @@ function formatTime(t: number): string {
 
 function pct(n: number) {
   return `${Math.round(n * 100)}%`;
+}
+
+function csvEscape(value: string | number): string {
+  const s = String(value);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+export function buildTimelineCsv(rows: ActionTimeline[]): string {
+  const header = [
+    "feature",
+    "required_tier",
+    "prompts",
+    "dismisses",
+    "upgrade_clicks",
+    "no_action",
+    "conversion_rate",
+    "drop_off_rate",
+  ].join(",");
+  const lines = rows.map((r) => {
+    const noAction = Math.max(0, r.impressions - r.upgrades - r.dismisses);
+    const conv = r.impressions === 0 ? 0 : r.upgrades / r.impressions;
+    const drop = r.impressions === 0 ? 0 : r.dismisses / r.impressions;
+    return [
+      csvEscape(r.feature),
+      csvEscape(r.required),
+      r.impressions,
+      r.dismisses,
+      r.upgrades,
+      noAction,
+      conv.toFixed(4),
+      drop.toFixed(4),
+    ].join(",");
+  });
+  return [header, ...lines].join("\n");
+}
+
+function downloadCsv(filename: string, csv: string) {
+  if (typeof window === "undefined") return;
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function Stat({
