@@ -136,3 +136,25 @@ export function isShareLinkExpired(link: Pick<ShareLink, "expires_at" | "revoked
   if (!link.expires_at) return false;
   return new Date(link.expires_at).getTime() <= Date.now();
 }
+
+/**
+ * Human countdown like "Expires in 6d", "Expires in 4h", "Expires in 12m",
+ * "Expires soon", or "Expired" when past the deadline. `now` is injectable
+ * for tests. Returns null when there is no expiry timestamp.
+ */
+export function formatExpiresIn(
+  expiresAt: string | null | undefined,
+  now: number = Date.now(),
+): string | null {
+  if (!expiresAt) return null;
+  const diffMs = new Date(expiresAt).getTime() - now;
+  if (Number.isNaN(diffMs)) return null;
+  if (diffMs <= 0) return "Expired";
+  const m = Math.floor(diffMs / 60_000);
+  if (m < 1) return "Expires soon";
+  if (m < 60) return `Expires in ${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `Expires in ${h}h`;
+  const d = Math.floor(h / 24);
+  return `Expires in ${d}d`;
+}
