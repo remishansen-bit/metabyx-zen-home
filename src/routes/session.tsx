@@ -876,7 +876,7 @@ function WalkPhase({
         ) : (
           <>
             <Sparkles className="h-4 w-4 text-gold" />
-            <span className="text-foreground">Mark as walked</span>
+            <span className="text-foreground">{t("sessionFull.walk.markWalked")}</span>
           </>
         )}
       </button>
@@ -895,6 +895,7 @@ function ClosePhase({
   setNewStory: (v: string) => void;
   children?: ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <section className="flex flex-col gap-5">
       <div>
@@ -902,17 +903,26 @@ function ClosePhase({
           className="text-2xl font-light leading-snug text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          Close it with a <span className="text-gold italic">new sentence</span>.
+          <Trans
+            i18nKey="sessionFull.close.titleFull"
+            defaults='{{pre}} <1>{{hi}}</1>{{post}}'
+            values={{
+              pre: t("sessionFull.close.titlePre"),
+              hi: t("sessionFull.close.titleHi"),
+              post: t("sessionFull.close.titlePost"),
+            }}
+            components={{ 1: <span className="text-gold italic" /> }}
+          />
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          One or two lines. The truer story you can hold now.
+          {t("sessionFull.close.subtitle")}
         </p>
       </div>
 
       {whatIf && (
         <div className="glass rounded-2xl p-4">
           <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-            The old branch
+            {t("sessionFull.close.oldBranch")}
           </p>
           <p
             className="mt-2 text-sm leading-relaxed text-muted-foreground line-through decoration-[oklch(0.82_0.14_82/0.5)]"
@@ -932,13 +942,13 @@ function ClosePhase({
         }}
       >
         <div className="flex items-center justify-between">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-gold">The new story</p>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-gold">{t("sessionFull.close.newStory")}</p>
           <VoiceInputButton value={newStory} onChange={setNewStory} compact />
         </div>
         <textarea
           value={newStory}
           onChange={(e) => setNewStory(e.target.value)}
-          placeholder="I am allowed to begin gently. Tomorrow will meet me as I am…"
+          placeholder={t("sessionFull.close.placeholder")}
           rows={5}
           className="mt-2 w-full resize-none bg-transparent text-base leading-relaxed text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
           style={{ fontFamily: "Fraunces, serif" }}
@@ -949,15 +959,15 @@ function ClosePhase({
           editable transcript before it lands in the textarea above. */}
       <details className="glass rounded-2xl px-4 py-3">
         <summary className="flex cursor-pointer items-center justify-between text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-          <span>Speak the new story aloud</span>
-          <span className="text-gold">+ Voice</span>
+          <span>{t("sessionFull.close.speakAloud")}</span>
+          <span className="text-gold">{t("sessionFull.identify.voiceLabel")}</span>
         </summary>
         <div className="mt-3">
           <VoiceRecorder
             language="en-US"
             compact
             showHistory={false}
-            ariaLabel="Record the closing story"
+            ariaLabel={t("sessionFull.close.recordAria")}
             onTranscription={(text) =>
               setNewStory(newStory ? `${newStory.trim()} ${text}` : text)
             }
