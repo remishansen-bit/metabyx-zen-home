@@ -656,13 +656,14 @@ function PathsPhase({
   loading,
   error,
 }: {
-  pathId: Path["id"] | null;
-  onPick: (id: Path["id"]) => void;
+  pathId: PathId | null;
+  onPick: (id: PathId) => void;
   suggestions: Suggestion[] | null;
   intro: string;
   loading: boolean;
   error: string | null;
 }) {
+  const { t } = useTranslation();
   const list: { meta: Path; sug?: Suggestion }[] = suggestions
     ? suggestions
         .map((s) => {
@@ -679,15 +680,23 @@ function PathsPhase({
           className="text-2xl font-light leading-snug text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          Your <span className="text-gold italic">integration paths</span>.
+          <Trans
+            i18nKey="sessionFull.paths.titleFull"
+            defaults='{{pre}} <1>{{hi}}</1>{{post}}'
+            values={{
+              pre: t("sessionFull.paths.titlePre"),
+              hi: t("sessionFull.paths.titleHi"),
+              post: t("sessionFull.paths.titlePost"),
+            }}
+            components={{ 1: <span className="text-gold italic" /> }}
+          />
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {loading
-            ? "Listening to what you shared…"
+            ? t("sessionFull.paths.listening")
             : error
               ? error
-              : intro ||
-                "Read each slowly. Choose the one your body leans toward."}
+              : intro || t("sessionFull.paths.defaultIntro")}
         </p>
       </div>
 
@@ -710,7 +719,9 @@ function PathsPhase({
       {!loading && (
       <ul className="flex flex-col gap-3">
         {list.map(({ meta, sug }, i) => {
-          const { id, icon: Icon, title, blurb } = meta;
+          const { id, icon: Icon } = meta;
+          const title = t(`sessionFull.path.${id}.title`);
+          const blurb = t(`sessionFull.path.${id}.blurb`);
           const on = id === pathId;
           return (
             <li
