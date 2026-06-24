@@ -20,6 +20,7 @@ import { useEffect, useState } from "react";
 import { useFeatureGate } from "@/hooks/useFeatureGate";
 import { canAccess } from "@/lib/feature-access";
 import { PaywallLockedCard } from "@/components/PaywallSheet";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -47,6 +48,7 @@ function ProfilePage() {
   const state = useMetabyx();
   const auth = useAuth();
   const gate = useFeatureGate();
+  const { t } = useTranslation();
   const learningAllowed = canAccess(gate.tier, "plus");
   const [insights, setInsights] = useState(() => summarize());
   useEffect(() => {
@@ -133,7 +135,7 @@ function ProfilePage() {
 
   return (
     <PhoneFrame>
-      <StatusBar title="PROFILE" />
+      <StatusBar title={t("profile.title")} />
 
       <header className="flex flex-col items-center gap-3">
         <div className="relative">
@@ -159,7 +161,7 @@ function ProfilePage() {
             </p>
           ) : (
             <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-              BMR Tracker · 14 days
+              {t("profile.bmrTracker")}
             </p>
           )}
         </div>
@@ -169,17 +171,17 @@ function ProfilePage() {
       <section className="glass-strong rounded-3xl p-5">
         <div className="flex items-baseline justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Today</p>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">{t("profile.todayEyebrow")}</p>
             <p
               className="mt-1 text-5xl font-light leading-none text-foreground"
               style={{ fontFamily: "Fraunces, serif" }}
             >
               {state.lastBmr}
             </p>
-            <p className="mt-1 text-xs text-gold">7-day avg · {avg7 || "—"}</p>
+            <p className="mt-1 text-xs text-gold">{t("profile.avg7")} · {avg7 || "—"}</p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Best</p>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">{t("profile.bestEyebrow")}</p>
             <p
               className="mt-1 text-2xl font-light text-foreground"
               style={{ fontFamily: "Fraunces, serif" }}
@@ -269,9 +271,9 @@ function ProfilePage() {
       {/* Stats */}
       <section className="grid grid-cols-3 gap-3">
         {[
-          { icon: Flame, label: "Streak", value: `${streak}`, unit: streak === 1 ? "day" : "days" },
-          { icon: Target, label: "Integrated", value: `${integration}`, unit: "%" },
-          { icon: TrendingUp, label: "Check-ins", value: `${state.bmrHistory.length}`, unit: "total" },
+          { icon: Flame, label: t("profile.streak"), value: `${streak}`, unit: streak === 1 ? t("profile.day") : t("profile.day_plural") },
+          { icon: Target, label: t("profile.integrated"), value: `${integration}`, unit: "%" },
+          { icon: TrendingUp, label: t("profile.checkins"), value: `${state.bmrHistory.length}`, unit: t("profile.total") },
         ].map(({ icon: Icon, label, value, unit }) => (
           <div key={label} className="glass rounded-2xl p-3">
             <Icon className="h-4 w-4 text-gold" />
@@ -291,7 +293,7 @@ function ProfilePage() {
 
       {/* Preferences */}
       <section className="flex flex-col gap-2">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Account</p>
+        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">{t("profile.accountEyebrow")}</p>
         <Link
           to="/settings"
           className="glass flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all hover:bg-[oklch(1_0_0/0.06)]"
@@ -306,10 +308,8 @@ function ProfilePage() {
             <SettingsIcon className="h-4 w-4 text-gold" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Preferences & settings</p>
-            <p className="text-xs text-muted-foreground">
-              Reminders, AI model, theme, privacy
-            </p>
+            <p className="text-sm font-medium text-foreground">{t("profile.preferences")}</p>
+            <p className="text-xs text-muted-foreground">{t("profile.preferencesDesc")}</p>
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </Link>
@@ -327,18 +327,14 @@ function ProfilePage() {
             <Users className="h-4 w-4 text-gold" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">
-              Metabolic Circles
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Shared rooms · preview
-            </p>
+            <p className="text-sm font-medium text-foreground">{t("profile.circles")}</p>
+            <p className="text-xs text-muted-foreground">{t("profile.circlesDesc")}</p>
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </Link>
         {auth.user?.email && (
           <p className="px-2 text-center text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-            signed in as {auth.user.email}
+            {t("profile.signedInAs", { email: auth.user.email })}
           </p>
         )}
       </section>
