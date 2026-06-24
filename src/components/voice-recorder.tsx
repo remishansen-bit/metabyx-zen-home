@@ -500,7 +500,7 @@ export function VoiceRecorder({
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (err) {
       setState("error");
-      const msg = describeMicError(err);
+      const msg = describeMicError(t, err);
       setErrorMsg(msg);
       onError?.(msg);
       return;
