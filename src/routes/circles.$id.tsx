@@ -544,6 +544,7 @@ function PostCard({
   onEdit: (next: string) => Promise<void>;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   const Icon =
     post.kind === "reflection" ? Sparkles : post.kind === "insight" ? Lightbulb : Heart;
   const [editing, setEditing] = useState(false);
@@ -556,7 +557,7 @@ function PostCard({
       await onEdit(draft);
       setEditing(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save.");
+      setError(err instanceof Error ? err.message : t("circleThread.couldNotSave"));
     }
   };
 
@@ -572,10 +573,10 @@ function PostCard({
           <div>
             <p className="text-xs font-medium text-foreground">{post.authorName}</p>
             <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
-              {post.kind} ·{" "}
+              {t(`circleThread.kind${post.kind === "reflection" ? "Reflect" : post.kind === "insight" ? "Insight" : "Support"}`)} ·{" "}
               {pending
-                ? "sending…"
-                : `${relative(post.createdAt)}${post.editedAt ? " · edited" : ""}`}
+                ? t("circleThread.sending")
+                : `${relative(post.createdAt, t)}${post.editedAt ? ` · ${t("circleThread.edited")}` : ""}`}
             </p>
           </div>
         </div>
@@ -587,7 +588,7 @@ function PostCard({
                 setEditing((v) => !v);
                 setError(null);
               }}
-              aria-label="Edit post"
+              aria-label={t("circleThread.editAria")}
               disabled={busy !== null}
               className="rounded-md px-1.5 py-1 text-muted-foreground hover:text-foreground disabled:opacity-40"
             >
@@ -599,7 +600,7 @@ function PostCard({
             </button>
             <button
               onClick={onDelete}
-              aria-label="Delete post"
+              aria-label={t("circleThread.deleteAria")}
               disabled={busy !== null}
               className="rounded-md px-1.5 py-1 text-muted-foreground hover:text-rose-300 disabled:opacity-40"
             >
@@ -631,7 +632,7 @@ function PostCard({
               onClick={() => setEditing(false)}
               className="glass rounded-xl px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
             >
-              Cancel
+              {t("circleThread.cancel")}
             </button>
             <button
               onClick={saveEdit}
@@ -640,7 +641,7 @@ function PostCard({
               style={{ background: "var(--gradient-gold)" }}
             >
               {busy === "edit" && <Loader2 className="h-3 w-3 animate-spin" />}
-              Save
+              {t("circleThread.save")}
             </button>
           </div>
         </div>
@@ -655,12 +656,12 @@ function PostCard({
             <Chip icon={Activity} label={`BMR ${post.progress.bmr}`} />
           )}
           {typeof post.progress.streak === "number" && post.progress.streak > 0 && (
-            <Chip icon={Flame} label={`${post.progress.streak}d streak`} />
+            <Chip icon={Flame} label={t("circleThread.streakSuffix", { count: post.progress.streak })} />
           )}
         </div>
       )}
       <div className="mt-3 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-        <MessageCircle className="h-3 w-3" /> in circle
+        <MessageCircle className="h-3 w-3" /> {t("circleThread.inCircle")}
       </div>
     </article>
   );
@@ -681,8 +682,9 @@ function Chip({
 }
 
 function PostSkeletons({ count }: { count: number }) {
+  const { t } = useTranslation();
   return (
-    <div className="flex flex-col gap-2" aria-busy="true" aria-label="Loading posts">
+    <div className="flex flex-col gap-2" aria-busy="true" aria-label={t("circleThread.loadingPostsAria")}>
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="glass animate-pulse rounded-2xl p-4">
           <div className="flex items-center gap-2">
@@ -703,13 +705,13 @@ function PostSkeletons({ count }: { count: number }) {
   );
 }
 
-function relative(ts: number): string {
+function relative(ts: number, t: (k: string, opts?: Record<string, unknown>) => string): string {
   const diff = Date.now() - ts;
   const m = Math.floor(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
+  if (m < 1) return t("circleThread.justNow");
+  if (m < 60) return t("circleThread.minutesAgo", { count: m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
+  if (h < 24) return t("circleThread.hoursAgo", { count: h });
   const d = Math.floor(h / 24);
-  return `${d}d ago`;
+  return t("circleThread.daysAgo", { count: d });
 }
