@@ -26,6 +26,25 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
+  /* ---- Spacing scale (METABYX layout system) ----
+   * Use these via primitives in src/components/layout/. Avoid hardcoding
+   * px-4 / pt-6 / gap-2 in screens so vertical rhythm stays consistent.
+   */
+  --spacing-screen-x: 1.5rem;     /* 24px – horizontal screen padding */
+  --spacing-screen-y: 1.5rem;     /* 24px – top/bottom screen padding */
+  --spacing-section: 2rem;        /* 32px – between major sections */
+  --spacing-stack-xs: 0.5rem;     /* 8px  */
+  --spacing-stack-sm: 0.75rem;    /* 12px */
+  --spacing-stack-md: 1rem;       /* 16px */
+  --spacing-stack-lg: 1.5rem;     /* 24px */
+
+  /* ---- Motion tokens ---- */
+  --ease-calm: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 160ms;
+  --dur-base: 240ms;
+  --dur-slow: 400ms;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
