@@ -344,6 +344,20 @@ function ProfilePage() {
       </section>
 
       {/* Personal learning */}
+      {!learningAllowed ? (
+        <PaywallLockedCard
+          required="plus"
+          title="What Metabyx has learned"
+          description="Plus surfaces your preference changes, most-tuned settings, and reminder consistency — kept on-device."
+          onUnlock={() =>
+            gate.show("plus", {
+              feature: "Personal Learning insights are part of Plus",
+              description:
+                "Track how your preferences and reminder rhythm evolve over time, stored on this device only.",
+            })
+          }
+        />
+      ) : (
       <section className="glass-strong rounded-3xl p-5">
         <div className="flex items-center gap-2">
           <Brain className="h-3.5 w-3.5 text-gold" />
@@ -384,6 +398,8 @@ function ProfilePage() {
           stored on this device only
         </p>
       </section>
+      )}
+      {gate.paywall}
     </PhoneFrame>
   );
 }
