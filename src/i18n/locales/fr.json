@@ -859,5 +859,47 @@
     "secondsAgo": "il y a {{n}} s",
     "minutesAgo": "il y a {{n}} min",
     "hoursAgo": "il y a {{n}} h"
+  },
+  "paymentBanner": {
+    "message": "Les paiements sont en mode test dans l’aperçu.",
+    "readMore": "En savoir plus"
+  },
+  "voiceInput": {
+    "speak": "Parler",
+    "listening": "Écoute…",
+    "tryAgain": "Réessayer",
+    "typeInstead": "Écrire",
+    "unsupported": "Écrire à la place",
+    "unsupportedTitle": "La reconnaissance vocale n’est pas prise en charge par ce navigateur",
+    "stopAria": "Arrêter l’enregistrement",
+    "retryAria": "Réessayer la saisie vocale",
+    "speakAria": "Parler",
+    "blocked": "Accès au micro bloqué. Autorisez-le ou écrivez.",
+    "noSpeech": "Aucune voix détectée. Réessayez ou écrivez.",
+    "network": "Réseau perdu. Réessayez.",
+    "generic": "La capture vocale a échoué. Réessayez ou écrivez.",
+    "startFailed": "Impossible de démarrer l’enregistrement. Réessayez."
+  },
+  "paywallAnalytics": {
+    "eyebrow": "Entonnoir paywall",
+    "exportAria": "Exporter l’entonnoir paywall en CSV",
+    "exportCsv": "CSV",
+    "reset": "réinitialiser",
+    "resetAria": "Effacer l’historique paywall",
+    "prompts": "Invites",
+    "upgrade": "Améliorer",
+    "dropOff": "Abandon",
+    "empty": "Aucune invite paywall dans cette période.",
+    "upgradeClicks": "{{n}} clics d’amélioration",
+    "dismisses": "{{n}} fermetures",
+    "rowSummary": "{{up}} amélioration · {{dis}} fermeture · {{none}} sans action",
+    "labelPrompt": "invite",
+    "labelDismiss": "fermer",
+    "labelUpgrade": "clic d’amélioration",
+    "timeJustNow": "à l’instant",
+    "timeMinutes": "il y a {{n}} min",
+    "timeHours": "il y a {{n}} h",
+    "timeDays": "il y a {{n}} j",
+    "rangeAll": "Tout"
   }
 }

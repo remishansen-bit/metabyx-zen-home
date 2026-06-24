@@ -859,5 +859,47 @@
     "secondsAgo": "för {{n}} s sedan",
     "minutesAgo": "för {{n}} min sedan",
     "hoursAgo": "för {{n}} h sedan"
+  },
+  "paymentBanner": {
+    "message": "Betalningar är i testläge i förhandsvisningen.",
+    "readMore": "Läs mer"
+  },
+  "voiceInput": {
+    "speak": "Tala",
+    "listening": "Lyssnar…",
+    "tryAgain": "Försök igen",
+    "typeInstead": "Skriv",
+    "unsupported": "Skriv istället",
+    "unsupportedTitle": "Röstigenkänning stöds inte i denna webbläsare",
+    "stopAria": "Stoppa inspelning",
+    "retryAria": "Försök röstinmatning igen",
+    "speakAria": "Tala in text",
+    "blocked": "Mikrofonåtkomst blockerad. Tillåt eller skriv istället.",
+    "noSpeech": "Ingen röst hittades. Försök igen eller skriv.",
+    "network": "Nätverket tappades. Försök igen.",
+    "generic": "Röstinspelningen misslyckades. Försök igen eller skriv.",
+    "startFailed": "Kunde inte starta inspelningen. Försök igen."
+  },
+  "paywallAnalytics": {
+    "eyebrow": "Betalväggstratt",
+    "exportAria": "Exportera betalväggstratt som CSV",
+    "exportCsv": "CSV",
+    "reset": "återställ",
+    "resetAria": "Rensa betalvägghistorik",
+    "prompts": "Visningar",
+    "upgrade": "Uppgradera",
+    "dropOff": "Avhopp",
+    "empty": "Inga betalväggsvisningar i denna period ännu.",
+    "upgradeClicks": "{{n}} uppgraderingsklick",
+    "dismisses": "{{n}} stängningar",
+    "rowSummary": "{{up}} uppgradera · {{dis}} stäng · {{none}} ingen åtgärd",
+    "labelPrompt": "visning",
+    "labelDismiss": "stäng",
+    "labelUpgrade": "uppgraderingsklick",
+    "timeJustNow": "just nu",
+    "timeMinutes": "{{n}} min sedan",
+    "timeHours": "{{n}} tim sedan",
+    "timeDays": "{{n}} d sedan",
+    "rangeAll": "Alla"
   }
 }

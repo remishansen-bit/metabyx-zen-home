@@ -859,5 +859,47 @@
     "secondsAgo": "há {{n}} s",
     "minutesAgo": "há {{n}} min",
     "hoursAgo": "há {{n}} h"
+  },
+  "paymentBanner": {
+    "message": "Os pagamentos estão em modo de teste na pré-visualização.",
+    "readMore": "Saiba mais"
+  },
+  "voiceInput": {
+    "speak": "Falar",
+    "listening": "A ouvir…",
+    "tryAgain": "Tentar novamente",
+    "typeInstead": "Escrever",
+    "unsupported": "Escrever em vez disso",
+    "unsupportedTitle": "O reconhecimento de voz não é suportado neste navegador",
+    "stopAria": "Parar gravação",
+    "retryAria": "Tentar entrada de voz novamente",
+    "speakAria": "Falar texto",
+    "blocked": "Acesso ao microfone bloqueado. Permita ou escreva.",
+    "noSpeech": "Nenhuma voz detetada. Tente de novo ou escreva.",
+    "network": "Rede perdida. Tente novamente.",
+    "generic": "Captura de voz falhou. Tente de novo ou escreva.",
+    "startFailed": "Não foi possível iniciar a gravação. Tente de novo."
+  },
+  "paywallAnalytics": {
+    "eyebrow": "Funil do paywall",
+    "exportAria": "Exportar funil do paywall em CSV",
+    "exportCsv": "CSV",
+    "reset": "redefinir",
+    "resetAria": "Limpar histórico do paywall",
+    "prompts": "Avisos",
+    "upgrade": "Atualizar",
+    "dropOff": "Abandono",
+    "empty": "Ainda não há avisos do paywall neste período.",
+    "upgradeClicks": "{{n}} cliques de atualização",
+    "dismisses": "{{n}} dispensas",
+    "rowSummary": "{{up}} atualizar · {{dis}} dispensar · {{none}} sem ação",
+    "labelPrompt": "aviso",
+    "labelDismiss": "dispensar",
+    "labelUpgrade": "clique de atualização",
+    "timeJustNow": "agora mesmo",
+    "timeMinutes": "há {{n}} min",
+    "timeHours": "há {{n}} h",
+    "timeDays": "há {{n}} d",
+    "rangeAll": "Tudo"
   }
 }

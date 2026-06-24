@@ -859,5 +859,47 @@
     "secondsAgo": "hace {{n}} s",
     "minutesAgo": "hace {{n}} min",
     "hoursAgo": "hace {{n}} h"
+  },
+  "paymentBanner": {
+    "message": "Los pagos están en modo de prueba en la vista previa.",
+    "readMore": "Más información"
+  },
+  "voiceInput": {
+    "speak": "Hablar",
+    "listening": "Escuchando…",
+    "tryAgain": "Reintentar",
+    "typeInstead": "Escribir",
+    "unsupported": "Escribir en su lugar",
+    "unsupportedTitle": "El reconocimiento de voz no es compatible con este navegador",
+    "stopAria": "Detener grabación",
+    "retryAria": "Volver a intentar la entrada por voz",
+    "speakAria": "Hablar texto",
+    "blocked": "Acceso al micrófono bloqueado. Permítelo o escribe.",
+    "noSpeech": "No se detectó voz. Inténtalo o escribe.",
+    "network": "Se perdió la red. Inténtalo otra vez.",
+    "generic": "La captura de voz falló. Inténtalo o escribe.",
+    "startFailed": "No se pudo iniciar la grabación. Inténtalo de nuevo."
+  },
+  "paywallAnalytics": {
+    "eyebrow": "Embudo del muro de pago",
+    "exportAria": "Exportar embudo del muro de pago en CSV",
+    "exportCsv": "CSV",
+    "reset": "restablecer",
+    "resetAria": "Borrar historial del muro de pago",
+    "prompts": "Avisos",
+    "upgrade": "Mejorar",
+    "dropOff": "Abandono",
+    "empty": "Aún no hay avisos del muro de pago en este periodo.",
+    "upgradeClicks": "{{n}} clics de mejora",
+    "dismisses": "{{n}} descartes",
+    "rowSummary": "{{up}} mejorar · {{dis}} descartar · {{none}} sin acción",
+    "labelPrompt": "aviso",
+    "labelDismiss": "descartar",
+    "labelUpgrade": "clic de mejora",
+    "timeJustNow": "justo ahora",
+    "timeMinutes": "hace {{n}} min",
+    "timeHours": "hace {{n}} h",
+    "timeDays": "hace {{n}} d",
+    "rangeAll": "Todo"
   }
 }

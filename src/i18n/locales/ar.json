@@ -859,5 +859,47 @@
     "secondsAgo": "منذ {{n}} ث",
     "minutesAgo": "منذ {{n}} د",
     "hoursAgo": "منذ {{n}} س"
+  },
+  "paymentBanner": {
+    "message": "المدفوعات في وضع الاختبار في المعاينة.",
+    "readMore": "اقرأ المزيد"
+  },
+  "voiceInput": {
+    "speak": "تحدث",
+    "listening": "يستمع…",
+    "tryAgain": "حاول مرة أخرى",
+    "typeInstead": "اكتب",
+    "unsupported": "اكتب بدلاً من ذلك",
+    "unsupportedTitle": "التعرّف على الصوت غير مدعوم في هذا المتصفح",
+    "stopAria": "إيقاف التسجيل",
+    "retryAria": "إعادة محاولة الإدخال الصوتي",
+    "speakAria": "تحدث بالنص",
+    "blocked": "الوصول إلى الميكروفون محظور. اسمح به أو اكتب بدلاً من ذلك.",
+    "noSpeech": "لم يتم رصد صوت. حاول مرة أخرى أو اكتب.",
+    "network": "انقطعت الشبكة. حاول مرة أخرى.",
+    "generic": "فشل التقاط الصوت. حاول مرة أخرى أو اكتب.",
+    "startFailed": "تعذّر بدء التسجيل. حاول مرة أخرى."
+  },
+  "paywallAnalytics": {
+    "eyebrow": "مسار جدار الدفع",
+    "exportAria": "تصدير مسار جدار الدفع بصيغة CSV",
+    "exportCsv": "CSV",
+    "reset": "إعادة تعيين",
+    "resetAria": "مسح سجل جدار الدفع",
+    "prompts": "الإشعارات",
+    "upgrade": "ترقية",
+    "dropOff": "تخلٍ",
+    "empty": "لا توجد إشعارات لجدار الدفع في هذه الفترة بعد.",
+    "upgradeClicks": "{{n}} نقرات ترقية",
+    "dismisses": "{{n}} عمليات إغلاق",
+    "rowSummary": "{{up}} ترقية · {{dis}} إغلاق · {{none}} لا إجراء",
+    "labelPrompt": "إشعار",
+    "labelDismiss": "إغلاق",
+    "labelUpgrade": "نقرة ترقية",
+    "timeJustNow": "الآن",
+    "timeMinutes": "قبل {{n}} د",
+    "timeHours": "قبل {{n}} س",
+    "timeDays": "قبل {{n}} ي",
+    "rangeAll": "الكل"
   }
 }
