@@ -6,6 +6,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { useEffect, useState } from "react";
 
 export type ShareKind = "reflection" | "insight";
 export type ShareSnapshot = { bmr?: number; streak?: number; pulse?: number };
@@ -167,8 +168,8 @@ export function formatExpiresIn(
 export function useExpiresInLabel(
   expiresAt: string | null | undefined,
 ): string | null {
-  const [now, setNow] = useReactState(() => Date.now());
-  useReactEffect(() => {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
     if (!expiresAt) return;
     const tick = () => setNow(Date.now());
     const diff = new Date(expiresAt).getTime() - Date.now();
