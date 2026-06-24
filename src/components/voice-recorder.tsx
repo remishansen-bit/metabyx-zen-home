@@ -1746,12 +1746,12 @@ export function VoiceRecorder({
           <Keyboard aria-hidden className="h-3 w-3" />
           <span>
             <kbd className="rounded bg-white/10 px-1 py-0.5">Esc</kbd>{" "}
-            {isRecording ? "avbryt" : "lukk"}
+            {isRecording ? t("voice.kbdEscCancel") : t("voice.kbdEscClose")}
             <span className="mx-1.5 text-foreground/30">·</span>
             <kbd className="rounded bg-white/10 px-1 py-0.5">⌘</kbd>/
             <kbd className="rounded bg-white/10 px-1 py-0.5">Ctrl</kbd>+
             <kbd className="rounded bg-white/10 px-1 py-0.5">Enter</kbd>{" "}
-            {isRecording ? "godta" : "bruk"}
+            {isRecording ? t("voice.kbdAccept") : t("voice.kbdApply")}
           </span>
         </p>
       )}
@@ -1768,7 +1768,7 @@ export function VoiceRecorder({
           >
             <span className="inline-flex items-center gap-1.5">
               <History className="h-3 w-3" />
-              Tidligere opptak ({history.length})
+              {t("voice.historyTitle", { count: history.length })}
             </span>
             <span className="text-foreground/50">{historyOpen ? "−" : "+"}</span>
           </button>
@@ -1801,9 +1801,9 @@ export function VoiceRecorder({
                       aria-label={
                         h.audioUrl
                           ? isPlayingThis
-                            ? "Pause avspilling"
-                            : "Spill av opptaket"
-                          : "Lyden er ikke lenger tilgjengelig"
+                            ? t("voice.pausePlayback")
+                            : t("voice.playRecording")
+                          : t("voice.audioUnavailable")
                       }
                       className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
                       style={{
@@ -1832,7 +1832,7 @@ export function VoiceRecorder({
                             · {h.emotion.primaryEmotion}
                           </span>
                         )}
-                        {!h.audioUrl && <span>· kun tekst</span>}
+                        {!h.audioUrl && <span>· {t("voice.historyTextOnly")}</span>}
                       </div>
                     </div>
                     {h.audioUrl && (
