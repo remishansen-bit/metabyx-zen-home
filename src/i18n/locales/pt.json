@@ -1,0 +1,50 @@
+{
+  "common": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "back": "Voltar",
+    "close": "Fechar",
+    "loading": "Carregando…",
+    "today": "Hoje",
+    "language": "Idioma"
+  },
+  "nav": {
+    "home": "Início",
+    "checkin": "Check-in",
+    "guided": "Guiado",
+    "circles": "Círculos",
+    "library": "Biblioteca",
+    "profile": "Perfil"
+  },
+  "home": {
+    "greetingMorning": "Bom dia",
+    "greetingAfternoon": "Boa tarde",
+    "greetingEvening": "Boa noite",
+    "welcome": "Bem-vindo",
+    "crisis": "Abrir modo de crise"
+  },
+  "settings": {
+    "title": "Configurações",
+    "preferences": "Preferências e configurações",
+    "language": "Idioma",
+    "languageDesc": "Idioma de exibição do app",
+    "morningReminder": "Lembrete da manhã",
+    "eveningReminder": "Lembrete da noite",
+    "theme": "Tema",
+    "aiModel": "Modelo de IA",
+    "notifications": "Notificações",
+    "signOut": "Sair",
+    "deleteAccount": "Excluir conta"
+  },
+  "profile": {
+    "title": "Perfil",
+    "streak": "Sequência",
+    "integrated": "Integrado",
+    "checkins": "Check-ins",
+    "signedInAs": "conectado como {{email}}"
+  },
+  "library": {
+    "title": "Biblioteca",
+    "empty": "Nada por aqui ainda"
+  }
+}

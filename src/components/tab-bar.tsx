@@ -1,35 +1,37 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Home, Sunrise, Sparkles, BookHeart, User, Users } from "lucide-react";
 import type { ComponentType } from "react";
+import { useTranslation } from "react-i18next";
 
 type Tab = {
   to: "/" | "/morning" | "/session" | "/circles" | "/library" | "/profile";
-  label: string;
+  labelKey: string;
   icon: ComponentType<{ className?: string }>;
   match: (p: string) => boolean;
 };
 
 const TABS: Tab[] = [
-  { to: "/", label: "Home", icon: Home, match: (p) => p === "/" },
+  { to: "/", labelKey: "nav.home", icon: Home, match: (p) => p === "/" },
   {
     to: "/morning",
-    label: "Check-in",
+    labelKey: "nav.checkin",
     icon: Sunrise,
     match: (p) => p === "/morning" || p === "/evening",
   },
-  { to: "/session", label: "Guided", icon: Sparkles, match: (p) => p === "/session" },
+  { to: "/session", labelKey: "nav.guided", icon: Sparkles, match: (p) => p === "/session" },
   {
     to: "/circles",
-    label: "Circles",
+    labelKey: "nav.circles",
     icon: Users,
     match: (p) => p === "/circles" || p.startsWith("/circles/"),
   },
-  { to: "/library", label: "Library", icon: BookHeart, match: (p) => p === "/library" },
-  { to: "/profile", label: "Profile", icon: User, match: (p) => p === "/profile" },
+  { to: "/library", labelKey: "nav.library", icon: BookHeart, match: (p) => p === "/library" },
+  { to: "/profile", labelKey: "nav.profile", icon: User, match: (p) => p === "/profile" },
 ];
 
 export function TabBar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { t } = useTranslation();
   return (
     <nav
       className="pointer-events-none absolute inset-x-3 z-20"
@@ -39,7 +41,7 @@ export function TabBar() {
         className="glass-strong pointer-events-auto flex items-center justify-between rounded-[28px] px-2 py-2"
         style={{ boxShadow: "0 24px 60px -20px oklch(0 0 0 / 0.8)" }}
       >
-        {TABS.map(({ to, label, icon: Icon, match }) => {
+        {TABS.map(({ to, labelKey, icon: Icon, match }) => {
           const active = match(pathname);
           return (
             <Link
@@ -64,7 +66,7 @@ export function TabBar() {
               <span
                 className={`relative text-[9px] uppercase tracking-[0.15em] transition-colors ${active ? "text-gold" : "text-muted-foreground"}`}
               >
-                {label}
+                {t(labelKey)}
               </span>
             </Link>
           );

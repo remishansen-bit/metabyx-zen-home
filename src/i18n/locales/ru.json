@@ -1,0 +1,50 @@
+{
+  "common": {
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "back": "Назад",
+    "close": "Закрыть",
+    "loading": "Загрузка…",
+    "today": "Сегодня",
+    "language": "Язык"
+  },
+  "nav": {
+    "home": "Главная",
+    "checkin": "Чек-ин",
+    "guided": "С гидом",
+    "circles": "Круги",
+    "library": "Библиотека",
+    "profile": "Профиль"
+  },
+  "home": {
+    "greetingMorning": "Доброе утро",
+    "greetingAfternoon": "Добрый день",
+    "greetingEvening": "Добрый вечер",
+    "welcome": "Добро пожаловать",
+    "crisis": "Открыть режим кризиса"
+  },
+  "settings": {
+    "title": "Настройки",
+    "preferences": "Параметры и настройки",
+    "language": "Язык",
+    "languageDesc": "Язык интерфейса приложения",
+    "morningReminder": "Утреннее напоминание",
+    "eveningReminder": "Вечернее напоминание",
+    "theme": "Тема",
+    "aiModel": "Модель ИИ",
+    "notifications": "Уведомления",
+    "signOut": "Выйти",
+    "deleteAccount": "Удалить аккаунт"
+  },
+  "profile": {
+    "title": "Профиль",
+    "streak": "Серия",
+    "integrated": "Интегрировано",
+    "checkins": "Чек-ины",
+    "signedInAs": "вошёл как {{email}}"
+  },
+  "library": {
+    "title": "Библиотека",
+    "empty": "Пока ничего нет"
+  }
+}

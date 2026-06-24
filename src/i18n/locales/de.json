@@ -1,0 +1,50 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "back": "Zurück",
+    "close": "Schließen",
+    "loading": "Lädt…",
+    "today": "Heute",
+    "language": "Sprache"
+  },
+  "nav": {
+    "home": "Start",
+    "checkin": "Check-in",
+    "guided": "Geführt",
+    "circles": "Kreise",
+    "library": "Bibliothek",
+    "profile": "Profil"
+  },
+  "home": {
+    "greetingMorning": "Guten Morgen",
+    "greetingAfternoon": "Guten Tag",
+    "greetingEvening": "Guten Abend",
+    "welcome": "Willkommen",
+    "crisis": "Krisenmodus öffnen"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "preferences": "Einstellungen & Präferenzen",
+    "language": "Sprache",
+    "languageDesc": "Anzeigesprache der App",
+    "morningReminder": "Morgen-Erinnerung",
+    "eveningReminder": "Abend-Erinnerung",
+    "theme": "Design",
+    "aiModel": "KI-Modell",
+    "notifications": "Benachrichtigungen",
+    "signOut": "Abmelden",
+    "deleteAccount": "Konto löschen"
+  },
+  "profile": {
+    "title": "Profil",
+    "streak": "Serie",
+    "integrated": "Integriert",
+    "checkins": "Check-ins",
+    "signedInAs": "angemeldet als {{email}}"
+  },
+  "library": {
+    "title": "Bibliothek",
+    "empty": "Hier ist noch nichts"
+  }
+}

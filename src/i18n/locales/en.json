@@ -1,0 +1,50 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "close": "Close",
+    "loading": "Loading…",
+    "today": "Today",
+    "language": "Language"
+  },
+  "nav": {
+    "home": "Home",
+    "checkin": "Check-in",
+    "guided": "Guided",
+    "circles": "Circles",
+    "library": "Library",
+    "profile": "Profile"
+  },
+  "home": {
+    "greetingMorning": "Good morning",
+    "greetingAfternoon": "Good afternoon",
+    "greetingEvening": "Good evening",
+    "welcome": "Welcome",
+    "crisis": "Open crisis mode"
+  },
+  "settings": {
+    "title": "Settings",
+    "preferences": "Preferences & settings",
+    "language": "Language",
+    "languageDesc": "Display language for the app",
+    "morningReminder": "Morning reminder",
+    "eveningReminder": "Evening reminder",
+    "theme": "Theme",
+    "aiModel": "AI model",
+    "notifications": "Notifications",
+    "signOut": "Sign out",
+    "deleteAccount": "Delete account"
+  },
+  "profile": {
+    "title": "Profile",
+    "streak": "Streak",
+    "integrated": "Integrated",
+    "checkins": "Check-ins",
+    "signedInAs": "signed in as {{email}}"
+  },
+  "library": {
+    "title": "Library",
+    "empty": "Nothing here yet"
+  }
+}

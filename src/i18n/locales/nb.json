@@ -1,0 +1,50 @@
+{
+  "common": {
+    "save": "Lagre",
+    "cancel": "Avbryt",
+    "back": "Tilbake",
+    "close": "Lukk",
+    "loading": "Laster…",
+    "today": "I dag",
+    "language": "Språk"
+  },
+  "nav": {
+    "home": "Hjem",
+    "checkin": "Innsjekk",
+    "guided": "Veiledet",
+    "circles": "Sirkler",
+    "library": "Bibliotek",
+    "profile": "Profil"
+  },
+  "home": {
+    "greetingMorning": "God morgen",
+    "greetingAfternoon": "God ettermiddag",
+    "greetingEvening": "God kveld",
+    "welcome": "Velkommen",
+    "crisis": "Åpne krisemodus"
+  },
+  "settings": {
+    "title": "Innstillinger",
+    "preferences": "Preferanser og innstillinger",
+    "language": "Språk",
+    "languageDesc": "Visningsspråk for appen",
+    "morningReminder": "Morgenpåminnelse",
+    "eveningReminder": "Kveldspåminnelse",
+    "theme": "Tema",
+    "aiModel": "AI-modell",
+    "notifications": "Varsler",
+    "signOut": "Logg ut",
+    "deleteAccount": "Slett konto"
+  },
+  "profile": {
+    "title": "Profil",
+    "streak": "Rekke",
+    "integrated": "Integrert",
+    "checkins": "Innsjekkinger",
+    "signedInAs": "logget inn som {{email}}"
+  },
+  "library": {
+    "title": "Bibliotek",
+    "empty": "Ingenting her ennå"
+  }
+}

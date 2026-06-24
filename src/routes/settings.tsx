@@ -35,6 +35,7 @@ import { SubscriptionCard } from "@/components/subscription-card";
 import { SubscriptionHistory } from "@/components/SubscriptionHistory";
 import { PaywallAnalyticsCard } from "@/components/PaywallAnalyticsCard";
 import { ShareLinksCard } from "@/components/ShareLinksCard";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { useFeatureGate } from "@/hooks/useFeatureGate";
 
 export const Route = createFileRoute("/settings")({
@@ -307,6 +308,7 @@ function SettingsPage() {
       <SubscriptionHistory />
       <PaywallAnalyticsCard />
       <ShareLinksCard />
+      <LanguageSelector />
 
       <Section icon={Bell} title="Daily reminders">
         <Toggle
