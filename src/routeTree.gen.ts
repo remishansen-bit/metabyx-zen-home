@@ -16,6 +16,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MorningRouteImport } from './routes/morning'
 import { Route as LibraryRouteImport } from './routes/library'
+import { Route as LegalRouteImport } from './routes/legal'
 import { Route as EveningRouteImport } from './routes/evening'
 import { Route as CrisisRouteImport } from './routes/crisis'
 import { Route as CirclesRouteImport } from './routes/circles'
@@ -61,6 +62,11 @@ const MorningRoute = MorningRouteImport.update({
 const LibraryRoute = LibraryRouteImport.update({
   id: '/library',
   path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EveningRoute = EveningRouteImport.update({
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/circles': typeof CirclesRouteWithChildren
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
+  '/legal': typeof LegalRoute
   '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
   '/onboarding': typeof OnboardingRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/circles': typeof CirclesRouteWithChildren
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
+  '/legal': typeof LegalRoute
   '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
   '/onboarding': typeof OnboardingRoute
@@ -167,6 +175,7 @@ export interface FileRoutesById {
   '/circles': typeof CirclesRouteWithChildren
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
+  '/legal': typeof LegalRoute
   '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
   '/onboarding': typeof OnboardingRoute
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/circles'
     | '/crisis'
     | '/evening'
+    | '/legal'
     | '/library'
     | '/morning'
     | '/onboarding'
@@ -209,6 +219,7 @@ export interface FileRouteTypes {
     | '/circles'
     | '/crisis'
     | '/evening'
+    | '/legal'
     | '/library'
     | '/morning'
     | '/onboarding'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/circles'
     | '/crisis'
     | '/evening'
+    | '/legal'
     | '/library'
     | '/morning'
     | '/onboarding'
@@ -250,6 +262,7 @@ export interface RootRouteChildren {
   CirclesRoute: typeof CirclesRouteWithChildren
   CrisisRoute: typeof CrisisRoute
   EveningRoute: typeof EveningRoute
+  LegalRoute: typeof LegalRoute
   LibraryRoute: typeof LibraryRoute
   MorningRoute: typeof MorningRoute
   OnboardingRoute: typeof OnboardingRoute
@@ -313,6 +326,13 @@ declare module '@tanstack/react-router' {
       path: '/library'
       fullPath: '/library'
       preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/evening': {
@@ -412,6 +432,7 @@ const rootRouteChildren: RootRouteChildren = {
   CirclesRoute: CirclesRouteWithChildren,
   CrisisRoute: CrisisRoute,
   EveningRoute: EveningRoute,
+  LegalRoute: LegalRoute,
   LibraryRoute: LibraryRoute,
   MorningRoute: MorningRoute,
   OnboardingRoute: OnboardingRoute,
