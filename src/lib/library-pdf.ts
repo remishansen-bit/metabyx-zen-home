@@ -115,3 +115,91 @@ export function exportLibraryPdf(state: MetabyxState) {
 }
 
 export type { Branch };
+
+/**
+ * Compact PDF summary matching the categorized JSON export. Same categories,
+ * same counts, plus the user's archetype/baseline so the printout reads as a
+ * single human-readable snapshot of "everything Metabyx knows".
+ */
+export function exportSummaryPdf(
+  state: MetabyxState,
+  meta: {
+    archetype?: string | null;
+    baselineBmr?: number | null;
+    preferences?: Record<string, unknown>;
+  } = {},
+) {
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 48;
+  let y = margin;
+
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(20, 20, 30);
+  doc.setFontSize(22);
+  doc.text("METABYX · Summary", margin, y);
+  y += 24;
+  doc.setFontSize(10);
+  doc.setTextColor(120);
+  doc.text(`Exported ${new Date().toLocaleString()}`, margin, y);
+  y += 22;
+
+  doc.setFontSize(12);
+  doc.setTextColor(20, 20, 30);
+  doc.text("Account", margin, y);
+  y += 16;
+  doc.setFontSize(10);
+  doc.setTextColor(60);
+  const rows: [string, string][] = [
+    ["Archetype", meta.archetype ?? "—"],
+    ["Baseline BMR", meta.baselineBmr != null ? String(meta.baselineBmr) : "—"],
+    ["Current BMR", String(state.lastBmr)],
+  ];
+  for (const [k, v] of rows) {
+    doc.text(k, margin, y);
+    doc.text(v, pageW - margin, y, { align: "right" });
+    y += 14;
+  }
+  y += 8;
+
+  doc.setFontSize(12);
+  doc.setTextColor(20, 20, 30);
+  doc.text("Included data", margin, y);
+  y += 16;
+  const categories: [string, number][] = [
+    ["Branches & reflections", state.branches.length],
+    ["BMR history points", state.bmrHistory.length],
+    ["Emotion events", (state.emotionEvents ?? []).length],
+    ["Account preferences", meta.preferences ? Object.keys(meta.preferences).length : 0],
+  ];
+  doc.setFontSize(10);
+  doc.setTextColor(60);
+  for (const [label, count] of categories) {
+    doc.text(label, margin, y);
+    doc.text(`${count} ${count === 1 ? "item" : "items"}`, pageW - margin, y, {
+      align: "right",
+    });
+    y += 14;
+  }
+  y += 8;
+
+  if (meta.preferences) {
+    doc.setFontSize(12);
+    doc.setTextColor(20, 20, 30);
+    doc.text("Preferences", margin, y);
+    y += 16;
+    doc.setFontSize(10);
+    doc.setTextColor(60);
+    for (const [k, v] of Object.entries(meta.preferences)) {
+      const label = String(k);
+      const value = typeof v === "string" || typeof v === "number" || typeof v === "boolean"
+        ? String(v)
+        : JSON.stringify(v);
+      doc.text(label, margin, y);
+      doc.text(value.slice(0, 60), pageW - margin, y, { align: "right" });
+      y += 14;
+    }
+  }
+
+  doc.save(`metabyx-summary-${new Date().toISOString().slice(0, 10)}.pdf`);
+}

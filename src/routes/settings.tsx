@@ -27,6 +27,9 @@ import {
   nextFireAt,
   formatRelative,
 } from "@/lib/reminders";
+import { recordPrefChange } from "@/lib/learning";
+import { exportSummaryPdf } from "@/lib/library-pdf";
+import type { MetabyxState } from "@/lib/store";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings · METABYX" }] }),
@@ -109,6 +112,7 @@ function SettingsPage() {
   const update = async (next: Partial<Prefs>) => {
     const merged = { ...prefs, ...next };
     setPrefs(merged);
+    for (const [k, v] of Object.entries(next)) recordPrefChange(k, v);
     if (next.theme) applyTheme(next.theme as ThemeName);
     scheduleReminders(merged);
     if (!auth.user) return;
@@ -184,6 +188,29 @@ function SettingsPage() {
         setExportPreview(null);
       };
       setExportPreview({ categories, download });
+    } catch (err) {
+      notify.error("Couldn't export", err instanceof Error ? err.message : "Please try again.");
+    }
+  };
+
+  const downloadPdfSummary = () => {
+    try {
+      const raw = window.localStorage.getItem("metabyx:v1") ?? "{}";
+      const parsed = JSON.parse(raw) as Partial<MetabyxState>;
+      exportSummaryPdf(
+        {
+          branches: parsed.branches ?? [],
+          bmrHistory: parsed.bmrHistory ?? [],
+          emotionEvents: parsed.emotionEvents ?? [],
+          lastBmr: parsed.lastBmr ?? 0,
+        },
+        {
+          archetype: auth.profile?.archetype,
+          baselineBmr: auth.profile?.baseline_bmr,
+          preferences: prefs,
+        },
+      );
+      notify.saved("PDF ready", "Your summary was downloaded.");
     } catch (err) {
       notify.error("Couldn't export", err instanceof Error ? err.message : "Please try again.");
     }
@@ -369,6 +396,26 @@ function SettingsPage() {
             <p className="text-sm font-medium text-foreground">Export device data</p>
             <p className="text-xs text-muted-foreground">
               Preview what's included, then download a JSON snapshot
+            </p>
+          </div>
+        </button>
+        <button
+          onClick={downloadPdfSummary}
+          className="glass flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all hover:bg-[oklch(1_0_0/0.06)]"
+        >
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-xl"
+            style={{
+              background: "oklch(0.82 0.14 82 / 0.12)",
+              border: "1px solid oklch(0.82 0.14 82 / 0.22)",
+            }}
+          >
+            <Download className="h-4 w-4 text-gold" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">Download PDF summary</p>
+            <p className="text-xs text-muted-foreground">
+              Same categories as the JSON, printable
             </p>
           </div>
         </button>

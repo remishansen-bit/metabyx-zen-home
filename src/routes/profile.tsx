@@ -9,10 +9,14 @@ import {
   Flame,
   Target,
   Sparkles,
+  Users,
+  Brain,
 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { useMetabyx } from "@/lib/store";
 import { RequireAuth, useAuth } from "@/lib/auth";
+import { summarize } from "@/lib/learning";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -39,6 +43,13 @@ const DAYS = 14;
 function ProfilePage() {
   const state = useMetabyx();
   const auth = useAuth();
+  const [insights, setInsights] = useState(() => summarize());
+  useEffect(() => {
+    const sync = () => setInsights(summarize());
+    sync();
+    window.addEventListener("metabyx:learning:change", sync);
+    return () => window.removeEventListener("metabyx:learning:change", sync);
+  }, []);
   const displayName =
     auth.profile?.display_name ?? auth.user?.email?.split("@")[0] ?? "Friend";
   const archetype = auth.profile?.archetype;
@@ -297,11 +308,76 @@ function ProfilePage() {
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </Link>
+        <Link
+          to="/circles"
+          className="glass flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all hover:bg-[oklch(1_0_0/0.06)]"
+        >
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-xl"
+            style={{
+              background: "oklch(0.82 0.14 82 / 0.12)",
+              border: "1px solid oklch(0.82 0.14 82 / 0.22)",
+            }}
+          >
+            <Users className="h-4 w-4 text-gold" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">
+              Metabolic Circles
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Shared rooms · preview
+            </p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </Link>
         {auth.user?.email && (
           <p className="px-2 text-center text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
             signed in as {auth.user.email}
           </p>
         )}
+      </section>
+
+      {/* Personal learning */}
+      <section className="glass-strong rounded-3xl p-5">
+        <div className="flex items-center gap-2">
+          <Brain className="h-3.5 w-3.5 text-gold" />
+          <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+            What Metabyx has learned
+          </p>
+        </div>
+        {insights.totalPrefChanges === 0 && insights.remindersFired === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Nothing yet — your preferences and reminder patterns will start
+            shaping this section as you use the app.
+          </p>
+        ) : (
+          <ul className="mt-3 flex flex-col gap-2 text-sm text-foreground">
+            <li className="flex items-center justify-between">
+              <span className="text-muted-foreground">Preference changes</span>
+              <span className="text-gold">{insights.totalPrefChanges}</span>
+            </li>
+            {insights.mostTunedPref && (
+              <li className="flex items-center justify-between">
+                <span className="text-muted-foreground">Most tuned</span>
+                <span className="text-gold">{insights.mostTunedPref}</span>
+              </li>
+            )}
+            <li className="flex items-center justify-between">
+              <span className="text-muted-foreground">Preferred slot</span>
+              <span className="text-gold capitalize">{insights.preferredReminderSlot}</span>
+            </li>
+            <li className="flex items-center justify-between">
+              <span className="text-muted-foreground">Reminder consistency</span>
+              <span className="text-gold">
+                {Math.round(insights.consistency * 100)}%
+              </span>
+            </li>
+          </ul>
+        )}
+        <p className="mt-3 text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+          stored on this device only
+        </p>
       </section>
     </PhoneFrame>
   );
