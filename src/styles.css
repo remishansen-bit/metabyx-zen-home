@@ -298,11 +298,14 @@
   }
   .animate-rise,
   .animate-fade-in,
-  .animate-pulse {
+  .animate-pulse,
+  .animate-phase-in,
+  .skeleton-shimmer {
     animation: none !important;
     opacity: 1 !important;
     filter: none !important;
     transform: none !important;
+    background-image: none !important;
   }
 }
 
