@@ -1822,7 +1822,7 @@ export function VoiceRecorder({
                         {h.transcript}
                       </p>
                       <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] uppercase tracking-[0.15em] text-muted-foreground">
-                        <span>{formatHistoryDate(h.createdAt)}</span>
+                        <span>{formatHistoryDate(t, h.createdAt)}</span>
                         {h.emotion?.primaryEmotion && (
                           <span className="capitalize text-foreground/60">
                             · {h.emotion.primaryEmotion}
