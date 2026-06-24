@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { computeBmrStats, todaysAllBranches, todaysOpenBranches, useMetabyx } from "@/lib/store";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { EmptyState, ScreenTransition } from "@/components/feedback";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -18,24 +19,29 @@ export const Route = createFileRoute("/")({
   component: () => (<RequireAuth><Index /></RequireAuth>),
 });
 
-const greetingFor = (d: Date) => {
+const greetingKeyFor = (d: Date) => {
   const h = d.getHours();
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  return "Good evening";
+  if (h < 12) return "home.greetingMorning";
+  if (h < 18) return "home.greetingAfternoon";
+  return "home.greetingEvening";
 };
-
-const dateLabel = (d: Date) =>
-  d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
 
 function Index() {
   const state = useMetabyx();
+  const { t, i18n } = useTranslation();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const open = useMemo(() => todaysOpenBranches(state), [state]);
   const todays = useMemo(() => todaysAllBranches(state), [state]);
   const now = mounted ? new Date() : null;
-  const greeting = now ? greetingFor(now) : "Welcome";
+  const greeting = now ? t(greetingKeyFor(now)) : t("home.welcome");
+  const dateText = now
+    ? now.toLocaleDateString(i18n.language, {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+      })
+    : t("common.today");
   const bmr = state.lastBmr;
   const prev = state.bmrHistory.at(-2)?.value;
   const delta = typeof prev === "number" ? bmr - prev : 0;
@@ -49,7 +55,7 @@ function Index() {
           <header className="flex items-start justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-                {now ? dateLabel(now) : "Today"}
+                {dateText}
               </p>
               <h1
                 className="mt-2 text-3xl font-light leading-tight text-foreground"
@@ -63,7 +69,7 @@ function Index() {
             <div className="flex items-center gap-2">
               <Link
                 to="/crisis"
-                aria-label="Open crisis mode"
+                aria-label={t("home.crisis")}
                 className="glass flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95"
               >
                 <LifeBuoy className="h-4 w-4 text-foreground" />
