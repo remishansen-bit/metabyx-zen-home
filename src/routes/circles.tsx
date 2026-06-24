@@ -164,22 +164,23 @@ function CirclesPage() {
 
       {openCreate && (
         <SheetDialog
-          title="Create a circle"
-          intro="Name your room and choose how open it is. We'll generate a private join code you can share."
-          confirmLabel="Create circle"
+          title={t("circlesFull.createTitle")}
+          intro={t("circlesFull.createIntro")}
+          confirmLabel={t("circlesFull.createConfirm")}
+          cancelLabel={t("circlesFull.cancel")}
           onClose={() => {
             setOpenCreate(false);
             setNewName("");
           }}
           onConfirm={() => {
-            const c = createCircle(newName || "Untitled circle", newVisibility);
-            notify.saved("Circle created", `Share code ${c.joinCode} to invite people.`);
+            const c = createCircle(newName || t("circlesFull.untitled"), newVisibility);
+            notify.saved(t("circlesFull.createdTitle"), t("circlesFull.createdBody", { code: c.joinCode }));
             setOpenCreate(false);
             setNewName("");
           }}
         >
           <label htmlFor="circle-name-input" className="mt-3 block text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Circle name
+            {t("circlesFull.circleNameLabel")}
           </label>
           <input
             id="circle-name-input"
@@ -188,16 +189,16 @@ function CirclesPage() {
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                const c = createCircle(newName || "Untitled circle", newVisibility);
-                notify.saved("Circle created", `Share code ${c.joinCode} to invite people.`);
+                const c = createCircle(newName || t("circlesFull.untitled"), newVisibility);
+                notify.saved(t("circlesFull.createdTitle"), t("circlesFull.createdBody", { code: c.joinCode }));
                 setOpenCreate(false);
                 setNewName("");
               }
             }}
-            placeholder="e.g. Weekly Reset"
+            placeholder={t("circlesFull.circleNamePlaceholder")}
             autoFocus
             maxLength={60}
-            aria-label="Circle name"
+            aria-label={t("circlesFull.circleNameAria")}
             className="glass mt-1 w-full rounded-2xl bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-gold"
           />
           <div className="glass mt-2 flex rounded-2xl p-1 text-[11px] uppercase tracking-[0.2em]">
@@ -208,7 +209,7 @@ function CirclesPage() {
                 onClick={() => setNewVisibility(v)}
                 className={`flex-1 rounded-xl py-2 transition-all ${newVisibility === v ? "bg-[oklch(0.82_0.14_82/0.18)] text-gold" : "text-muted-foreground"}`}
               >
-                {v}
+                {v === "private" ? t("circlesFull.private") : t("circlesFull.public")}
               </button>
             ))}
           </div>
@@ -216,21 +217,19 @@ function CirclesPage() {
       )}
       {openJoin && (
         <SheetDialog
-          title="Join a circle"
-          intro="Paste the invite code a friend shared. You'll be added to their room."
-          confirmLabel="Join circle"
+          title={t("circlesFull.joinTitle")}
+          intro={t("circlesFull.joinIntro")}
+          confirmLabel={t("circlesFull.joinConfirm")}
+          cancelLabel={t("circlesFull.cancel")}
           onClose={() => {
             setOpenJoin(false);
             setJoinCode("");
             setJoinError(null);
           }}
           onConfirm={() => {
-            // Always go through joinByCode so the throttle counts even bad
-            // shapes — we don't want a "shape valid?" client check to let
-            // attackers probe codes without burning their rate limit.
             try {
               const c = joinByCode(joinCode);
-              notify.saved("Joined", `You're in ${c.name}.`);
+              notify.saved(t("circlesFull.joinedTitle"), t("circlesFull.joinedBody", { name: c.name }));
               setOpenJoin(false);
               setJoinCode("");
               setJoinError(null);
@@ -238,17 +237,14 @@ function CirclesPage() {
               const msg =
                 err instanceof Error
                   ? err.message
-                  : "That invite code isn't valid or has expired.";
+                  : t("circlesFull.invalidCode");
               setJoinError(msg);
-              notify.error(
-                "Couldn't join",
-                msg,
-              );
+              notify.error(t("circlesFull.couldNotJoin"), msg);
             }
           }}
         >
           <label htmlFor="join-code-input" className="mt-3 block text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Invite code
+            {t("circlesFull.inviteCodeLabel")}
           </label>
           <input
             id="join-code-input"
@@ -261,10 +257,9 @@ function CirclesPage() {
               if (e.key === "Enter") {
                 e.preventDefault();
                 (e.currentTarget.form ?? e.currentTarget).blur?.();
-                // Submit via the dialog's confirm path.
                 try {
                   const c = joinByCode(joinCode);
-                  notify.saved("Joined", `You're in ${c.name}.`);
+                  notify.saved(t("circlesFull.joinedTitle"), t("circlesFull.joinedBody", { name: c.name }));
                   setOpenJoin(false);
                   setJoinCode("");
                   setJoinError(null);
@@ -272,13 +267,13 @@ function CirclesPage() {
                   const msg =
                     err instanceof Error
                       ? err.message
-                      : "That invite code isn't valid or has expired.";
+                      : t("circlesFull.invalidCode");
                   setJoinError(msg);
-                  notify.error("Couldn't join", msg);
+                  notify.error(t("circlesFull.couldNotJoin"), msg);
                 }
               }
             }}
-            placeholder="ABCD-1234"
+            placeholder={t("circlesFull.inviteCodePlaceholder")}
             inputMode="text"
             autoCapitalize="characters"
             autoComplete="off"
@@ -286,11 +281,11 @@ function CirclesPage() {
             maxLength={9}
             aria-invalid={Boolean(joinError) || (joinCode.length > 0 && !shapeOk)}
             aria-describedby={`${joinHintId}${joinError || (joinCode.length > 0 && !shapeOk) ? ` ${joinErrorId}` : ""}`}
-            aria-label="Circle invite code, formatted four characters dash four characters"
+            aria-label={t("circlesFull.inviteCodeAria")}
             className="glass mt-1 w-full rounded-2xl bg-transparent px-4 py-3 text-sm uppercase tracking-[0.2em] text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-gold"
           />
           <p id={joinHintId} className="mt-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Format: 4 chars · dash · 4 chars · {attemptsLeft}/{JOIN_LIMIT} attempts left
+            {t("circlesFull.formatHint", { left: attemptsLeft, max: JOIN_LIMIT })}
           </p>
           {(joinError || (joinCode.length > 0 && !shapeOk)) && (
             <p
@@ -301,7 +296,7 @@ function CirclesPage() {
             >
               {joinError ?? (
                 <>
-                  Codes look like <span className="font-mono">ABCD-1234</span>.
+                  {t("circlesFull.codesLook")} <span className="font-mono">ABCD-1234</span>.
                 </>
               )}
             </p>
