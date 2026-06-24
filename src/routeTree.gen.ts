@@ -21,7 +21,6 @@ import { Route as CrisisRouteImport } from './routes/crisis'
 import { Route as CirclesRouteImport } from './routes/circles'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as CirclesIdRouteImport } from './routes/circles.$id'
 import { Route as BranchIdRouteImport } from './routes/branch.$id'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
@@ -87,11 +86,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CirclesIdRoute = CirclesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => CirclesRoute,
-} as any)
 const BranchIdRoute = BranchIdRouteImport.update({
   id: '/branch/$id',
   path: '/branch/$id',
@@ -117,7 +111,7 @@ const ApiPublicPaymentsWebhookRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/circles': typeof CirclesRouteWithChildren
+  '/circles': typeof CirclesRoute
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
   '/library': typeof LibraryRoute
@@ -130,13 +124,12 @@ export interface FileRoutesByFullPath {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
-  '/circles/$id': typeof CirclesIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/circles': typeof CirclesRouteWithChildren
+  '/circles': typeof CirclesRoute
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
   '/library': typeof LibraryRoute
@@ -149,14 +142,13 @@ export interface FileRoutesByTo {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
-  '/circles/$id': typeof CirclesIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/circles': typeof CirclesRouteWithChildren
+  '/circles': typeof CirclesRoute
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
   '/library': typeof LibraryRoute
@@ -169,7 +161,6 @@ export interface FileRoutesById {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
-  '/circles/$id': typeof CirclesIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
@@ -190,7 +181,6 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/api/tts'
     | '/branch/$id'
-    | '/circles/$id'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -209,7 +199,6 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/api/tts'
     | '/branch/$id'
-    | '/circles/$id'
     | '/api/public/payments/webhook'
   id:
     | '__root__'
@@ -228,14 +217,13 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/api/tts'
     | '/branch/$id'
-    | '/circles/$id'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
-  CirclesRoute: typeof CirclesRouteWithChildren
+  CirclesRoute: typeof CirclesRoute
   CrisisRoute: typeof CrisisRoute
   EveningRoute: typeof EveningRoute
   LibraryRoute: typeof LibraryRoute
@@ -337,13 +325,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/circles/$id': {
-      id: '/circles/$id'
-      path: '/$id'
-      fullPath: '/circles/$id'
-      preLoaderRoute: typeof CirclesIdRouteImport
-      parentRoute: typeof CirclesRoute
-    }
     '/branch/$id': {
       id: '/branch/$id'
       path: '/branch/$id'
@@ -375,21 +356,10 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface CirclesRouteChildren {
-  CirclesIdRoute: typeof CirclesIdRoute
-}
-
-const CirclesRouteChildren: CirclesRouteChildren = {
-  CirclesIdRoute: CirclesIdRoute,
-}
-
-const CirclesRouteWithChildren =
-  CirclesRoute._addFileChildren(CirclesRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
-  CirclesRoute: CirclesRouteWithChildren,
+  CirclesRoute: CirclesRoute,
   CrisisRoute: CrisisRoute,
   EveningRoute: EveningRoute,
   LibraryRoute: LibraryRoute,
