@@ -1,15 +1,19 @@
 import { useTranslation } from "react-i18next";
 import { Globe } from "lucide-react";
-import { LANGUAGES, applyDocumentDirection } from "@/i18n";
+import { LANGUAGES, applyDocumentDirection, type LanguageCode } from "@/i18n";
+import { persistLanguage } from "@/lib/auth";
 
 export function LanguageSelector({ compact = false }: { compact?: boolean }) {
   const { i18n, t } = useTranslation();
   const current = i18n.language?.split("-")[0] ?? "en";
 
   const onChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const next = e.target.value;
+    const next = e.target.value as LanguageCode;
     await i18n.changeLanguage(next);
     applyDocumentDirection(next);
+    // Save to profile so the choice follows the user across devices.
+    // Falls back silently for signed-out visitors (localStorage already has it).
+    void persistLanguage(next);
   };
 
   return (
