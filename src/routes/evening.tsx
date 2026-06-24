@@ -1,6 +1,7 @@
 import { RequireAuth } from "@/lib/auth";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, ArrowRight, Check, Moon } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { VoiceRecorder } from "@/components/voice-recorder";
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/evening")({
 });
 
 function EveningPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const state = useMetabyx();
   const todays = useMemo(() => todaysAllBranches(state), [state]);
@@ -50,17 +52,17 @@ function EveningPage() {
 
   return (
     <PhoneFrame>
-      <StatusBar title="EVENING" />
+      <StatusBar title={t("evening.title")} />
 
       <header className="flex items-center justify-between">
         <Link
           to="/"
           className="glass flex h-10 w-10 items-center justify-center rounded-full"
-          aria-label="Back"
+          aria-label={t("evening.back")}
         >
           <ArrowLeft className="h-4 w-4 text-foreground" />
         </Link>
-        <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Reflection</p>
+        <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t("evening.eyebrow")}</p>
         <div className="glass flex h-10 w-10 items-center justify-center rounded-full">
           <Moon className="h-4 w-4 text-gold" />
         </div>
@@ -71,10 +73,12 @@ function EveningPage() {
           className="text-2xl font-light leading-snug text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          Which branches have you <span className="text-gold italic">metabolized</span> today?
+          {t("evening.headlinePrefix")}{" "}
+          <span className="text-gold italic">{t("evening.headlineHighlight")}</span>{" "}
+          {t("evening.headlineSuffix")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {metabolizedCount} of {todays.length} integrated so far.
+          {t("evening.progress", { done: metabolizedCount, total: todays.length })}
         </p>
       </section>
 
@@ -92,15 +96,15 @@ function EveningPage() {
         {todays.length === 0 && (
           <EmptyState
             icon={<Moon className="h-5 w-5" />}
-            title="No branches today"
-            description="A morning check-in is a quiet place to notice what's open."
+            title={t("evening.emptyTitle")}
+            description={t("evening.emptyDesc")}
             action={
               <Link
                 to="/morning"
                 className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold"
                 style={{ background: "var(--gradient-gold)", color: "var(--primary-foreground)", boxShadow: "var(--shadow-gold)" }}
               >
-                Morning check-in
+                {t("evening.emptyAction")}
               </Link>
             }
           />
@@ -110,8 +114,8 @@ function EveningPage() {
           <EmptyState
             tone="gold"
             icon={<Check className="h-5 w-5" />}
-            title="Every branch metabolized"
-            description={`Rest well — your BMR closed at ${state.lastBmr}.`}
+            title={t("evening.allDoneTitle")}
+            description={t("evening.allDoneDesc", { bmr: state.lastBmr })}
           />
         )}
 
@@ -119,7 +123,7 @@ function EveningPage() {
         <section className="flex flex-col gap-4">
           <div className="glass rounded-2xl p-5">
             <p className="text-[10px] uppercase tracking-[0.3em] text-gold">
-              {active.category} · branch
+              {t("evening.branchEyebrow", { category: active.category })}
             </p>
             <p
               className="mt-2 text-xl font-light text-foreground"
@@ -132,7 +136,7 @@ function EveningPage() {
 
           <div className="glass rounded-2xl p-4">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">
-              How fully did you metabolize it?
+              {t("evening.howFully")}
             </p>
             <div className="mt-3 flex items-center justify-between">
               {[1, 2, 3, 4, 5].map((n) => {
@@ -158,19 +162,19 @@ function EveningPage() {
               })}
             </div>
             <div className="mt-2 flex justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
-              <span>Lingered</span>
-              <span>Integrated</span>
+              <span>{t("evening.lingered")}</span>
+              <span>{t("evening.integrated")}</span>
             </div>
           </div>
 
           <div className="glass rounded-2xl p-4">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">
-              A short reflection
+              {t("evening.shortReflection")}
             </p>
             <textarea
               value={reflection}
               onChange={(e) => setReflection(e.target.value)}
-              placeholder="One sentence on what you noticed…"
+              placeholder={t("evening.reflectionPlaceholder")}
               rows={3}
               className="mt-2 w-full resize-none bg-transparent text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
             />
@@ -180,15 +184,15 @@ function EveningPage() {
               appended to the reflection above. */}
           <details className="glass rounded-2xl px-4 py-3">
             <summary className="flex cursor-pointer items-center justify-between text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-              <span>Speak the reflection aloud</span>
-              <span className="text-gold">+ Voice</span>
+              <span>{t("evening.voiceSummary")}</span>
+              <span className="text-gold">{t("evening.voiceAdd")}</span>
             </summary>
             <div className="mt-3">
               <VoiceRecorder
                 language="en-US"
                 compact
                 showHistory={false}
-                ariaLabel="Record the evening reflection"
+                ariaLabel={t("evening.voiceAria")}
                 onTranscription={(t) =>
                   setReflection(reflection ? `${reflection.trim()} ${t}` : t)
                 }
@@ -201,7 +205,7 @@ function EveningPage() {
               onClick={handleSkip}
               className="glass flex-1 rounded-2xl px-4 py-3 text-sm text-foreground"
             >
-              Still open
+              {t("evening.stillOpen")}
             </button>
             <button
               onClick={handleMetabolize}
@@ -213,14 +217,14 @@ function EveningPage() {
               }}
             >
               <Check className="h-4 w-4" />
-              Metabolized
+              {t("evening.metabolized")}
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>
 
           {remainingOpen.length > 0 && (
             <p className="text-center text-[11px] uppercase tracking-wider text-muted-foreground">
-              {remainingOpen.length} branch{remainingOpen.length === 1 ? "" : "es"} to revisit
+              {t("evening.remaining", { count: remainingOpen.length })}
             </p>
           )}
         </section>
