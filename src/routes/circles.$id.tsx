@@ -71,6 +71,12 @@ function CircleDetailPage() {
   );
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
+  const [lastFailedDraft, setLastFailedDraft] = useState<{
+    body: string;
+    kind: CirclePost["kind"];
+    anonymous: boolean;
+    shareProgress: boolean;
+  } | null>(null);
 
   // Optimistic posts that haven't yet been persisted to the store. Real
   // post on success replaces the entry; on failure we remove it.
@@ -82,8 +88,20 @@ function CircleDetailPage() {
   const [page, setPage] = useState<{ posts: CirclePost[]; nextBefore: number | null }>(
     () => listPostsPage(id, { limit: PAGE_SIZE }),
   );
+  const [pageLoading, setPageLoading] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
   useEffect(() => {
-    const sync = () => setPage(listPostsPage(id, { limit }));
+    const sync = () => {
+      setPageLoading(true);
+      setPageError(null);
+      try {
+        setPage(listPostsPage(id, { limit }));
+      } catch (err) {
+        setPageError(err instanceof Error ? err.message : "Couldn't load posts.");
+      } finally {
+        setPageLoading(false);
+      }
+    };
     sync();
     window.addEventListener(POSTS_CHANGE_EVENT, sync);
     window.addEventListener("storage", sync);
@@ -151,6 +169,7 @@ function CircleDetailPage() {
   const submit = async () => {
     if (posting) return;
     setPostError(null);
+    setLastFailedDraft(null);
     const trimmed = body.trim();
     if (!trimmed) {
       setPostError("Add a few words first.");
@@ -191,7 +210,14 @@ function CircleDetailPage() {
         anonymous ? "Shared anonymously." : "Shared with the circle.",
       );
     } catch (err) {
-      setPostError(err instanceof Error ? err.message : "Couldn't post.");
+      const msg = err instanceof Error ? err.message : "Couldn't post.";
+      setPostError(msg);
+      setLastFailedDraft({
+        body: trimmed,
+        kind,
+        anonymous,
+        shareProgress: shareProgress && prefs.allowProgressVisibility,
+      });
       notify.error(
         "Couldn't post",
         err instanceof Error ? err.message : "Try again.",
@@ -202,6 +228,18 @@ function CircleDetailPage() {
       setPending((p) => p.filter((x) => x.id !== optimistic.id));
       setPosting(false);
     }
+  };
+
+  const retryFailedPost = () => {
+    if (!lastFailedDraft) return;
+    setBody(lastFailedDraft.body);
+    setKind(lastFailedDraft.kind);
+    setAnonymous(lastFailedDraft.anonymous);
+    setShareProgress(lastFailedDraft.shareProgress);
+    setLastFailedDraft(null);
+    setPostError(null);
+    // Submit on the next tick so state updates flush first.
+    setTimeout(() => void submit(), 0);
   };
 
   const onEdit = async (post: CirclePost, next: string) => {
@@ -295,8 +333,17 @@ function CircleDetailPage() {
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+              e.preventDefault();
+              void submit();
+            }
+          }}
           rows={3}
           maxLength={600}
+          aria-label={`Compose a ${kind} for ${circle.name}. Cmd or Ctrl plus Enter to post.`}
+          aria-invalid={Boolean(postError)}
+          aria-describedby={postError ? "composer-error" : undefined}
           placeholder={
             kind === "reflection"
               ? "A few words on what you're metabolising right now…"
@@ -304,7 +351,7 @@ function CircleDetailPage() {
                 ? "A BMR insight or pattern you've noticed…"
                 : "Something supportive for the circle…"
           }
-          className="glass mt-2 w-full resize-none rounded-2xl bg-transparent px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          className="glass mt-2 w-full resize-none rounded-2xl bg-transparent px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-gold"
         />
         <div className="mt-2 flex flex-col gap-1.5">
           <ToggleRow
@@ -332,9 +379,25 @@ function CircleDetailPage() {
           />
         </div>
         {postError && (
-          <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-rose-300">
-            <AlertCircle className="h-3 w-3" /> {postError}
-          </p>
+          <div
+            id="composer-error"
+            role="alert"
+            aria-live="polite"
+            className="mt-2 flex items-center justify-between gap-2"
+          >
+            <p className="inline-flex items-center gap-1.5 text-[11px] text-rose-300">
+              <AlertCircle className="h-3 w-3" /> {postError}
+            </p>
+            {lastFailedDraft && (
+              <button
+                type="button"
+                onClick={retryFailedPost}
+                className="glass inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-foreground hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-gold"
+              >
+                <Loader2 className="h-3 w-3" /> Retry
+              </button>
+            )}
+          </div>
         )}
         <div className="mt-3 flex items-center justify-between">
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -373,7 +436,21 @@ function CircleDetailPage() {
         <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
           Thread · {visiblePosts.length}
         </p>
-        {visiblePosts.length === 0 ? (
+        {pageError ? (
+          <div role="alert" className="glass rounded-2xl p-4 text-center text-xs text-rose-300">
+            <p className="inline-flex items-center gap-1.5">
+              <AlertCircle className="h-3 w-3" /> {pageError}
+            </p>
+            <button
+              onClick={() => setPage(listPostsPage(id, { limit }))}
+              className="glass mx-auto mt-2 inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-foreground"
+            >
+              <Loader2 className="h-3 w-3" /> Retry
+            </button>
+          </div>
+        ) : pageLoading && visiblePosts.length === 0 ? (
+          <PostSkeletons count={3} />
+        ) : visiblePosts.length === 0 ? (
           <div className="glass rounded-2xl p-4 text-center text-xs text-muted-foreground">
             No posts yet. Be the first to drop a reflection.
           </div>
@@ -390,14 +467,16 @@ function CircleDetailPage() {
             />
           ))
         )}
-        {page.nextBefore && (
+        {page.nextBefore && !pageLoading && (
           <button
             onClick={() => setLimit((l) => l + PAGE_SIZE)}
+            aria-label="Load older posts"
             className="glass mx-auto mt-1 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
           >
             <ChevronDown className="h-3 w-3" /> Load older
           </button>
         )}
+        {pageLoading && visiblePosts.length > 0 && <PostSkeletons count={2} />}
       </section>
     </PhoneFrame>
   );
