@@ -400,6 +400,26 @@ function SettingsPage() {
           </div>
         </button>
         <button
+          onClick={downloadPdfSummary}
+          className="glass flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all hover:bg-[oklch(1_0_0/0.06)]"
+        >
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-xl"
+            style={{
+              background: "oklch(0.82 0.14 82 / 0.12)",
+              border: "1px solid oklch(0.82 0.14 82 / 0.22)",
+            }}
+          >
+            <Download className="h-4 w-4 text-gold" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">Download PDF summary</p>
+            <p className="text-xs text-muted-foreground">
+              Same categories as the JSON, printable
+            </p>
+          </div>
+        </button>
+        <button
           onClick={() => setConfirmDelete(true)}
           className="glass flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all hover:bg-[oklch(1_0_0/0.06)]"
         >
