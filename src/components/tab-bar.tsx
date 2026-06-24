@@ -1,9 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Sunrise, Sparkles, BookHeart, User } from "lucide-react";
+import { Home, Sunrise, Sparkles, BookHeart, User, Users } from "lucide-react";
 import type { ComponentType } from "react";
 
 type Tab = {
-  to: "/" | "/morning" | "/session" | "/library" | "/profile";
+  to: "/" | "/morning" | "/session" | "/circles" | "/library" | "/profile";
   label: string;
   icon: ComponentType<{ className?: string }>;
   match: (p: string) => boolean;
@@ -18,6 +18,12 @@ const TABS: Tab[] = [
     match: (p) => p === "/morning" || p === "/evening",
   },
   { to: "/session", label: "Guided", icon: Sparkles, match: (p) => p === "/session" },
+  {
+    to: "/circles",
+    label: "Circles",
+    icon: Users,
+    match: (p) => p === "/circles" || p.startsWith("/circles/"),
+  },
   { to: "/library", label: "Library", icon: BookHeart, match: (p) => p === "/library" },
   { to: "/profile", label: "Profile", icon: User, match: (p) => p === "/profile" },
 ];
