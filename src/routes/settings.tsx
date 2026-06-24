@@ -676,6 +676,51 @@ function Section({
   );
 }
 
+function LegalRow({
+  to,
+  icon: Icon,
+  title,
+  subtitle,
+  danger,
+}: {
+  to: "/legal/privacy" | "/legal/terms" | "/legal/contact" | "/legal/data-deletion";
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle: string;
+  danger?: boolean;
+}) {
+  return (
+    <Link
+      to={to}
+      className="glass flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all hover:bg-[oklch(1_0_0/0.06)]"
+    >
+      <div
+        className="flex h-9 w-9 items-center justify-center rounded-xl"
+        style={{
+          background: danger
+            ? "oklch(0.62 0.2 27 / 0.12)"
+            : "oklch(0.82 0.14 82 / 0.12)",
+          border: danger
+            ? "1px solid oklch(0.62 0.2 27 / 0.28)"
+            : "1px solid oklch(0.82 0.14 82 / 0.22)",
+        }}
+      >
+        <Icon
+          className="h-4 w-4"
+          {...(danger
+            ? { style: { color: "oklch(0.78 0.16 27)" } }
+            : {})}
+        />
+      </div>
+      <div className="flex-1">
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground">{subtitle}</p>
+      </div>
+      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+    </Link>
+  );
+}
+
 function Toggle({
   icon: Icon,
   label,
