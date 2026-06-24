@@ -61,16 +61,28 @@ function SettingsPage() {
   const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">(
+    "default",
+  );
+
+  useEffect(() => {
+    setPermission(notificationPermission());
+  }, []);
 
   useEffect(() => {
     if (auth.profile?.preferences) {
-      setPrefs({ ...DEFAULTS, ...(auth.profile.preferences as Partial<Prefs>) });
+      const merged = { ...DEFAULTS, ...(auth.profile.preferences as Partial<Prefs>) };
+      setPrefs(merged);
+      applyTheme(merged.theme as ThemeName);
+      scheduleReminders(merged);
     }
   }, [auth.profile]);
 
   const update = async (next: Partial<Prefs>) => {
     const merged = { ...prefs, ...next };
     setPrefs(merged);
+    if (next.theme) applyTheme(next.theme as ThemeName);
+    scheduleReminders(merged);
     if (!auth.user) return;
     setSaving(true);
     try {
