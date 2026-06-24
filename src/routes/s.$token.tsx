@@ -13,7 +13,8 @@ import {
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import {
   fetchPublicShareLink,
-  formatExpiresIn,
+  useExpiresInLabel,
+  isShareLinkExpired,
   type PublicShareLink,
 } from "@/lib/share-links";
 
@@ -108,8 +109,33 @@ function ShareView() {
 
 function SharedCard({ link }: { link: PublicShareLink }) {
   const Icon = link.kind === "reflection" ? Sparkles : Lightbulb;
+  const expiresLabel = useExpiresInLabel(link.expires_at);
+  const expired = isShareLinkExpired({
+    expires_at: link.expires_at,
+    revoked_at: null,
+  });
+
+  if (expired) {
+    return (
+      <div
+        className="glass-strong rounded-3xl p-6 text-center"
+        data-testid="share-expired"
+      >
+        <p
+          className="text-lg font-light text-foreground"
+          style={{ fontFamily: "Fraunces, serif" }}
+        >
+          This link has expired.
+        </p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Ask the person who shared it for a fresh link.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <article className="glass-strong rounded-3xl p-5">
+    <article className="glass-strong rounded-3xl p-5" data-testid="share-active">
       <div className="flex items-center justify-between">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-[oklch(0.82_0.14_82/0.18)] px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-gold">
           <Icon className="h-3 w-3" /> {link.kind}
@@ -146,9 +172,12 @@ function SharedCard({ link }: { link: PublicShareLink }) {
         Shared from METABYX
       </p>
       {link.expires_at && (
-        <p className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.3em] text-muted-foreground/70">
+        <p
+          data-testid="share-expiry"
+          className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.3em] text-muted-foreground/70"
+        >
           <Clock className="h-3 w-3" />
-          {formatExpiresIn(link.expires_at) ?? `Expires ${new Date(link.expires_at).toLocaleDateString()}`}
+          {expiresLabel ?? `Expires ${new Date(link.expires_at).toLocaleDateString()}`}
         </p>
       )}
     </article>
