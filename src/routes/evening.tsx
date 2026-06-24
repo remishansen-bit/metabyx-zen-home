@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Moon } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { VoiceRecorder } from "@/components/voice-recorder";
+import { EmptyState, ScreenTransition } from "@/components/feedback";
 import { metabolizeBranch, todaysAllBranches, useMetabyx, type Branch } from "@/lib/store";
 
 export const Route = createFileRoute("/evening")({
@@ -77,36 +78,44 @@ function EveningPage() {
         </p>
       </section>
 
-      {todays.length === 0 && (
-        <div className="glass rounded-2xl p-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            No branches planted today. Begin with a morning check-in to notice what's open.
-          </p>
-          <Link
-            to="/morning"
-            className="mt-4 inline-block rounded-full px-4 py-2 text-xs font-semibold"
-            style={{ background: "var(--gradient-gold)", color: "var(--primary-foreground)" }}
-          >
-            Morning check-in
-          </Link>
-        </div>
-      )}
+      <ScreenTransition
+        phase={
+          todays.length === 0
+            ? "fresh"
+            : open.length === 0
+              ? "done"
+              : active
+                ? `branch-${active.id}`
+                : "idle"
+        }
+      >
+        {todays.length === 0 && (
+          <EmptyState
+            icon={<Moon className="h-5 w-5" />}
+            title="No branches today"
+            description="A morning check-in is a quiet place to notice what's open."
+            action={
+              <Link
+                to="/morning"
+                className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold"
+                style={{ background: "var(--gradient-gold)", color: "var(--primary-foreground)", boxShadow: "var(--shadow-gold)" }}
+              >
+                Morning check-in
+              </Link>
+            }
+          />
+        )}
 
-      {todays.length > 0 && open.length === 0 && (
-        <div className="glass rounded-2xl p-6 text-center">
-          <p
-            className="text-base text-foreground"
-            style={{ fontFamily: "Fraunces, serif" }}
-          >
-            Every branch metabolized. Rest well.
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Your BMR closed at {state.lastBmr}.
-          </p>
-        </div>
-      )}
+        {todays.length > 0 && open.length === 0 && (
+          <EmptyState
+            tone="gold"
+            icon={<Check className="h-5 w-5" />}
+            title="Every branch metabolized"
+            description={`Rest well — your BMR closed at ${state.lastBmr}.`}
+          />
+        )}
 
-      {active && (
+        {active && (
         <section className="flex flex-col gap-4">
           <div className="glass rounded-2xl p-5">
             <p className="text-[10px] uppercase tracking-[0.3em] text-gold">
@@ -215,7 +224,8 @@ function EveningPage() {
             </p>
           )}
         </section>
-      )}
+        )}
+      </ScreenTransition>
 
     </PhoneFrame>
   );

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { RequireAuth } from "@/lib/auth";
+import { EmptyState } from "@/components/feedback";
 import { notify } from "@/lib/feedback";
 import {
   createCircle,
@@ -124,9 +125,11 @@ function CirclesPage() {
           Your circles
         </p>
         {circles.length === 0 ? (
-          <div className="glass rounded-2xl p-4 text-center text-xs text-muted-foreground">
-            You're not in any circles yet. Create one or join with a code.
-          </div>
+          <EmptyState
+            icon={<Users className="h-5 w-5" />}
+            title="No circles yet"
+            description="Create one to gather a few people, or paste an invite code to join an existing room."
+          />
         ) : (
           circles.map((c) => (
             <CircleRow

@@ -74,6 +74,23 @@ const SEED_PAYLOAD = {
   lastBmr: 74,
 };
 
+/** Empty-state seed — wipes branches/history so empty UI shows up for the
+ *  Library / Home / Evening / Profile screens. */
+const EMPTY_SEED = {
+  exportedAt: new Date().toISOString(),
+  version: 1,
+  app: "metabyx",
+  branches: [],
+  bmrHistory: [],
+  lastBmr: 0,
+};
+
+/** Variants we capture per device. Order matters: contact-sheet reads it. */
+const VARIANTS = [
+  { name: "populated", seed: SEED_PAYLOAD, label: "Populated" },
+  { name: "empty",     seed: EMPTY_SEED,   label: "Empty states" },
+];
+
 async function ensureDir(p) { await mkdir(p, { recursive: true }); }
 
 async function main() {
@@ -84,47 +101,45 @@ async function main() {
 
   try {
     for (const device of DEVICES) {
-      const deviceDir = join(OUT_ROOT, device.name);
-      await ensureDir(deviceDir);
-      const context = await browser.newContext({
-        viewport: { width: device.width, height: device.height },
-        deviceScaleFactor: 3,
-        isMobile: true,
-        hasTouch: true,
-        colorScheme: "dark",
-        reducedMotion: "reduce", // calm: no shimmer / page-rise capture artifacts
-      });
-      // Seed the local Metabyx store before any route loads so the captures
-      // render with realistic content rather than empty states.
-      await context.addInitScript((seed) => {
-        try {
-          window.localStorage.setItem("metabyx:v1", JSON.stringify(seed));
-        } catch { /* private mode etc — ignore */ }
-      }, {
-        branches: SEED_PAYLOAD.branches,
-        bmrHistory: SEED_PAYLOAD.bmrHistory,
-        lastBmr: SEED_PAYLOAD.lastBmr,
-      });
-      const page = await context.newPage();
-      // Land on the origin first so localStorage writes target the right host.
-      await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
-      if (SUPABASE_STORAGE_KEY && SUPABASE_SESSION_JSON) {
-        await page.evaluate(
-          ({ key, value }) => { try { window.localStorage.setItem(key, value); } catch { /* ignore */ } },
-          { key: SUPABASE_STORAGE_KEY, value: SUPABASE_SESSION_JSON },
-        );
+      for (const variant of VARIANTS) {
+        const deviceDir = join(OUT_ROOT, device.name, variant.name);
+        await ensureDir(deviceDir);
+        const context = await browser.newContext({
+          viewport: { width: device.width, height: device.height },
+          deviceScaleFactor: 3,
+          isMobile: true,
+          hasTouch: true,
+          colorScheme: "dark",
+          reducedMotion: "reduce", // calm: no shimmer / page-rise capture artifacts
+        });
+        await context.addInitScript((seed) => {
+          try {
+            window.localStorage.setItem("metabyx:v1", JSON.stringify(seed));
+          } catch { /* private mode etc — ignore */ }
+        }, {
+          branches: variant.seed.branches,
+          bmrHistory: variant.seed.bmrHistory,
+          lastBmr: variant.seed.lastBmr,
+        });
+        const page = await context.newPage();
+        await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
+        if (SUPABASE_STORAGE_KEY && SUPABASE_SESSION_JSON) {
+          await page.evaluate(
+            ({ key, value }) => { try { window.localStorage.setItem(key, value); } catch { /* ignore */ } },
+            { key: SUPABASE_STORAGE_KEY, value: SUPABASE_SESSION_JSON },
+          );
+        }
+        for (const shot of SHOTS) {
+          const url = new URL(shot.path, BASE_URL).toString();
+          process.stdout.write(`  ${device.name}/${variant.name.padEnd(9)}  ${shot.slug.padEnd(14)} ${url}\n`);
+          await page.goto(url, { waitUntil: "networkidle" });
+          try { await page.waitForSelector(shot.wait, { timeout: 3000 }); } catch { /* best-effort */ }
+          await page.waitForTimeout(350);
+          const out = join(deviceDir, `${shot.slug}.png`);
+          await page.screenshot({ path: out, fullPage: false });
+        }
+        await context.close();
       }
-      for (const shot of SHOTS) {
-        const url = new URL(shot.path, BASE_URL).toString();
-        process.stdout.write(`  ${device.name}  ${shot.slug.padEnd(14)} ${url}\n`);
-        await page.goto(url, { waitUntil: "networkidle" });
-        try { await page.waitForSelector(shot.wait, { timeout: 3000 }); } catch { /* best-effort */ }
-        // Settle: one extra frame so any animate-rise has finished.
-        await page.waitForTimeout(350);
-        const out = join(deviceDir, `${shot.slug}.png`);
-        await page.screenshot({ path: out, fullPage: false });
-      }
-      await context.close();
     }
     await writeContactSheet();
     console.log(`\nDone → ${OUT_ROOT}`);
@@ -136,10 +151,13 @@ async function main() {
 
 async function writeContactSheet() {
   const cards = DEVICES.map((d) => {
-    const tiles = SHOTS.map(
-      (s) => `<figure><img src="./${d.name}/${s.slug}.png" alt="${s.slug}"><figcaption>${s.slug}</figcaption></figure>`,
-    ).join("\n");
-    return `<section><h2>${d.name} · ${d.width}×${d.height}@3x</h2><div class="grid">${tiles}</div></section>`;
+    const blocks = VARIANTS.map((v) => {
+      const tiles = SHOTS.map(
+        (s) => `<figure><img src="./${d.name}/${v.name}/${s.slug}.png" alt="${s.slug} ${v.name}"><figcaption>${s.slug}</figcaption></figure>`,
+      ).join("\n");
+      return `<h3>${v.label}</h3><div class="grid">${tiles}</div>`;
+    }).join("\n");
+    return `<section><h2>${d.name} · ${d.width}×${d.height}@3x</h2>${blocks}</section>`;
   }).join("\n");
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>METABYX · App Store screenshots</title>
 <style>
@@ -147,6 +165,7 @@ async function writeContactSheet() {
   body { margin: 0; padding: 32px; background: #0c0a1a; color: #f4ecd8; font: 14px/1.5 -apple-system, system-ui, sans-serif; }
   h1 { font-weight: 300; letter-spacing: .02em; margin: 0 0 24px; }
   h2 { font-weight: 400; opacity: .8; margin: 32px 0 12px; }
+  h3 { font-weight: 400; opacity: .6; margin: 16px 0 8px; font-size: 12px; letter-spacing: .15em; text-transform: uppercase; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
   figure { margin: 0; background: #15102c; border: 1px solid #ffffff14; border-radius: 16px; overflow: hidden; }
   img { width: 100%; height: auto; display: block; }

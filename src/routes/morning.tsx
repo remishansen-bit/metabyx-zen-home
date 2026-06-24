@@ -5,6 +5,7 @@ import { ArrowLeft, Mic, MicOff, Sparkles, Check, Loader2 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { useVoiceInput } from "@/lib/use-voice-input";
 import { VoiceRecorder } from "@/components/voice-recorder";
+import { ScreenTransition } from "@/components/feedback";
 import { refineBranches } from "@/lib/checkin.functions";
 import { addBranches } from "@/lib/store";
 import { useFeatureGate } from "@/hooks/useFeatureGate";
@@ -92,8 +93,9 @@ function MorningPage() {
         </p>
       </section>
 
-      {!result && (
-        <>
+      <ScreenTransition phase={loading ? "loading" : result ? "result" : "input"}>
+        {!result && (
+        <div className="flex flex-col gap-[var(--spacing-section)]">
           <div className="glass rounded-2xl p-4">
             <textarea
               value={text}
@@ -177,10 +179,10 @@ function MorningPage() {
               </div>
             </div>
           </button>
-        </>
-      )}
+        </div>
+        )}
 
-      {result && (
+        {result && (
         <section className="flex flex-col gap-4">
           <div className="glass rounded-2xl p-4">
             <p className="text-[10px] uppercase tracking-[0.3em] text-gold">Reflection</p>
@@ -252,7 +254,8 @@ function MorningPage() {
             Start over
           </button>
         </section>
-      )}
+        )}
+      </ScreenTransition>
 
       {gate.paywall}
     </PhoneFrame>
