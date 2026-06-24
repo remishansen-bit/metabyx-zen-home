@@ -14,13 +14,18 @@ export default defineConfig({
   expect: { timeout: 5_000 },
   fullyParallel: true,
   retries: 0,
-  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : [["list"]],
+  reporter: process.env.CI
+    ? [["list"], ["html", { open: "never" }], ["json", { outputFile: "test-results/results.json" }]]
+    : [["list"]],
+  outputDir: "test-results",
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:8080",
     viewport: { width: 402, height: 874 }, // iPhone 16 Pro
+    // Always retain traces, screenshots, and videos on failure so the CI
+    // artifact bundle is immediately diagnosable for queued-replay / a11y issues.
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
-    video: process.env.CI ? "retain-on-failure" : "off",
+    video: "retain-on-failure",
   },
   projects: [
     {
