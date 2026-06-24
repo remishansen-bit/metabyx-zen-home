@@ -94,12 +94,17 @@ async function main() {
         colorScheme: "dark",
         reducedMotion: "reduce", // calm: no shimmer / page-rise capture artifacts
       });
-      // Seed the local store before any route loads.
+      // Seed the local Metabyx store before any route loads so the captures
+      // render with realistic content rather than empty states.
       await context.addInitScript((seed) => {
         try {
-          window.localStorage.setItem("metabyx:store", JSON.stringify(seed));
+          window.localStorage.setItem("metabyx:v1", JSON.stringify(seed));
         } catch { /* private mode etc — ignore */ }
-      }, SEED_PAYLOAD);
+      }, {
+        branches: SEED_PAYLOAD.branches,
+        bmrHistory: SEED_PAYLOAD.bmrHistory,
+        lastBmr: SEED_PAYLOAD.lastBmr,
+      });
       const page = await context.newPage();
       // Land on the origin first so localStorage writes target the right host.
       await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
