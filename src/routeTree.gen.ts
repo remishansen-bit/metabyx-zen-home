@@ -21,6 +21,7 @@ import { Route as CrisisRouteImport } from './routes/crisis'
 import { Route as CirclesRouteImport } from './routes/circles'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as CirclesIdRouteImport } from './routes/circles.$id'
 import { Route as BranchIdRouteImport } from './routes/branch.$id'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
@@ -87,6 +88,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const STokenRoute = STokenRouteImport.update({
+  id: '/s/$token',
+  path: '/s/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CirclesIdRoute = CirclesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
   '/circles/$id': typeof CirclesIdRoute
+  '/s/$token': typeof STokenRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -150,6 +157,7 @@ export interface FileRoutesByTo {
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
   '/circles/$id': typeof CirclesIdRoute
+  '/s/$token': typeof STokenRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
   '/circles/$id': typeof CirclesIdRoute
+  '/s/$token': typeof STokenRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/api/tts'
     | '/branch/$id'
     | '/circles/$id'
+    | '/s/$token'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/api/tts'
     | '/branch/$id'
     | '/circles/$id'
+    | '/s/$token'
     | '/api/public/payments/webhook'
   id:
     | '__root__'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/api/tts'
     | '/branch/$id'
     | '/circles/$id'
+    | '/s/$token'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -248,6 +260,7 @@ export interface RootRouteChildren {
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   ApiTtsRoute: typeof ApiTtsRoute
   BranchIdRoute: typeof BranchIdRoute
+  STokenRoute: typeof STokenRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
@@ -337,6 +350,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/s/$token': {
+      id: '/s/$token'
+      path: '/s/$token'
+      fullPath: '/s/$token'
+      preLoaderRoute: typeof STokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/circles/$id': {
       id: '/circles/$id'
       path: '/$id'
@@ -402,6 +422,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTranscribeRoute: ApiTranscribeRoute,
   ApiTtsRoute: ApiTtsRoute,
   BranchIdRoute: BranchIdRoute,
+  STokenRoute: STokenRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport

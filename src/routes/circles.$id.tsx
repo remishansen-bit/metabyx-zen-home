@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ChevronLeft,
   Send,
@@ -13,6 +13,11 @@ import {
   MessageCircle,
   Activity,
   Flame,
+  Loader2,
+  Pencil,
+  Trash2,
+  AlertCircle,
+  ChevronDown,
 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { RequireAuth, useAuth } from "@/lib/auth";
@@ -21,7 +26,8 @@ import { useCircles } from "@/lib/circles";
 import {
   createPost,
   deletePost,
-  usePosts,
+  editPost,
+  listPostsPage,
   useSharePrefs,
   type CirclePost,
 } from "@/lib/circle-thread";
@@ -39,6 +45,9 @@ export const Route = createFileRoute("/circles/$id")({
   ),
 });
 
+const PAGE_SIZE = 8;
+const POSTS_CHANGE_EVENT = "metabyx:circle:posts:change";
+
 function CircleDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
@@ -47,18 +56,42 @@ function CircleDetailPage() {
 
   const circles = useCircles();
   const circle = circles.find((c) => c.id === id);
-  const posts = usePosts(id);
   const [prefs, setPrefs] = useSharePrefs();
   const auth = useAuth();
   const state = useMetabyx();
 
   const displayName = auth.profile?.display_name ?? "Friend";
+  const authorId = auth.user?.id ?? "";
+
   const [body, setBody] = useState("");
   const [kind, setKind] = useState<CirclePost["kind"]>("reflection");
   const [anonymous, setAnonymous] = useState(prefs.defaultAnonymous);
   const [shareProgress, setShareProgress] = useState(
     prefs.defaultShareProgress && prefs.allowProgressVisibility,
   );
+  const [posting, setPosting] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
+
+  // Optimistic posts that haven't yet been persisted to the store. Real
+  // post on success replaces the entry; on failure we remove it.
+  const [pending, setPending] = useState<CirclePost[]>([]);
+  const [busyIds, setBusyIds] = useState<Record<string, "edit" | "delete">>({});
+
+  // Pagination cursor.
+  const [limit, setLimit] = useState(PAGE_SIZE);
+  const [page, setPage] = useState<{ posts: CirclePost[]; nextBefore: number | null }>(
+    () => listPostsPage(id, { limit: PAGE_SIZE }),
+  );
+  useEffect(() => {
+    const sync = () => setPage(listPostsPage(id, { limit }));
+    sync();
+    window.addEventListener(POSTS_CHANGE_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(POSTS_CHANGE_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [id, limit]);
 
   const progress = useMemo(
     () => ({
@@ -115,23 +148,105 @@ function CircleDetailPage() {
 
   const Visibility = circle.visibility === "private" ? Lock : Globe;
 
-  const submit = () => {
+  const submit = async () => {
+    if (posting) return;
+    setPostError(null);
+    const trimmed = body.trim();
+    if (!trimmed) {
+      setPostError("Add a few words first.");
+      return;
+    }
+    const optimistic: CirclePost = {
+      id: `pending-${Date.now()}`,
+      circleId: circle.id,
+      body: trimmed,
+      kind,
+      authorId: authorId || "local",
+      authorName: anonymous ? "Anonymous" : displayName,
+      anonymous,
+      shareProgress: shareProgress && prefs.allowProgressVisibility,
+      progress:
+        shareProgress && prefs.allowProgressVisibility ? progress : undefined,
+      createdAt: Date.now(),
+    };
+    setPending((p) => [optimistic, ...p]);
+    setPosting(true);
     try {
+      // Tiny await so loading state is visible even with a synchronous store.
+      await new Promise((r) => setTimeout(r, 60));
       createPost({
         circleId: circle.id,
-        body,
+        body: trimmed,
         kind,
         authorName: displayName,
+        authorId: authorId || "local",
         anonymous,
         shareProgress: shareProgress && prefs.allowProgressVisibility,
-        progress: shareProgress && prefs.allowProgressVisibility ? progress : undefined,
+        progress:
+          shareProgress && prefs.allowProgressVisibility ? progress : undefined,
       });
       setBody("");
-      notify.saved("Posted", anonymous ? "Shared anonymously." : "Shared with the circle.");
+      notify.saved(
+        "Posted",
+        anonymous ? "Shared anonymously." : "Shared with the circle.",
+      );
     } catch (err) {
-      notify.error("Couldn't post", err instanceof Error ? err.message : "Try again.");
+      setPostError(err instanceof Error ? err.message : "Couldn't post.");
+      notify.error(
+        "Couldn't post",
+        err instanceof Error ? err.message : "Try again.",
+      );
+    } finally {
+      // Drop the optimistic placeholder either way — the store-backed list
+      // will include the new post if the write succeeded.
+      setPending((p) => p.filter((x) => x.id !== optimistic.id));
+      setPosting(false);
     }
   };
+
+  const onEdit = async (post: CirclePost, next: string) => {
+    setBusyIds((s) => ({ ...s, [post.id]: "edit" }));
+    try {
+      await new Promise((r) => setTimeout(r, 50));
+      editPost(post.id, authorId || "local", next);
+      notify.saved("Updated", "Post edited.");
+    } catch (err) {
+      notify.error(
+        "Couldn't edit",
+        err instanceof Error ? err.message : "Try again.",
+      );
+      throw err;
+    } finally {
+      setBusyIds((s) => {
+        const { [post.id]: _drop, ...rest } = s;
+        return rest;
+      });
+    }
+  };
+
+  const onDelete = async (post: CirclePost) => {
+    setBusyIds((s) => ({ ...s, [post.id]: "delete" }));
+    try {
+      await new Promise((r) => setTimeout(r, 50));
+      deletePost(post.id, authorId || "local");
+      notify.info("Deleted", "Post removed.");
+    } catch (err) {
+      notify.error(
+        "Couldn't delete",
+        err instanceof Error ? err.message : "Try again.",
+      );
+    } finally {
+      setBusyIds((s) => {
+        const { [post.id]: _drop, ...rest } = s;
+        return rest;
+      });
+    }
+  };
+
+  const visiblePosts = [
+    ...pending.filter((p) => p.circleId === circle.id),
+    ...page.posts.filter((p) => !pending.some((x) => x.id === p.id)),
+  ];
 
   return (
     <PhoneFrame>
@@ -216,17 +331,27 @@ function CircleDetailPage() {
             }}
           />
         </div>
+        {postError && (
+          <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-rose-300">
+            <AlertCircle className="h-3 w-3" /> {postError}
+          </p>
+        )}
         <div className="mt-3 flex items-center justify-between">
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
             {body.length}/600
           </p>
           <button
             onClick={submit}
-            disabled={!body.trim()}
+            disabled={posting || !body.trim()}
             className="inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium text-background disabled:opacity-40"
             style={{ background: "var(--gradient-gold)" }}
           >
-            <Send className="h-3.5 w-3.5" /> Post
+            {posting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Send className="h-3.5 w-3.5" />
+            )}
+            {posting ? "Posting…" : "Post"}
           </button>
         </div>
       </section>
@@ -246,21 +371,43 @@ function CircleDetailPage() {
       {/* Thread */}
       <section className="flex flex-col gap-2 pb-4">
         <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-          Thread · {posts.length}
+          Thread · {visiblePosts.length}
         </p>
-        {posts.length === 0 ? (
+        {visiblePosts.length === 0 ? (
           <div className="glass rounded-2xl p-4 text-center text-xs text-muted-foreground">
             No posts yet. Be the first to drop a reflection.
           </div>
         ) : (
-          posts.map((p) => <PostCard key={p.id} post={p} onDelete={() => deletePost(p.id)} />)
+          visiblePosts.map((p) => (
+            <PostCard
+              key={p.id}
+              post={p}
+              canManage={p.authorId === (authorId || "local")}
+              busy={busyIds[p.id] ?? null}
+              pending={p.id.startsWith("pending-")}
+              onEdit={(next) => onEdit(p, next)}
+              onDelete={() => onDelete(p)}
+            />
+          ))
+        )}
+        {page.nextBefore && (
+          <button
+            onClick={() => setLimit((l) => l + PAGE_SIZE)}
+            className="glass mx-auto mt-1 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
+          >
+            <ChevronDown className="h-3 w-3" /> Load older
+          </button>
         )}
       </section>
     </PhoneFrame>
   );
 }
 
-const KINDS: { value: CirclePost["kind"]; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+const KINDS: {
+  value: CirclePost["kind"];
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
   { value: "reflection", label: "Reflect", icon: Sparkles },
   { value: "insight", label: "Insight", icon: Lightbulb },
   { value: "support", label: "Support", icon: Heart },
@@ -301,11 +448,41 @@ function ToggleRow({
   );
 }
 
-function PostCard({ post, onDelete }: { post: CirclePost; onDelete: () => void }) {
+function PostCard({
+  post,
+  canManage,
+  busy,
+  pending,
+  onEdit,
+  onDelete,
+}: {
+  post: CirclePost;
+  canManage: boolean;
+  busy: "edit" | "delete" | null;
+  pending: boolean;
+  onEdit: (next: string) => Promise<void>;
+  onDelete: () => void;
+}) {
   const Icon =
     post.kind === "reflection" ? Sparkles : post.kind === "insight" ? Lightbulb : Heart;
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(post.body);
+  const [error, setError] = useState<string | null>(null);
+
+  const saveEdit = async () => {
+    setError(null);
+    try {
+      await onEdit(draft);
+      setEditing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't save.");
+    }
+  };
+
   return (
-    <article className="glass rounded-2xl p-4">
+    <article
+      className={`glass rounded-2xl p-4 transition-opacity ${pending ? "opacity-60" : ""}`}
+    >
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[oklch(0.82_0.14_82/0.12)]">
@@ -314,22 +491,84 @@ function PostCard({ post, onDelete }: { post: CirclePost; onDelete: () => void }
           <div>
             <p className="text-xs font-medium text-foreground">{post.authorName}</p>
             <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
-              {post.kind} · {relative(post.createdAt)}
+              {post.kind} ·{" "}
+              {pending
+                ? "sending…"
+                : `${relative(post.createdAt)}${post.editedAt ? " · edited" : ""}`}
             </p>
           </div>
         </div>
-        <button
-          onClick={onDelete}
-          aria-label="Delete post"
-          className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
-        >
-          delete
-        </button>
+        {canManage && !pending && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => {
+                setDraft(post.body);
+                setEditing((v) => !v);
+                setError(null);
+              }}
+              aria-label="Edit post"
+              disabled={busy !== null}
+              className="rounded-md px-1.5 py-1 text-muted-foreground hover:text-foreground disabled:opacity-40"
+            >
+              {busy === "edit" ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Pencil className="h-3 w-3" />
+              )}
+            </button>
+            <button
+              onClick={onDelete}
+              aria-label="Delete post"
+              disabled={busy !== null}
+              className="rounded-md px-1.5 py-1 text-muted-foreground hover:text-rose-300 disabled:opacity-40"
+            >
+              {busy === "delete" ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Trash2 className="h-3 w-3" />
+              )}
+            </button>
+          </div>
+        )}
       </header>
-      <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-        {post.body}
-      </p>
-      {post.shareProgress && post.progress && (
+      {editing ? (
+        <div className="mt-2">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={3}
+            maxLength={600}
+            className="glass w-full resize-none rounded-2xl bg-transparent px-3 py-2.5 text-sm text-foreground outline-none"
+          />
+          {error && (
+            <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-rose-300">
+              <AlertCircle className="h-3 w-3" /> {error}
+            </p>
+          )}
+          <div className="mt-2 flex justify-end gap-2">
+            <button
+              onClick={() => setEditing(false)}
+              className="glass rounded-xl px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={saveEdit}
+              disabled={busy !== null}
+              className="inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-background"
+              style={{ background: "var(--gradient-gold)" }}
+            >
+              {busy === "edit" && <Loader2 className="h-3 w-3 animate-spin" />}
+              Save
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+          {post.body}
+        </p>
+      )}
+      {post.shareProgress && post.progress && !editing && (
         <div className="mt-3 flex flex-wrap gap-2">
           {typeof post.progress.bmr === "number" && (
             <Chip icon={Activity} label={`BMR ${post.progress.bmr}`} />

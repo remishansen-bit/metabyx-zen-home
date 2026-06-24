@@ -11,6 +11,7 @@ import {
   X,
   Copy,
   MessageCircle,
+  RotateCw,
 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { RequireAuth } from "@/lib/auth";
@@ -18,6 +19,10 @@ import { notify } from "@/lib/feedback";
 import {
   createCircle,
   joinByCode,
+  joinAttemptsRemaining,
+  isValidCodeShape,
+  rotateJoinCode,
+  JOIN_LIMIT,
   leaveCircle,
   useCircles,
   type Circle,
@@ -193,22 +198,42 @@ function CirclesPage() {
             setJoinCode("");
           }}
           onConfirm={() => {
+            // Always go through joinByCode so the throttle counts even bad
+            // shapes — we don't want a "shape valid?" client check to let
+            // attackers probe codes without burning their rate limit.
             try {
               const c = joinByCode(joinCode);
               notify.saved("Joined", `You're in ${c.name}.`);
               setOpenJoin(false);
               setJoinCode("");
             } catch (err) {
-              notify.error("Couldn't join", err instanceof Error ? err.message : "Try a longer code.");
+              notify.error(
+                "Couldn't join",
+                err instanceof Error
+                  ? err.message
+                  : "That invite code isn't valid or has expired.",
+              );
             }
           }}
         >
           <input
             value={joinCode}
-            onChange={(e) => setJoinCode(e.target.value)}
+            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
             placeholder="ABCD-1234"
+            inputMode="text"
+            autoCapitalize="characters"
+            maxLength={9}
+            aria-invalid={joinCode.length > 0 && !isValidCodeShape(joinCode)}
             className="glass mt-3 w-full rounded-2xl bg-transparent px-4 py-3 text-sm uppercase tracking-[0.2em] text-foreground outline-none placeholder:text-muted-foreground"
           />
+          <p className="mt-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            Format: 4 chars · dash · 4 chars · {joinAttemptsRemaining()}/{JOIN_LIMIT} attempts left
+          </p>
+          {joinCode.length > 0 && !isValidCodeShape(joinCode) && (
+            <p className="mt-1 text-[11px] text-rose-300">
+              Codes look like <span className="font-mono">ABCD-1234</span>.
+            </p>
+          )}
         </SheetDialog>
       )}
       </>
@@ -264,6 +289,22 @@ function CircleRow({
             className="mt-1 inline-flex cursor-pointer items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-gold hover:underline"
           >
             <Copy className="h-3 w-3" /> {circle.joinCode}
+          </span>
+        )}
+        {circle.source === "created" && circle.joinCode && (
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              const next = rotateJoinCode(circle.id);
+              if (next?.joinCode) {
+                notify.saved("Code rotated", `New invite: ${next.joinCode}`);
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            className="ml-2 mt-1 inline-flex cursor-pointer items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
+          >
+            <RotateCw className="h-3 w-3" /> rotate
           </span>
         )}
         <span className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">

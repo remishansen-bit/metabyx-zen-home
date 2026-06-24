@@ -18,10 +18,14 @@ export type CirclePost = {
   body: string;
   kind: "reflection" | "insight" | "support";
   authorName: string; // display label after anon resolution
+  /** Stable identifier of the local author (profile id when signed in).
+   *  Used as the permission boundary for edit/delete. */
+  authorId: string;
   anonymous: boolean;
   shareProgress: boolean;
   progress?: SharedProgress;
   createdAt: number;
+  editedAt?: number;
 };
 
 const KEY = "metabyx:circle:posts:v1";
@@ -108,11 +112,35 @@ export function listPosts(circleId: string): CirclePost[] {
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
+/**
+ * Cursor-paginated reads. `before` is a createdAt timestamp — posts strictly
+ * older than that are returned, newest first. Page size is capped to MAX.
+ */
+export function listPostsPage(
+  circleId: string,
+  opts: { limit?: number; before?: number } = {},
+): { posts: CirclePost[]; nextBefore: number | null } {
+  const limit = Math.min(Math.max(opts.limit ?? 10, 1), MAX);
+  const all = read()
+    .filter((p) => p.circleId === circleId)
+    .sort((a, b) => b.createdAt - a.createdAt);
+  const filtered = opts.before
+    ? all.filter((p) => p.createdAt < opts.before!)
+    : all;
+  const page = filtered.slice(0, limit);
+  const nextBefore =
+    filtered.length > limit && page.length > 0
+      ? page[page.length - 1].createdAt
+      : null;
+  return { posts: page, nextBefore };
+}
+
 export function createPost(input: {
   circleId: string;
   body: string;
   kind: CirclePost["kind"];
   authorName: string;
+  authorId: string;
   anonymous: boolean;
   shareProgress: boolean;
   progress?: SharedProgress;
@@ -120,12 +148,14 @@ export function createPost(input: {
   const trimmed = input.body.trim();
   if (!trimmed) throw new Error("Add a few words before posting.");
   if (trimmed.length > 600) throw new Error("Keep it under 600 characters.");
+  if (!input.authorId) throw new Error("Sign in before posting.");
   const post: CirclePost = {
     id: newId(),
     circleId: input.circleId,
     body: trimmed,
     kind: input.kind,
     authorName: input.anonymous ? "Anonymous" : input.authorName || "Friend",
+    authorId: input.authorId,
     anonymous: input.anonymous,
     shareProgress: input.shareProgress,
     progress: input.shareProgress ? input.progress : undefined,
@@ -135,8 +165,40 @@ export function createPost(input: {
   return post;
 }
 
-export function deletePost(id: string) {
-  write(read().filter((p) => p.id !== id));
+/**
+ * Local owner-only mutation. The caller must pass their `authorId`; mismatched
+ * ids throw. The on-device store is single-user, but enforcing the check here
+ * keeps the permission boundary explicit and the tests honest.
+ */
+export function editPost(id: string, authorId: string, nextBody: string): CirclePost {
+  const trimmed = nextBody.trim();
+  if (!trimmed) throw new Error("Post can't be empty.");
+  if (trimmed.length > 600) throw new Error("Keep it under 600 characters.");
+  const posts = read();
+  const idx = posts.findIndex((p) => p.id === id);
+  if (idx === -1) throw new Error("Post not found.");
+  if (posts[idx].authorId !== authorId) {
+    throw new Error("You can only edit your own posts.");
+  }
+  const next: CirclePost = {
+    ...posts[idx],
+    body: trimmed,
+    editedAt: Date.now(),
+  };
+  const out = [...posts];
+  out[idx] = next;
+  write(out);
+  return next;
+}
+
+export function deletePost(id: string, authorId: string) {
+  const posts = read();
+  const target = posts.find((p) => p.id === id);
+  if (!target) return;
+  if (target.authorId !== authorId) {
+    throw new Error("You can only delete your own posts.");
+  }
+  write(posts.filter((p) => p.id !== id));
 }
 
 export function usePosts(circleId: string): CirclePost[] {
