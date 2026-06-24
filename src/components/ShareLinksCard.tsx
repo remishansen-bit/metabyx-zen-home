@@ -155,6 +155,7 @@ function LinkRow({
   onRevoke: () => void;
   onRotate: () => void;
 }) {
+  const { t } = useTranslation();
   const url = shareUrl(link.token);
   const revoked = !!link.revoked_at;
   const expired = isShareLinkExpired(link);
@@ -166,17 +167,17 @@ function LinkRow({
           <div className="flex items-center gap-1.5">
             <p className="truncate text-sm font-medium text-foreground">{link.title}</p>
             {link.anonymous ? (
-              <EyeOff className="h-3 w-3 text-muted-foreground" aria-label="Anonymous" />
+              <EyeOff className="h-3 w-3 text-muted-foreground" aria-label={t("share.anonymousAria")} />
             ) : (
               <Eye className="h-3 w-3 text-muted-foreground" />
             )}
           </div>
           <p className="truncate text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            {link.kind} ·{" "}
+            {t(`share.kind${link.kind === "reflection" ? "Reflection" : "Insight"}`)} ·{" "}
             {revoked ? (
-              <span className="text-rose-300">revoked</span>
+              <span className="text-rose-300">{t("share.revoked")}</span>
             ) : expired ? (
-              <span className="text-rose-300">expired</span>
+              <span className="text-rose-300">{t("share.expired")}</span>
             ) : (
               <a
                 href={url}
@@ -202,10 +203,10 @@ function LinkRow({
               onClick={() => {
                 void navigator.clipboard
                   ?.writeText(url)
-                  .then(() => notify.info("Link copied", url))
-                  .catch(() => notify.error("Couldn't copy", "Try selecting manually."));
+                  .then(() => notify.info(t("share.copyAria"), url))
+                  .catch(() => notify.error(t("share.couldNotRevoke"), t("share.tryAgain")));
               }}
-              aria-label="Copy share link"
+              aria-label={t("share.copyAria")}
               className="rounded-md px-1.5 py-1 text-muted-foreground hover:text-foreground"
             >
               <Copy className="h-3 w-3" />
@@ -215,7 +216,7 @@ function LinkRow({
             <button
               onClick={onRotate}
               disabled={busy}
-              aria-label="Rotate link"
+              aria-label={t("share.rotateAria")}
               className="rounded-md px-1.5 py-1 text-muted-foreground hover:text-foreground disabled:opacity-40"
             >
               {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCw className="h-3 w-3" />}
@@ -225,7 +226,7 @@ function LinkRow({
             <button
               onClick={onRevoke}
               disabled={busy}
-              aria-label="Revoke link"
+              aria-label={t("share.revokeAria")}
               className="rounded-md px-1.5 py-1 text-muted-foreground hover:text-rose-300 disabled:opacity-40"
             >
               {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
@@ -236,7 +237,7 @@ function LinkRow({
               href={url}
               target="_blank"
               rel="noreferrer"
-              aria-label="Open share page"
+              aria-label={t("share.openAria")}
               className="rounded-md px-1.5 py-1 text-muted-foreground hover:text-foreground"
             >
               <ExternalLink className="h-3 w-3" />
@@ -255,6 +256,7 @@ function NewShareForm({
   onCreated: () => Promise<void>;
   defaultSnapshot: { bmr: number | undefined; streak: number };
 }) {
+  const { t } = useTranslation();
   const [kind, setKind] = useState<ShareKind>("reflection");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -277,14 +279,14 @@ function NewShareForm({
           : undefined,
       });
       await navigator.clipboard?.writeText(shareUrl(link.token)).catch(() => {});
-      notify.saved("Share link ready", "Copied to your clipboard.");
+      notify.saved(t("share.linkReady"), t("share.copiedClipboard"));
       setTitle("");
       setBody("");
       setAnonymous(false);
       setIncludeSnapshot(false);
       await onCreated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't create link.");
+      setError(err instanceof Error ? err.message : t("share.couldNotCreate"));
     } finally {
       setSaving(false);
     }
@@ -300,7 +302,7 @@ function NewShareForm({
             onClick={() => setKind(k)}
             className={`flex-1 rounded-xl px-2 py-2 text-[10px] uppercase tracking-[0.2em] transition-all ${kind === k ? "bg-[oklch(0.82_0.14_82/0.18)] text-gold" : "glass text-muted-foreground"}`}
           >
-            {k}
+            {t(`share.kind${k === "reflection" ? "Reflection" : "Insight"}`)}
           </button>
         ))}
       </div>
@@ -308,7 +310,7 @@ function NewShareForm({
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         maxLength={120}
-        placeholder="Title"
+        placeholder={t("share.titlePlaceholder")}
         className="glass rounded-2xl bg-transparent px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"
       />
       <textarea
@@ -316,13 +318,13 @@ function NewShareForm({
         onChange={(e) => setBody(e.target.value)}
         rows={3}
         maxLength={2000}
-        placeholder={kind === "reflection" ? "Your reflection…" : "Your BMR insight…"}
+        placeholder={kind === "reflection" ? t("share.reflectionPlaceholder") : t("share.insightPlaceholder")}
         className="glass resize-none rounded-2xl bg-transparent px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"
       />
       <label className="flex items-center justify-between rounded-xl px-1 text-xs text-foreground">
         <span className="flex items-center gap-2">
           {anonymous ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-          Anonymous mode
+          {t("share.anonymousMode")}
         </span>
         <input
           type="checkbox"
@@ -333,7 +335,7 @@ function NewShareForm({
       </label>
       <label className="flex items-center justify-between rounded-xl px-1 text-xs text-foreground">
         <span className="flex items-center gap-2">
-          Include current BMR snapshot
+          {t("share.includeSnapshot")}
         </span>
         <input
           type="checkbox"
@@ -354,7 +356,7 @@ function NewShareForm({
         style={{ background: "var(--gradient-gold)" }}
       >
         {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
-        {saving ? "Creating…" : "Create link"}
+        {saving ? t("share.creating") : t("share.create")}
       </button>
     </div>
   );
