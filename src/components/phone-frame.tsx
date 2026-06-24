@@ -24,7 +24,7 @@ export function PhoneFrame({
           }}
         />
         <div
-          className={`phone-shell-scroll relative z-10 flex flex-1 flex-col gap-7 px-6 pt-8 sm:pt-10 animate-rise overflow-y-auto ${hideTabBar ? "phone-pad-bottom-safe" : "phone-pad-bottom-tabs"}`}
+          className={`phone-shell-scroll relative z-10 flex flex-1 flex-col animate-rise overflow-y-auto px-[var(--spacing-screen-x)] pt-[calc(var(--spacing-screen-y)+0.5rem)] sm:pt-[calc(var(--spacing-screen-y)+1rem)] gap-[var(--spacing-section)] ${hideTabBar ? "phone-pad-bottom-safe" : "phone-pad-bottom-tabs"}`}
         >
           {children}
         </div>
