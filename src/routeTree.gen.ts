@@ -25,6 +25,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as LegalTermsRouteImport } from './routes/legal.terms'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
+import { Route as LegalDataDeletionRouteImport } from './routes/legal.data-deletion'
 import { Route as LegalContactRouteImport } from './routes/legal.contact'
 import { Route as CirclesIdRouteImport } from './routes/circles.$id'
 import { Route as BranchIdRouteImport } from './routes/branch.$id'
@@ -112,6 +113,11 @@ const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => LegalRoute,
 } as any)
+const LegalDataDeletionRoute = LegalDataDeletionRouteImport.update({
+  id: '/data-deletion',
+  path: '/data-deletion',
+  getParentRoute: () => LegalRoute,
+} as any)
 const LegalContactRoute = LegalContactRouteImport.update({
   id: '/contact',
   path: '/contact',
@@ -163,6 +169,7 @@ export interface FileRoutesByFullPath {
   '/branch/$id': typeof BranchIdRoute
   '/circles/$id': typeof CirclesIdRoute
   '/legal/contact': typeof LegalContactRoute
+  '/legal/data-deletion': typeof LegalDataDeletionRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/s/$token': typeof STokenRoute
@@ -187,6 +194,7 @@ export interface FileRoutesByTo {
   '/branch/$id': typeof BranchIdRoute
   '/circles/$id': typeof CirclesIdRoute
   '/legal/contact': typeof LegalContactRoute
+  '/legal/data-deletion': typeof LegalDataDeletionRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/s/$token': typeof STokenRoute
@@ -212,6 +220,7 @@ export interface FileRoutesById {
   '/branch/$id': typeof BranchIdRoute
   '/circles/$id': typeof CirclesIdRoute
   '/legal/contact': typeof LegalContactRoute
+  '/legal/data-deletion': typeof LegalDataDeletionRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/s/$token': typeof STokenRoute
@@ -238,6 +247,7 @@ export interface FileRouteTypes {
     | '/branch/$id'
     | '/circles/$id'
     | '/legal/contact'
+    | '/legal/data-deletion'
     | '/legal/privacy'
     | '/legal/terms'
     | '/s/$token'
@@ -262,6 +272,7 @@ export interface FileRouteTypes {
     | '/branch/$id'
     | '/circles/$id'
     | '/legal/contact'
+    | '/legal/data-deletion'
     | '/legal/privacy'
     | '/legal/terms'
     | '/s/$token'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/branch/$id'
     | '/circles/$id'
     | '/legal/contact'
+    | '/legal/data-deletion'
     | '/legal/privacy'
     | '/legal/terms'
     | '/s/$token'
@@ -427,6 +439,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalPrivacyRouteImport
       parentRoute: typeof LegalRoute
     }
+    '/legal/data-deletion': {
+      id: '/legal/data-deletion'
+      path: '/data-deletion'
+      fullPath: '/legal/data-deletion'
+      preLoaderRoute: typeof LegalDataDeletionRouteImport
+      parentRoute: typeof LegalRoute
+    }
     '/legal/contact': {
       id: '/legal/contact'
       path: '/contact'
@@ -485,12 +504,14 @@ const CirclesRouteWithChildren =
 
 interface LegalRouteChildren {
   LegalContactRoute: typeof LegalContactRoute
+  LegalDataDeletionRoute: typeof LegalDataDeletionRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalTermsRoute: typeof LegalTermsRoute
 }
 
 const LegalRouteChildren: LegalRouteChildren = {
   LegalContactRoute: LegalContactRoute,
+  LegalDataDeletionRoute: LegalDataDeletionRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalTermsRoute: LegalTermsRoute,
 }
