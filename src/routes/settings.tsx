@@ -32,6 +32,8 @@ import { summarize } from "@/lib/learning";
 import { exportSummaryPdf } from "@/lib/library-pdf";
 import type { MetabyxState } from "@/lib/store";
 import { SubscriptionCard } from "@/components/subscription-card";
+import { SubscriptionHistory } from "@/components/SubscriptionHistory";
+import { useFeatureGate } from "@/hooks/useFeatureGate";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings · METABYX" }] }),
@@ -65,6 +67,7 @@ const DEFAULTS: Prefs = {
 function SettingsPage() {
   const auth = useAuth();
   const navigate = useNavigate();
+  const gate = useFeatureGate();
   const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
