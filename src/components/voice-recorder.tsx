@@ -1279,7 +1279,11 @@ export function VoiceRecorder({
           disabled={isProcessing}
           aria-label={
             ariaLabel ??
-            (isRecording ? "Avbryt opptak" : isProcessing ? "Behandler" : "Start opptak")
+            (isRecording
+              ? t("voice.mainCancelAria")
+              : isProcessing
+                ? t("voice.mainProcessingAria")
+                : t("voice.mainStartAria"))
           }
           className={`relative flex shrink-0 items-center justify-center rounded-full transition-all duration-300 active:scale-95 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 ${
             compact ? "h-10 w-10" : "h-12 w-12"
@@ -1342,7 +1346,7 @@ export function VoiceRecorder({
             <div className="animate-fade-in flex h-full flex-col justify-center gap-1">
               <div className="flex items-center justify-between">
                 <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                  {isDone ? "Ferdig" : isError ? "Noe gikk galt" : "Stemmeopptak"}
+                  {isDone ? t("voice.idleTitleDone") : isError ? t("voice.idleTitleError") : t("voice.idleTitleVoice")}
                 </p>
                 {showSettings && state === "idle" && (
                   <button
@@ -1350,7 +1354,7 @@ export function VoiceRecorder({
                     onClick={() => setSettingsOpen((s) => !s)}
                     aria-expanded={settingsOpen}
                     aria-controls="vr-settings"
-                    aria-label="Justér stemmedeteksjon"
+                    aria-label={t("voice.adjustAria")}
                     className="-mr-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
                   >
                     <Settings2 className="h-3.5 w-3.5" />
@@ -1362,17 +1366,17 @@ export function VoiceRecorder({
                 style={{ fontFamily: "Fraunces, serif" }}
               >
                 {isDone
-                  ? "Lyden er transkribert."
+                  ? t("voice.idleDoneMsg")
                   : isError
-                    ? (errorMsg ?? "Prøv igjen, eller skriv i stedet.")
-                    : "Trykk for å snakke. Norsk støttes."}
+                    ? (errorMsg ?? t("voice.idleErrorFallback"))
+                    : t("voice.idleTapToSpeak")}
               </p>
               {isError && (
                 <div className="mt-1 flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => void start()}
-                    aria-label="Prøv stemmeopptak på nytt"
+                    aria-label={t("voice.tryAgainAria")}
                     className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium text-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
                     style={{
                       background:
@@ -1383,7 +1387,7 @@ export function VoiceRecorder({
                     }}
                   >
                     <RotateCcw className="h-3 w-3" />
-                    Prøv igjen
+                    {t("voice.tryAgain")}
                   </button>
                   {audioUrl && enablePlayback && (
                     <button
@@ -1395,12 +1399,12 @@ export function VoiceRecorder({
                           else el.pause();
                         }
                       }}
-                      aria-label="Spill av siste opptak"
+                      aria-label={t("voice.listenLastAria")}
                       className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
                       style={{ border: "1px solid oklch(1 0 0 / 0.08)" }}
                     >
                       <Play className="h-3 w-3" />
-                      Hør på opptaket
+                      {t("voice.listenLast")}
                     </button>
                   )}
                   {audioUrl && (
