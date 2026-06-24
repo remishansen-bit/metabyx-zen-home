@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Crown, Lock, Sparkles, X } from "lucide-react";
 import { PAYWALL_COPY, type PaywallReason } from "@/lib/feature-access";
+import { recordPaywallEvent } from "@/lib/paywall-analytics";
 
 /**
  * Glassmorphism paywall sheet shown when a Free user tries to use a
@@ -17,6 +19,25 @@ export function PaywallSheet({
   const navigate = useNavigate();
   if (!reason) return null;
   const copy = PAYWALL_COPY[reason.required];
+  const dismiss = () => {
+    recordPaywallEvent({
+      required: reason.required,
+      feature: reason.feature,
+      type: "dismissed",
+      surface: "sheet",
+    });
+    onClose();
+  };
+  const upgrade = () => {
+    recordPaywallEvent({
+      required: reason.required,
+      feature: reason.feature,
+      type: "upgrade_clicked",
+      surface: "sheet",
+    });
+    onClose();
+    navigate({ to: "/settings" });
+  };
 
   return (
     <div
@@ -24,7 +45,7 @@ export function PaywallSheet({
       aria-modal="true"
       aria-label={`${copy.name} required`}
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center"
-      onClick={onClose}
+      onClick={dismiss}
     >
       <div
         className="glass-strong w-full max-w-sm rounded-3xl p-5"
@@ -39,7 +60,7 @@ export function PaywallSheet({
             )}
           </div>
           <button
-            onClick={onClose}
+            onClick={dismiss}
             aria-label="Close"
             className="glass flex h-8 w-8 items-center justify-center rounded-full"
           >
@@ -59,16 +80,13 @@ export function PaywallSheet({
         <p className="mt-3 text-xs text-foreground/80">{copy.tagline}</p>
         <div className="mt-5 flex gap-2">
           <button
-            onClick={onClose}
+            onClick={dismiss}
             className="glass flex-1 rounded-2xl px-4 py-3 text-xs uppercase tracking-[0.2em] text-muted-foreground"
           >
             Not now
           </button>
           <button
-            onClick={() => {
-              onClose();
-              navigate({ to: "/settings" });
-            }}
+            onClick={upgrade}
             className="flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium text-background"
             style={{ background: "var(--gradient-gold)" }}
           >
@@ -92,9 +110,26 @@ export function PaywallLockedCard({
   onUnlock: () => void;
 }) {
   const copy = PAYWALL_COPY[required];
+  useEffect(() => {
+    recordPaywallEvent({
+      required,
+      feature: title,
+      type: "impression",
+      surface: "locked_card",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [required, title]);
   return (
     <button
-      onClick={onUnlock}
+      onClick={() => {
+        recordPaywallEvent({
+          required,
+          feature: title,
+          type: "upgrade_clicked",
+          surface: "locked_card",
+        });
+        onUnlock();
+      }}
       className="glass-strong flex w-full flex-col items-start gap-2 rounded-3xl p-5 text-left transition-all active:scale-[0.99]"
     >
       <div className="flex items-center gap-2">

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   ChevronLeft,
@@ -10,6 +10,7 @@ import {
   ArrowRight,
   X,
   Copy,
+  MessageCircle,
 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { RequireAuth } from "@/lib/auth";
@@ -24,7 +25,6 @@ import {
 import { useSubscription } from "@/hooks/useSubscription";
 import { canAccess } from "@/lib/feature-access";
 import { PaywallLockedCard } from "@/components/PaywallSheet";
-import { useNavigate } from "@tanstack/react-router";
 
 /**
  * Metabolic Circles — sketch screen for shared rooms. Rooms persist to
@@ -121,6 +121,7 @@ function CirclesPage() {
             <CircleRow
               key={c.id}
               circle={c}
+              onOpen={() => navigate({ to: "/circles/$id", params: { id: c.id } })}
               onLeave={() => {
                 leaveCircle(c.id);
                 notify.info("Left circle", `You're no longer in ${c.name}.`);
@@ -216,7 +217,15 @@ function CirclesPage() {
   );
 }
 
-function CircleRow({ circle, onLeave }: { circle: Circle; onLeave: () => void }) {
+function CircleRow({
+  circle,
+  onLeave,
+  onOpen,
+}: {
+  circle: Circle;
+  onLeave: () => void;
+  onOpen: () => void;
+}) {
   const Visibility = circle.visibility === "private" ? Lock : Globe;
   const copyCode = async () => {
     if (!circle.joinCode) return;
@@ -238,21 +247,29 @@ function CircleRow({ circle, onLeave }: { circle: Circle; onLeave: () => void })
       >
         <Sparkles className="h-4 w-4 text-gold" />
       </div>
-      <div className="flex-1">
+      <button onClick={onOpen} className="flex-1 text-left">
         <div className="flex items-center gap-1.5">
           <p className="text-sm font-medium text-foreground">{circle.name}</p>
           <Visibility className="h-3 w-3 text-muted-foreground" />
         </div>
         <p className="text-xs text-muted-foreground">{circle.hint}</p>
         {circle.joinCode && (
-          <button
-            onClick={copyCode}
-            className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-gold hover:underline"
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              void copyCode();
+            }}
+            role="button"
+            tabIndex={0}
+            className="mt-1 inline-flex cursor-pointer items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-gold hover:underline"
           >
             <Copy className="h-3 w-3" /> {circle.joinCode}
-          </button>
+          </span>
         )}
-      </div>
+        <span className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          <MessageCircle className="h-3 w-3" /> open thread
+        </span>
+      </button>
       <div className="text-right">
         <p
           className="text-lg font-light text-gold"

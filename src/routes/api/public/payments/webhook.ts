@@ -2,6 +2,23 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import { verifyWebhook, EventName, type PaddleEnv } from "@/lib/paddle.server";
 
+/**
+ * Webhook handlers are exported so the test suite can drive them with a
+ * fake supabase client without going through Paddle signature verification.
+ * Idempotency is provided by `paddle_subscription_id` (unique) plus an
+ * occurredAt comparison so out-of-order or duplicate events don't roll back
+ * to a stale state.
+ */
+export type WebhookDb = {
+  upsertSubscription: (row: Record<string, unknown>) => Promise<void>;
+  updateSubscription: (
+    id: string,
+    env: PaddleEnv,
+    patch: Record<string, unknown>,
+  ) => Promise<void>;
+  getEventTime: (id: string, env: PaddleEnv) => Promise<string | null>;
+};
+
 let _supabase: any = null;
 function getSupabase(): any {
   if (!_supabase) {
@@ -13,7 +30,50 @@ function getSupabase(): any {
   return _supabase;
 }
 
-async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
+function defaultDb(): WebhookDb {
+  const sb = getSupabase();
+  return {
+    upsertSubscription: async (row) => {
+      await sb
+        .from("subscriptions")
+        .upsert(row, { onConflict: "paddle_subscription_id" });
+    },
+    updateSubscription: async (id, env, patch) => {
+      await sb
+        .from("subscriptions")
+        .update(patch)
+        .eq("paddle_subscription_id", id)
+        .eq("environment", env);
+    },
+    getEventTime: async (id, env) => {
+      const { data } = await sb
+        .from("subscriptions")
+        .select("updated_at")
+        .eq("paddle_subscription_id", id)
+        .eq("environment", env)
+        .maybeSingle();
+      return (data?.updated_at as string | undefined) ?? null;
+    },
+  };
+}
+
+async function isStale(
+  db: WebhookDb,
+  id: string,
+  env: PaddleEnv,
+  incoming: string | undefined,
+): Promise<boolean> {
+  if (!incoming) return false;
+  const current = await db.getEventTime(id, env);
+  if (!current) return false;
+  return new Date(incoming).getTime() < new Date(current).getTime();
+}
+
+export async function handleSubscriptionCreated(
+  data: any,
+  env: PaddleEnv,
+  db: WebhookDb = defaultDb(),
+) {
   const { id, customerId, items, status, currentBillingPeriod, customData } = data;
   const userId = customData?.userId;
   if (!userId) {
@@ -30,58 +90,59 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
     });
     return;
   }
+  const occurredAt: string = data.occurredAt ?? new Date().toISOString();
+  if (await isStale(db, id, env, occurredAt)) return;
 
-  await getSupabase().from("subscriptions").upsert(
-    {
-      user_id: userId,
-      paddle_subscription_id: id,
-      paddle_customer_id: customerId,
-      product_id: productId,
-      price_id: priceId,
-      status,
-      current_period_start: currentBillingPeriod?.startsAt,
-      current_period_end: currentBillingPeriod?.endsAt,
-      environment: env,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "paddle_subscription_id" },
-  );
+  await db.upsertSubscription({
+    user_id: userId,
+    paddle_subscription_id: id,
+    paddle_customer_id: customerId,
+    product_id: productId,
+    price_id: priceId,
+    status,
+    current_period_start: currentBillingPeriod?.startsAt,
+    current_period_end: currentBillingPeriod?.endsAt,
+    environment: env,
+    updated_at: occurredAt,
+  });
 }
 
-async function handleSubscriptionUpdated(data: any, env: PaddleEnv) {
+export async function handleSubscriptionUpdated(
+  data: any,
+  env: PaddleEnv,
+  db: WebhookDb = defaultDb(),
+) {
   const { id, status, currentBillingPeriod, scheduledChange, items } = data;
   const item = items?.[0];
   const priceId = item?.price?.importMeta?.externalId;
   const productId = item?.product?.importMeta?.externalId;
+  const occurredAt: string = data.occurredAt ?? new Date().toISOString();
+  if (await isStale(db, id, env, occurredAt)) return;
 
   const patch: Record<string, unknown> = {
     status,
     current_period_start: currentBillingPeriod?.startsAt,
     current_period_end: currentBillingPeriod?.endsAt,
     cancel_at_period_end: scheduledChange?.action === "cancel",
-    updated_at: new Date().toISOString(),
+    updated_at: occurredAt,
   };
-  // Keep price/product in sync on upgrades/downgrades (so tier reflects the
-  // new plan immediately after the customer changes plans in the portal).
   if (priceId) patch.price_id = priceId;
   if (productId) patch.product_id = productId;
 
-  await getSupabase()
-    .from("subscriptions")
-    .update(patch)
-    .eq("paddle_subscription_id", id)
-    .eq("environment", env);
+  await db.updateSubscription(id, env, patch);
 }
 
-async function handleSubscriptionCanceled(data: any, env: PaddleEnv) {
-  await getSupabase()
-    .from("subscriptions")
-    .update({
-      status: "canceled",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("paddle_subscription_id", data.id)
-    .eq("environment", env);
+export async function handleSubscriptionCanceled(
+  data: any,
+  env: PaddleEnv,
+  db: WebhookDb = defaultDb(),
+) {
+  const occurredAt: string = data.occurredAt ?? new Date().toISOString();
+  if (await isStale(db, data.id, env, occurredAt)) return;
+  await db.updateSubscription(data.id, env, {
+    status: "canceled",
+    updated_at: occurredAt,
+  });
 }
 
 async function handleWebhook(req: Request, env: PaddleEnv) {
