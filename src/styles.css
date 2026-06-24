@@ -232,6 +232,35 @@
   }
 }
 
+/* ---- Calm crossfade for ScreenTransition phases (loading/empty/content)
+ * Keyed off a state discriminator; CSS handles the easing/duration via
+ * motion tokens so reduced-motion fallback below can fully neutralize it.
+ */
+@keyframes phase-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@utility animate-phase-in {
+  animation: phase-in var(--dur-base) var(--ease-calm) both;
+}
+
+/* ---- Skeleton shimmer — gentle gold sheen, restful not jittery. */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@utility skeleton-shimmer {
+  background-color: oklch(1 0 0 / 0.04);
+  background-image: linear-gradient(
+    90deg,
+    oklch(1 0 0 / 0) 0%,
+    oklch(0.82 0.14 82 / 0.10) 50%,
+    oklch(1 0 0 / 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s var(--ease-calm) infinite;
+}
+
 /* Theme variants — applied as a class on <html> by src/lib/theme.ts.
  * Dusk is the default (no class needed). Indigo deepens the night tones,
  * Rose warms the palette. Both keep the gold accent so the brand stays
