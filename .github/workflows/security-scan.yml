@@ -1,0 +1,38 @@
+name: Supabase security scan
+
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - "src/integrations/supabase/**"
+      - "src/lib/**.functions.ts"
+      - "src/routes/api/**"
+      - ".github/workflows/security-scan.yml"
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: supabase db lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      # Static lint of every migration in supabase/migrations. Catches
+      # missing RLS, unsafe SECURITY DEFINER, missing search_path, etc.
+      # Fails the PR when any finding is at level "warning" or higher.
+      - name: Lint migrations
+        run: supabase db lint --level warning
+
+      # Optional: when SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF are
+      # set as repo secrets, also lint the live database against the same
+      # ruleset so drift between code and prod is caught.
+      - name: Lint live database
+        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.SUPABASE_PROJECT_REF != '' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_REF"
+          supabase db lint --linked --level warning
