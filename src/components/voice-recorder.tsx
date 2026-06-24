@@ -1918,11 +1918,13 @@ function roundedBar(
   ctx.fill();
 }
 
+type TFn = (key: string, opts?: Record<string, unknown>) => string;
+
 /**
- * Map a getUserMedia DOMException into actionable Norwegian guidance.
+ * Map a getUserMedia DOMException into actionable, localized guidance.
  * Each branch describes WHAT failed and WHAT to do next.
  */
-function describeMicError(err: unknown): string {
+function describeMicError(t: TFn, err: unknown): string {
   const name =
     err instanceof DOMException
       ? err.name
@@ -1932,44 +1934,41 @@ function describeMicError(err: unknown): string {
   switch (name) {
     case "NotAllowedError":
     case "SecurityError":
-      return "Mikrofontilgang ble nektet. Åpne nettleserens nettstedsinnstillinger og tillat mikrofonen, eller skriv inn teksten.";
+      return t("voice.micDenied");
     case "NotFoundError":
     case "OverconstrainedError":
-      return "Fant ingen mikrofon. Koble til en mikrofon eller velg en annen enhet.";
+      return t("voice.micNotFound");
     case "NotReadableError":
-      return "Mikrofonen er opptatt av et annet program. Lukk andre apper som bruker mikrofonen og prøv igjen.";
+      return t("voice.micBusy");
     case "AbortError":
-      return "Mikrofonen ble frakoblet før opptaket startet. Prøv igjen.";
+      return t("voice.micDisconnected");
     case "TypeError":
-      return "Stemmeopptak krever en sikker tilkobling (HTTPS). Åpne siden over HTTPS og prøv igjen.";
+      return t("voice.micInsecure");
     default:
-      return "Kunne ikke åpne mikrofonen. Prøv igjen, eller skriv teksten i stedet.";
+      return t("voice.micUnknown");
   }
 }
 
 /**
- * Map a transcribe API failure into actionable Norwegian guidance.
+ * Map a transcribe API failure into actionable, localized guidance.
  */
-function describeTranscribeError(status: number, serverMessage?: string): string {
+function describeTranscribeError(t: TFn, status: number, serverMessage?: string): string {
   if (status === 401 || status === 403) {
-    return "Transkripsjonstjenesten er ikke autorisert. Kontakt support.";
+    return t("voice.trUnauth");
   }
   if (status === 413) {
-    return "Opptaket er for langt. Prøv et kortere opptak (under 2 minutter).";
+    return t("voice.trTooLong");
   }
   if (status === 415) {
-    return "Lydformatet støttes ikke. Bytt nettleser eller skriv teksten i stedet.";
+    return t("voice.trUnsupported");
   }
   if (status === 429) {
-    return "For mange forespørsler akkurat nå. Vent et øyeblikk og prøv igjen.";
+    return t("voice.trTooMany");
   }
   if (status >= 500) {
-    return "Transkripsjonstjenesten er midlertidig nede. Prøv igjen om litt.";
+    return t("voice.trServerDown");
   }
-  return (
-    serverMessage ||
-    "Klarte ikke å transkribere opptaket. Prøv igjen eller skriv teksten i stedet."
-  );
+  return serverMessage || t("voice.trFallback");
 }
 /* ------------------------------------------------------------------ */
 /*  Pitch detection                                                   */
