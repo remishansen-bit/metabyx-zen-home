@@ -10,9 +10,12 @@ import { signInIfPossible } from "./_helpers";
 
 const SCREENS = [
   { name: "onboarding", path: "/onboarding", auth: false },
+  { name: "home",       path: "/",           auth: true },
   { name: "morning",    path: "/morning",    auth: true },
   { name: "evening",    path: "/evening",    auth: true },
   { name: "session",    path: "/session",    auth: true },
+  { name: "library",    path: "/library",    auth: true },
+  { name: "profile",    path: "/profile",    auth: true },
 ] as const;
 
 const VIEWPORTS = [
