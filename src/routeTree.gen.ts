@@ -23,6 +23,7 @@ import { Route as CirclesRouteImport } from './routes/circles'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as STokenRouteImport } from './routes/s.$token'
+import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as CirclesIdRouteImport } from './routes/circles.$id'
 import { Route as BranchIdRouteImport } from './routes/branch.$id'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
@@ -99,6 +100,11 @@ const STokenRoute = STokenRouteImport.update({
   path: '/s/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => LegalRoute,
+} as any)
 const CirclesIdRoute = CirclesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -132,7 +138,7 @@ export interface FileRoutesByFullPath {
   '/circles': typeof CirclesRouteWithChildren
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
-  '/legal': typeof LegalRoute
+  '/legal': typeof LegalRouteWithChildren
   '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
   '/onboarding': typeof OnboardingRoute
@@ -144,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
   '/circles/$id': typeof CirclesIdRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
   '/s/$token': typeof STokenRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -153,7 +160,7 @@ export interface FileRoutesByTo {
   '/circles': typeof CirclesRouteWithChildren
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
-  '/legal': typeof LegalRoute
+  '/legal': typeof LegalRouteWithChildren
   '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
   '/onboarding': typeof OnboardingRoute
@@ -165,6 +172,7 @@ export interface FileRoutesByTo {
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
   '/circles/$id': typeof CirclesIdRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
   '/s/$token': typeof STokenRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -175,7 +183,7 @@ export interface FileRoutesById {
   '/circles': typeof CirclesRouteWithChildren
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
-  '/legal': typeof LegalRoute
+  '/legal': typeof LegalRouteWithChildren
   '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
   '/onboarding': typeof OnboardingRoute
@@ -187,6 +195,7 @@ export interface FileRoutesById {
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
   '/circles/$id': typeof CirclesIdRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
   '/s/$token': typeof STokenRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -210,6 +219,7 @@ export interface FileRouteTypes {
     | '/api/tts'
     | '/branch/$id'
     | '/circles/$id'
+    | '/legal/privacy'
     | '/s/$token'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/api/tts'
     | '/branch/$id'
     | '/circles/$id'
+    | '/legal/privacy'
     | '/s/$token'
     | '/api/public/payments/webhook'
   id:
@@ -252,6 +263,7 @@ export interface FileRouteTypes {
     | '/api/tts'
     | '/branch/$id'
     | '/circles/$id'
+    | '/legal/privacy'
     | '/s/$token'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
@@ -262,7 +274,7 @@ export interface RootRouteChildren {
   CirclesRoute: typeof CirclesRouteWithChildren
   CrisisRoute: typeof CrisisRoute
   EveningRoute: typeof EveningRoute
-  LegalRoute: typeof LegalRoute
+  LegalRoute: typeof LegalRouteWithChildren
   LibraryRoute: typeof LibraryRoute
   MorningRoute: typeof MorningRoute
   OnboardingRoute: typeof OnboardingRoute
@@ -377,6 +389,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof STokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/legal/privacy': {
+      id: '/legal/privacy'
+      path: '/privacy'
+      fullPath: '/legal/privacy'
+      preLoaderRoute: typeof LegalPrivacyRouteImport
+      parentRoute: typeof LegalRoute
+    }
     '/circles/$id': {
       id: '/circles/$id'
       path: '/$id'
@@ -426,13 +445,23 @@ const CirclesRouteChildren: CirclesRouteChildren = {
 const CirclesRouteWithChildren =
   CirclesRoute._addFileChildren(CirclesRouteChildren)
 
+interface LegalRouteChildren {
+  LegalPrivacyRoute: typeof LegalPrivacyRoute
+}
+
+const LegalRouteChildren: LegalRouteChildren = {
+  LegalPrivacyRoute: LegalPrivacyRoute,
+}
+
+const LegalRouteWithChildren = LegalRoute._addFileChildren(LegalRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   CirclesRoute: CirclesRouteWithChildren,
   CrisisRoute: CrisisRoute,
   EveningRoute: EveningRoute,
-  LegalRoute: LegalRoute,
+  LegalRoute: LegalRouteWithChildren,
   LibraryRoute: LibraryRoute,
   MorningRoute: MorningRoute,
   OnboardingRoute: OnboardingRoute,
