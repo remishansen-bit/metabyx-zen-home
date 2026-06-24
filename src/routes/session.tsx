@@ -468,6 +468,7 @@ function SessionPage() {
         </p>
       </div>
 
+      {gate.paywall}
     </PhoneFrame>
   );
 }
