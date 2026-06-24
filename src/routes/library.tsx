@@ -357,6 +357,7 @@ function LibraryPage() {
           ))}
         </section>
       )}
+      {gate.paywall}
     </PhoneFrame>
   );
 }
