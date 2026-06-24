@@ -17,13 +17,29 @@ export type ReminderPrefs = {
 let morningTimer: ReturnType<typeof setTimeout> | null = null;
 let eveningTimer: ReturnType<typeof setTimeout> | null = null;
 
-function nextFireAt(time: string): number {
+/**
+ * Milliseconds from `now` until the next occurrence of `HH:MM` local time.
+ * Exported so the Settings screen can show a human-readable "next fire" and
+ * tests can verify the arming maths without touching real timers.
+ */
+export function nextFireAt(time: string, now: Date = new Date()): number {
   const [h, m] = time.split(":").map((n) => parseInt(n, 10));
-  const now = new Date();
-  const next = new Date();
+  const next = new Date(now);
   next.setHours(h || 0, m || 0, 0, 0);
   if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
   return next.getTime() - now.getTime();
+}
+
+/** Human-readable "in 2h 14m" / "in 45s" for the Settings preview. */
+export function formatRelative(ms: number): string {
+  if (ms <= 0) return "now";
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `in ${s}s`;
+  const m = Math.round(s / 60);
+  if (m < 60) return `in ${m}m`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem ? `in ${h}h ${rem}m` : `in ${h}h`;
 }
 
 function fireNotification(title: string, body: string) {
