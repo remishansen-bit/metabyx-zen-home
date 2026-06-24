@@ -101,6 +101,57 @@ function SettingsPage() {
     }
   };
 
+  const enableNotifications = async () => {
+    const result = await requestNotificationPermission();
+    setPermission(result);
+    if (result === "granted") {
+      await update({ notifications: true });
+      notify.saved("Notifications on", "We'll nudge you gently, twice a day at most.");
+    } else if (result === "denied") {
+      notify.error(
+        "Notifications blocked",
+        "Enable them in your browser settings to receive reminders.",
+      );
+    }
+  };
+
+  const exportDeviceData = () => {
+    try {
+      const raw = window.localStorage.getItem("metabyx:v1") ?? "{}";
+      const payload = {
+        app: "metabyx",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        ...JSON.parse(raw),
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `metabyx-library-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      notify.saved("Export ready", "Your device data was downloaded as JSON.");
+    } catch (err) {
+      notify.error("Couldn't export", err instanceof Error ? err.message : "Please try again.");
+    }
+  };
+
+  const deleteDeviceData = () => {
+    if (typeof window === "undefined") return;
+    const confirmed = window.confirm(
+      "Delete all branches and BMR history on this device? This cannot be undone.",
+    );
+    if (!confirmed) return;
+    try {
+      window.localStorage.removeItem("metabyx:v1");
+      window.dispatchEvent(new Event("metabyx:change"));
+      notify.saved("Cleared", "All on-device data has been deleted.");
+    } catch (err) {
+      notify.error("Couldn't delete", err instanceof Error ? err.message : "Please try again.");
+    }
+  };
+
   return (
     <PhoneFrame hideTabBar>
       <StatusBar title="SETTINGS" />
@@ -186,16 +237,79 @@ function SettingsPage() {
           value={prefs.notifications}
           onChange={(v) => update({ notifications: v })}
         />
+        {permission !== "granted" && permission !== "unsupported" && (
+          <button
+            onClick={enableNotifications}
+            className="glass flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm text-foreground transition-all hover:bg-[oklch(1_0_0/0.06)]"
+          >
+            <BellRing className="h-4 w-4 text-gold" />
+            {permission === "denied" ? "Notifications blocked" : "Enable device notifications"}
+          </button>
+        )}
+        {permission === "granted" && (
+          <p className="px-1 text-[10px] uppercase tracking-[0.3em] text-gold">
+            device notifications · enabled
+          </p>
+        )}
+        {permission === "unsupported" && (
+          <p className="px-1 text-[11px] text-muted-foreground">
+            This browser doesn't support notifications. Reminders will appear as in-app toasts.
+          </p>
+        )}
       </Section>
 
       <Section icon={ShieldCheck} title="Privacy">
         <div className="glass rounded-2xl px-4 py-3">
-          <p className="text-sm text-foreground">Stored on this device</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Branches and BMR history live in your browser. Only your account profile,
-            archetype and preferences sync with Lovable Cloud.
-          </p>
+          <p className="text-sm text-foreground">What lives where</p>
+          <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+            <li>
+              <span className="text-gold">On this device</span> · branches, reflections,
+              BMR history, emotion log
+            </li>
+            <li>
+              <span className="text-gold">In your account</span> · display name, archetype,
+              baseline BMR, preferences
+            </li>
+          </ul>
         </div>
+        <button
+          onClick={exportDeviceData}
+          className="glass flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all hover:bg-[oklch(1_0_0/0.06)]"
+        >
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-xl"
+            style={{
+              background: "oklch(0.82 0.14 82 / 0.12)",
+              border: "1px solid oklch(0.82 0.14 82 / 0.22)",
+            }}
+          >
+            <Download className="h-4 w-4 text-gold" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">Export device data</p>
+            <p className="text-xs text-muted-foreground">Download a JSON snapshot</p>
+          </div>
+        </button>
+        <button
+          onClick={deleteDeviceData}
+          className="glass flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all hover:bg-[oklch(1_0_0/0.06)]"
+        >
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-xl"
+            style={{
+              background: "oklch(0.62 0.2 27 / 0.12)",
+              border: "1px solid oklch(0.62 0.2 27 / 0.28)",
+            }}
+          >
+            <Trash2 className="h-4 w-4" style={{ color: "oklch(0.78 0.16 27)" }} />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">Delete device data</p>
+            <p className="text-xs text-muted-foreground">
+              Clears branches & BMR history on this device
+            </p>
+          </div>
+        </button>
       </Section>
 
       <Section icon={Heart} title="About">
