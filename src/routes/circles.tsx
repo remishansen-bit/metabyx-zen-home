@@ -64,6 +64,12 @@ function CirclesPage() {
   const [newName, setNewName] = useState("");
   const [newVisibility, setNewVisibility] = useState<"private" | "public">("private");
   const [joinCode, setJoinCode] = useState("");
+  const [joinError, setJoinError] = useState<string | null>(null);
+
+  const shapeOk = isValidCodeShape(joinCode);
+  const attemptsLeft = joinAttemptsRemaining();
+  const joinHintId = "join-code-hint";
+  const joinErrorId = "join-code-error";
 
   return (
     <PhoneFrame>
@@ -168,11 +174,27 @@ function CirclesPage() {
             setNewName("");
           }}
         >
+          <label htmlFor="circle-name-input" className="mt-3 block text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            Circle name
+          </label>
           <input
+            id="circle-name-input"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="Circle name"
-            className="glass mt-3 w-full rounded-2xl bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                const c = createCircle(newName || "Untitled circle", newVisibility);
+                notify.saved("Circle created", `Share code ${c.joinCode} to invite people.`);
+                setOpenCreate(false);
+                setNewName("");
+              }
+            }}
+            placeholder="e.g. Weekly Reset"
+            autoFocus
+            maxLength={60}
+            aria-label="Circle name"
+            className="glass mt-1 w-full rounded-2xl bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-gold"
           />
           <div className="glass mt-2 flex rounded-2xl p-1 text-[11px] uppercase tracking-[0.2em]">
             {(["private", "public"] as const).map((v) => (
@@ -196,6 +218,7 @@ function CirclesPage() {
           onClose={() => {
             setOpenJoin(false);
             setJoinCode("");
+            setJoinError(null);
           }}
           onConfirm={() => {
             // Always go through joinByCode so the throttle counts even bad
@@ -206,32 +229,77 @@ function CirclesPage() {
               notify.saved("Joined", `You're in ${c.name}.`);
               setOpenJoin(false);
               setJoinCode("");
+              setJoinError(null);
             } catch (err) {
-              notify.error(
-                "Couldn't join",
+              const msg =
                 err instanceof Error
                   ? err.message
-                  : "That invite code isn't valid or has expired.",
+                  : "That invite code isn't valid or has expired.";
+              setJoinError(msg);
+              notify.error(
+                "Couldn't join",
+                msg,
               );
             }
           }}
         >
+          <label htmlFor="join-code-input" className="mt-3 block text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            Invite code
+          </label>
           <input
+            id="join-code-input"
             value={joinCode}
-            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+            onChange={(e) => {
+              setJoinCode(e.target.value.toUpperCase());
+              if (joinError) setJoinError(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                (e.currentTarget.form ?? e.currentTarget).blur?.();
+                // Submit via the dialog's confirm path.
+                try {
+                  const c = joinByCode(joinCode);
+                  notify.saved("Joined", `You're in ${c.name}.`);
+                  setOpenJoin(false);
+                  setJoinCode("");
+                  setJoinError(null);
+                } catch (err) {
+                  const msg =
+                    err instanceof Error
+                      ? err.message
+                      : "That invite code isn't valid or has expired.";
+                  setJoinError(msg);
+                  notify.error("Couldn't join", msg);
+                }
+              }
+            }}
             placeholder="ABCD-1234"
             inputMode="text"
             autoCapitalize="characters"
+            autoComplete="off"
+            autoFocus
             maxLength={9}
-            aria-invalid={joinCode.length > 0 && !isValidCodeShape(joinCode)}
-            className="glass mt-3 w-full rounded-2xl bg-transparent px-4 py-3 text-sm uppercase tracking-[0.2em] text-foreground outline-none placeholder:text-muted-foreground"
+            aria-invalid={Boolean(joinError) || (joinCode.length > 0 && !shapeOk)}
+            aria-describedby={`${joinHintId}${joinError || (joinCode.length > 0 && !shapeOk) ? ` ${joinErrorId}` : ""}`}
+            aria-label="Circle invite code, formatted four characters dash four characters"
+            className="glass mt-1 w-full rounded-2xl bg-transparent px-4 py-3 text-sm uppercase tracking-[0.2em] text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-gold"
           />
-          <p className="mt-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Format: 4 chars · dash · 4 chars · {joinAttemptsRemaining()}/{JOIN_LIMIT} attempts left
+          <p id={joinHintId} className="mt-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            Format: 4 chars · dash · 4 chars · {attemptsLeft}/{JOIN_LIMIT} attempts left
           </p>
-          {joinCode.length > 0 && !isValidCodeShape(joinCode) && (
-            <p className="mt-1 text-[11px] text-rose-300">
-              Codes look like <span className="font-mono">ABCD-1234</span>.
+          {(joinError || (joinCode.length > 0 && !shapeOk)) && (
+            <p
+              id={joinErrorId}
+              role="alert"
+              aria-live="polite"
+              className="mt-1 text-[11px] text-rose-300"
+            >
+              {joinError ?? (
+                <>
+                  Codes look like <span className="font-mono">ABCD-1234</span>.
+                </>
+              )}
             </p>
           )}
         </SheetDialog>
