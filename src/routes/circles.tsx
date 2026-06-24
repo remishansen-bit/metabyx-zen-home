@@ -57,6 +57,7 @@ export const Route = createFileRoute("/circles")({
 });
 
 function CirclesPage() {
+  const { t } = useTranslation();
   const { tier, loading: subLoading } = useSubscription();
   const navigate = useNavigate();
   const allowed = canAccess(tier, "pro");
@@ -81,7 +82,7 @@ function CirclesPage() {
         <Link
           to="/profile"
           className="glass flex h-9 w-9 items-center justify-center rounded-full"
-          aria-label="Back"
+          aria-label={t("circlesFull.backAria")}
         >
           <ChevronLeft className="h-4 w-4 text-foreground" />
         </Link>
@@ -89,7 +90,7 @@ function CirclesPage() {
           className="text-xl font-light text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          Metabolic Circles
+          {t("circlesFull.header")}
         </h1>
         <span className="w-9" aria-hidden />
       </header>
@@ -97,8 +98,8 @@ function CirclesPage() {
       {!subLoading && !allowed && (
         <PaywallLockedCard
           required="pro"
-          title="Circles are part of Pro"
-          description="Small shared rooms — invite a few people in, hold one collective pulse together."
+          title={t("circlesFull.paywallTitle")}
+          description={t("circlesFull.paywallDesc")}
           onUnlock={() => navigate({ to: "/settings" })}
         />
       )}
