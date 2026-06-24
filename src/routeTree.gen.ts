@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SessionRouteImport } from './routes/session'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MorningRouteImport } from './routes/morning'
@@ -32,6 +33,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const SessionRoute = SessionRouteImport.update({
   id: '/session',
   path: '/session',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/morning': typeof MorningRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/session': typeof SessionRoute
   '/settings': typeof SettingsRoute
   '/api/transcribe': typeof ApiTranscribeRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByTo {
   '/morning': typeof MorningRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/session': typeof SessionRoute
   '/settings': typeof SettingsRoute
   '/api/transcribe': typeof ApiTranscribeRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/morning': typeof MorningRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/session': typeof SessionRoute
   '/settings': typeof SettingsRoute
   '/api/transcribe': typeof ApiTranscribeRoute
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/morning'
     | '/onboarding'
     | '/profile'
+    | '/reset-password'
     | '/session'
     | '/settings'
     | '/api/transcribe'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/morning'
     | '/onboarding'
     | '/profile'
+    | '/reset-password'
     | '/session'
     | '/settings'
     | '/api/transcribe'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/morning'
     | '/onboarding'
     | '/profile'
+    | '/reset-password'
     | '/session'
     | '/settings'
     | '/api/transcribe'
@@ -205,6 +217,7 @@ export interface RootRouteChildren {
   MorningRoute: typeof MorningRoute
   OnboardingRoute: typeof OnboardingRoute
   ProfileRoute: typeof ProfileRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SessionRoute: typeof SessionRoute
   SettingsRoute: typeof SettingsRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
@@ -226,6 +239,13 @@ declare module '@tanstack/react-router' {
       path: '/session'
       fullPath: '/session'
       preLoaderRoute: typeof SessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -325,6 +345,7 @@ const rootRouteChildren: RootRouteChildren = {
   MorningRoute: MorningRoute,
   OnboardingRoute: OnboardingRoute,
   ProfileRoute: ProfileRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SessionRoute: SessionRoute,
   SettingsRoute: SettingsRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
