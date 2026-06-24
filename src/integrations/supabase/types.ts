@@ -83,11 +83,33 @@ export type Database = {
         }
         Relationships: []
       }
+      share_link_views: {
+        Row: {
+          id: string
+          token: string
+          viewed_at: string
+          visitor_hash: string
+        }
+        Insert: {
+          id?: string
+          token: string
+          viewed_at?: string
+          visitor_hash: string
+        }
+        Update: {
+          id?: string
+          token?: string
+          viewed_at?: string
+          visitor_hash?: string
+        }
+        Relationships: []
+      }
       share_links: {
         Row: {
           anonymous: boolean
           body: string
           created_at: string
+          expires_at: string
           id: string
           kind: Database["public"]["Enums"]["share_link_kind"]
           revoked_at: string | null
@@ -102,6 +124,7 @@ export type Database = {
           anonymous?: boolean
           body: string
           created_at?: string
+          expires_at?: string
           id?: string
           kind: Database["public"]["Enums"]["share_link_kind"]
           revoked_at?: string | null
@@ -116,6 +139,7 @@ export type Database = {
           anonymous?: boolean
           body?: string
           created_at?: string
+          expires_at?: string
           id?: string
           kind?: Database["public"]["Enums"]["share_link_kind"]
           revoked_at?: string | null
@@ -196,6 +220,7 @@ export type Database = {
           author_label: string
           body: string
           created_at: string
+          expires_at: string
           kind: Database["public"]["Enums"]["share_link_kind"]
           snapshot: Json
           title: string
