@@ -14,6 +14,10 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "../components/ui/sonner";
 import { initThemeFromStorage } from "../lib/theme";
 import { PaymentTestModeBanner } from "../components/PaymentTestModeBanner";
+import { initI18n, applyDocumentDirection } from "../i18n";
+
+// Initialize i18n once at module load so SSR + client share the same instance.
+initI18n();
 
 function NotFoundComponent() {
   return (
@@ -129,6 +133,15 @@ function RootComponent() {
   // doesn't flash from default → preferred on every launch.
   useEffect(() => {
     initThemeFromStorage();
+  }, []);
+
+  // Apply <html lang> + dir for the active language (handles RTL like Arabic).
+  useEffect(() => {
+    const i18n = (initI18n() as unknown) as { language: string; on: (e: string, fn: () => void) => void; off: (e: string, fn: () => void) => void };
+    applyDocumentDirection(i18n.language ?? "en");
+    const onChange = () => applyDocumentDirection(i18n.language ?? "en");
+    i18n.on("languageChanged", onChange);
+    return () => i18n.off("languageChanged", onChange);
   }, []);
 
   return (
