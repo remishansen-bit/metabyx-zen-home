@@ -11,11 +11,20 @@ import {
   Palette,
   LogOut,
   Check,
+  Download,
+  Trash2,
+  BellRing,
 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth, refreshProfile, signOut, useAuth } from "@/lib/auth";
 import { notify } from "@/lib/feedback";
+import { applyTheme, type ThemeName } from "@/lib/theme";
+import {
+  notificationPermission,
+  requestNotificationPermission,
+  scheduleReminders,
+} from "@/lib/reminders";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings · METABYX" }] }),
