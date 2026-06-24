@@ -257,3 +257,39 @@
     transform: none !important;
   }
 }
+
+/* ---- PhoneFrame: iPhone-like shell with safe-area + scrollable inner ----
+ * Mobile: full-bleed, fills the dynamic viewport, respects iOS safe areas.
+ * Desktop (sm+): capped at iPhone Pro proportions so screens stop feeling too tall.
+ */
+.phone-shell-outer {
+  padding-top: max(env(safe-area-inset-top), 0.75rem);
+  padding-bottom: max(env(safe-area-inset-bottom), 0.75rem);
+}
+.phone-shell {
+  /* Mobile: occupy the available viewport minus the outer padding */
+  min-height: calc(100dvh - 1.5rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  height: calc(100dvh - 1.5rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+@media (min-width: 640px) {
+  .phone-shell {
+    /* Desktop: real iPhone 15 Pro-ish height, never larger than the viewport */
+    height: min(844px, calc(100dvh - 4rem));
+    min-height: 0;
+    box-shadow:
+      0 60px 120px -40px oklch(0 0 0 / 0.7),
+      0 0 0 1px oklch(1 0 0 / 0.04) inset;
+  }
+}
+.phone-shell-scroll {
+  /* iOS momentum scroll inside the device shell */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+.phone-pad-bottom-safe {
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+}
+.phone-pad-bottom-tabs {
+  /* Tab bar sits absolute at bottom-3; leave room for it + the safe area */
+  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
+}
