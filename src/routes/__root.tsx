@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "../components/ui/sonner";
+import { initThemeFromStorage } from "../lib/theme";
 
 function NotFoundComponent() {
   return (
@@ -122,6 +123,12 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Apply the user's persisted theme as soon as the app boots so the look
+  // doesn't flash from default → preferred on every launch.
+  useEffect(() => {
+    initThemeFromStorage();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
