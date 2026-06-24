@@ -174,11 +174,27 @@ function CirclesPage() {
             setNewName("");
           }}
         >
+          <label htmlFor="circle-name-input" className="mt-3 block text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            Circle name
+          </label>
           <input
+            id="circle-name-input"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="Circle name"
-            className="glass mt-3 w-full rounded-2xl bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                const c = createCircle(newName || "Untitled circle", newVisibility);
+                notify.saved("Circle created", `Share code ${c.joinCode} to invite people.`);
+                setOpenCreate(false);
+                setNewName("");
+              }
+            }}
+            placeholder="e.g. Weekly Reset"
+            autoFocus
+            maxLength={60}
+            aria-label="Circle name"
+            className="glass mt-1 w-full rounded-2xl bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-gold"
           />
           <div className="glass mt-2 flex rounded-2xl p-1 text-[11px] uppercase tracking-[0.2em]">
             {(["private", "public"] as const).map((v) => (
