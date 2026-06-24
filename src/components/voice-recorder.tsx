@@ -1640,14 +1640,14 @@ export function VoiceRecorder({
                       );
                     })}
                   </span>
-                  {speaking ? "Snakker" : "Lytter"}
+                  {speaking ? t("voice.vadSpeaking") : t("voice.vadListening")}
                 </span>
               </div>
             {/* Pitch / stability chip + supportive cue */}
             {showPitch && pitch.hz != null && (
               <div
                 role="status"
-                aria-label={`Tonehøyde ${Math.round(pitch.hz)} hertz, stabilitet ${Math.round(smoothedStability * 100)} prosent`}
+                aria-label={t("voice.pitchAria", { hz: Math.round(pitch.hz), pct: Math.round(smoothedStability * 100) })}
                 className="hidden flex-col items-end gap-0.5 sm:flex"
               >
                 <div className="flex items-center gap-1.5">
@@ -1675,7 +1675,7 @@ export function VoiceRecorder({
                     samples yet, prefer a calm waiting message over a noisy cue. */}
                 {smoothedStability < 0.2 || pitch.stability === 0 ? (
                   <span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/70">
-                    Lytter etter tydeligere stemme
+                    {t("voice.listeningClearer")}
                   </span>
                 ) : pitchCue(t, { hz: pitch.hz, stability: smoothedStability }) && (
                   <span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">
@@ -1691,14 +1691,14 @@ export function VoiceRecorder({
                     ? undefined
                     : { animation: "vr-tick 1s ease-in-out infinite" }
                 }
-                aria-label={`Tid ${elapsed} sekunder`}
+                aria-label={t("voice.timeAria", { seconds: elapsed })}
               >
                 {formatTime(elapsed)}
               </span>
               <button
                 type="button"
                 onClick={stop}
-                aria-label="Fullfør opptak"
+                aria-label={t("voice.finishRecAria")}
                 className="group relative ml-1 inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-foreground transition-all duration-300 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/80"
                 style={{
                   background:
