@@ -16,7 +16,8 @@
     "appstore:screenshots": "node scripts/appstore-screenshots.mjs",
     "ios:sync": "bun run build && bunx cap sync ios",
     "ios:open": "bunx cap open ios",
-    "ios:add": "bunx cap add ios"
+    "ios:add": "bunx cap add ios",
+    "ios:assets": "bunx @capacitor/assets generate --ios"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.51",
