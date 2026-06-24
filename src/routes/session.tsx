@@ -2,6 +2,7 @@ import { RequireAuth } from "@/lib/auth";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useTranslation, Trans } from "react-i18next";
 import {
   ArrowLeft,
   ArrowRight,
@@ -56,90 +57,49 @@ export const Route = createFileRoute("/session")({
   component: () => (<RequireAuth><SessionPage /></RequireAuth>),
 });
 
+type PathId = "action" | "story" | "symbolic" | "prayer";
 type Path = {
-  id: "action" | "story" | "symbolic" | "prayer";
+  id: PathId;
   icon: typeof Footprints;
-  title: string;
-  blurb: string;
-  guidance: string[];
 };
 
 type Suggestion = {
-  id: Path["id"];
+  id: PathId;
   title: string;
   description: string;
   firstStep: string;
 };
 
 const PATHS: Path[] = [
-  {
-    id: "action",
-    icon: Footprints,
-    title: "Take an action",
-    blurb: "A small concrete move that loosens the branch.",
-    guidance: [
-      "Name the smallest possible next step — under 2 minutes.",
-      "Do it now, or place it on tomorrow's calendar with a time.",
-      "Notice the relief of moving, not the size of the move.",
-    ],
-  },
-  {
-    id: "story",
-    icon: PenLine,
-    title: "Write a new story",
-    blurb: "Re-author the meaning so the branch can settle.",
-    guidance: [
-      "Find the old sentence you've been telling yourself.",
-      "Rewrite it in a kinder, truer voice.",
-      "Read the new sentence aloud, slowly, three times.",
-    ],
-  },
-  {
-    id: "symbolic",
-    icon: Leaf,
-    title: "Symbolic gesture",
-    blurb: "An embodied act that marks the shift.",
-    guidance: [
-      "Choose a small symbol — a candle, a stone, an exhale.",
-      "Hold or perform it while naming what you release.",
-      "Let the gesture stand in for the work, then return.",
-    ],
-  },
-  {
-    id: "prayer",
-    icon: Heart,
-    title: "Reflection or prayer",
-    blurb: "Hand the branch to something larger than yourself.",
-    guidance: [
-      "Sit still. Take three slow breaths through the nose.",
-      "Offer the branch up in your own words.",
-      "Listen — without expectation — for one quiet sentence back.",
-    ],
-  },
+  { id: "action", icon: Footprints },
+  { id: "story", icon: PenLine },
+  { id: "symbolic", icon: Leaf },
+  { id: "prayer", icon: Heart },
 ];
 
-const FRICTIONS = [
-  { id: "tight-chest", label: "Tight chest", body: "body" },
-  { id: "knot-stomach", label: "Knot in stomach", body: "body" },
-  { id: "racing-mind", label: "Racing mind", body: "mind" },
-  { id: "heavy", label: "Heaviness", body: "body" },
-  { id: "looping", label: "Looping thought", body: "mind" },
-  { id: "numb", label: "Numb / blank", body: "mind" },
-  { id: "restless", label: "Restless energy", body: "body" },
-  { id: "fearful", label: "Quiet fear", body: "mind" },
+const FRICTIONS: { id: string; labelKey: string; body: "body" | "mind" }[] = [
+  { id: "tight-chest", labelKey: "tightChest", body: "body" },
+  { id: "knot-stomach", labelKey: "knotStomach", body: "body" },
+  { id: "racing-mind", labelKey: "racingMind", body: "mind" },
+  { id: "heavy", labelKey: "heavy", body: "body" },
+  { id: "looping", labelKey: "looping", body: "mind" },
+  { id: "numb", labelKey: "numb", body: "mind" },
+  { id: "restless", labelKey: "restless", body: "body" },
+  { id: "fearful", labelKey: "fearful", body: "mind" },
 ];
 
-const PHASES = [
-  "Identify",
-  "Map friction",
-  "Explore paths",
-  "Walk it through",
-  "Close the branch",
+const PHASE_KEYS = [
+  "identify",
+  "mapFriction",
+  "explorePaths",
+  "walkThrough",
+  "closeBranchPhase",
 ] as const;
 
 type Phase = 0 | 1 | 2 | 3 | 4;
 
 function SessionPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const search = Route.useSearch();
   const state = useMetabyx();
@@ -158,7 +118,7 @@ function SessionPage() {
   const [whatIf, setWhatIf] = useState("");
   const [frictions, setFrictions] = useState<Set<string>>(new Set());
   const [frictionNote, setFrictionNote] = useState("");
-  const [pathId, setPathId] = useState<Path["id"] | null>(null);
+  const [pathId, setPathId] = useState<PathId | null>(null);
   const [pathDone, setPathDone] = useState(false);
   const [newStory, setNewStory] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null);
@@ -209,9 +169,8 @@ function SessionPage() {
       setSuggestLoading(false);
       setSuggestedFor(sig);
       gate.show("plus", {
-        feature: "AI-guided paths are part of Plus",
-        description:
-          "Plus tailors the three counterfactual paths to your branch — Free shows preset paths only.",
+        feature: t("sessionFull.paths.aiFeature"),
+        description: t("sessionFull.paths.aiDescription"),
       });
       return;
     }
@@ -233,7 +192,7 @@ function SessionPage() {
       })
       .catch(() => {
         if (cancelled) return;
-        setSuggestError("Could not reach guidance — choose any path that draws you.");
+        setSuggestError(t("sessionFull.paths.errorFallback"));
       })
       .finally(() => {
         if (!cancelled) setSuggestLoading(false);
@@ -241,7 +200,7 @@ function SessionPage() {
     return () => {
       cancelled = true;
     };
-  }, [phase, whatIf, frictions, frictionNote, suggest, suggestedFor]);
+  }, [phase, whatIf, frictions, frictionNote, suggest, suggestedFor, aiAllowed, gate, t]);
 
   // Debounced emotional analysis for Phase 0 (whatIf) and Phase 4 (newStory)
   useEffect(() => {
@@ -283,7 +242,7 @@ function SessionPage() {
         .catch(() => {
           setEmotionError((m) => ({
             ...m,
-            [phase]: "Couldn't read the tone just now — your words still land.",
+            [phase]: t("voice.announceTense"),
           }));
         })
         .finally(() => {
@@ -309,12 +268,12 @@ function SessionPage() {
     }
     const reflection = [
       newStory.trim(),
-      path ? `Path: ${path.title}` : null,
+      path ? `${t("sessionFull.finish.pathLabel")}: ${t(`sessionFull.path.${path.id}.title`)}` : null,
     ]
       .filter(Boolean)
       .join(" · ");
     metabolizeBranch(activeBranch.id, 5, reflection);
-    notify.saved("Branch saved to library", `${activeBranch.title}`);
+    notify.saved(t("sessionFull.finish.savedTitle"), `${activeBranch.title}`);
     // Compute BMR against the just-mutated branch list so the recap shows the
     // post-session score (the live store updates a tick later via the hook).
     const projected: Branch = { ...activeBranch, status: "metabolized", rating: 5, reflection };
@@ -347,21 +306,21 @@ function SessionPage() {
         <button
           onClick={back}
           className="glass flex h-10 w-10 items-center justify-center rounded-full"
-          aria-label="Back"
+          aria-label={t("sessionFull.ariaBack")}
         >
           <ArrowLeft className="h-4 w-4 text-foreground" />
         </button>
         <div className="flex flex-col items-center">
           <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-            Phase {phase + 1} of 5
+            {t("sessionFull.eyebrowPhase", { n: phase + 1 })}
           </p>
-          <p className="text-xs text-gold">{PHASES[phase]}</p>
+          <p className="text-xs text-gold">{t(`sessionFull.phase.${PHASE_KEYS[phase]}`)}</p>
         </div>
         <Link
           to="/"
           className="text-[10px] uppercase tracking-wider text-muted-foreground"
         >
-          Exit
+          {t("sessionFull.exit")}
         </Link>
       </header>
 
@@ -446,7 +405,7 @@ function SessionPage() {
               boxShadow: "var(--shadow-gold)",
             }}
           >
-            Continue
+            {t("sessionFull.continue")}
             <ArrowRight className="h-4 w-4" />
           </button>
         ) : (
@@ -461,11 +420,11 @@ function SessionPage() {
             }}
           >
             <Check className="h-4 w-4" />
-            Close the branch
+            {t("sessionFull.closeBranch")}
           </button>
         )}
         <p className="text-center text-[10px] uppercase tracking-wider text-muted-foreground">
-          Breathe. There is no hurry.
+          {t("sessionFull.breathe")}
         </p>
       </div>
 
@@ -475,12 +434,13 @@ function SessionPage() {
 }
 
 function PhaseProgress({ phase }: { phase: Phase }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-1.5">
-      {PHASES.map((label, i) => {
+      {PHASE_KEYS.map((key, i) => {
         const active = i <= phase;
         return (
-          <div key={label} className="flex-1">
+          <div key={key} className="flex-1" aria-label={t(`sessionFull.phase.${key}`)}>
             <div
               className="h-1 rounded-full transition-all duration-700"
               style={{
@@ -512,6 +472,7 @@ function IdentifyPhase({
   setWhatIf: (v: string) => void;
   children?: ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <section className="flex flex-col gap-5">
       <div>
@@ -519,17 +480,26 @@ function IdentifyPhase({
           className="text-2xl font-light leading-snug text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          What is the <span className="text-gold italic">"what if"</span> thought right now?
+          <Trans
+            i18nKey="sessionFull.identify.titleFull"
+            defaults='{{pre}} <1>{{hi}}</1> {{post}}'
+            values={{
+              pre: t("sessionFull.identify.titlePre"),
+              hi: t("sessionFull.identify.titleHi"),
+              post: t("sessionFull.identify.titlePost"),
+            }}
+            components={{ 1: <span className="text-gold italic" /> }}
+          />
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Begin where the branch lives in language. One sentence is enough.
+          {t("sessionFull.identify.subtitle")}
         </p>
       </div>
 
       {openBranches.length > 0 && (
         <div className="flex flex-col gap-2">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            Or choose an existing branch
+            {t("sessionFull.identify.orExisting")}
           </p>
           <div className="flex flex-wrap gap-2">
             {openBranches.map((b) => {
@@ -552,7 +522,7 @@ function IdentifyPhase({
         <textarea
           value={whatIf}
           onChange={(e) => setWhatIf(e.target.value)}
-          placeholder="What if I'm not ready for the conversation tomorrow…"
+          placeholder={t("sessionFull.identify.placeholder")}
           rows={5}
           className="w-full resize-none bg-transparent text-base leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
           style={{ fontFamily: "Fraunces, serif" }}
@@ -566,15 +536,15 @@ function IdentifyPhase({
           the textarea above, where it remains fully editable. */}
       <details className="glass rounded-2xl px-4 py-3">
         <summary className="flex cursor-pointer items-center justify-between text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-          <span>Speak the branch aloud</span>
-          <span className="text-gold">+ Voice</span>
+          <span>{t("sessionFull.identify.speakAloud")}</span>
+          <span className="text-gold">{t("sessionFull.identify.voiceLabel")}</span>
         </summary>
         <div className="mt-3">
           <VoiceRecorder
             language="en-US"
             compact
             showHistory={false}
-            ariaLabel="Record the what-if branch"
+            ariaLabel={t("sessionFull.identify.recordAria")}
             onTranscription={(text) =>
               setWhatIf(whatIf ? `${whatIf.trim()} ${text}` : text)
             }
@@ -597,6 +567,7 @@ function FrictionPhase({
   note: string;
   setNote: (v: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <section className="flex flex-col gap-5">
       <div>
@@ -604,10 +575,19 @@ function FrictionPhase({
           className="text-2xl font-light leading-snug text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          How does it <span className="text-gold italic">land</span> in body and mind?
+          <Trans
+            i18nKey="sessionFull.friction.titleFull"
+            defaults='{{pre}} <1>{{hi}}</1> {{post}}'
+            values={{
+              pre: t("sessionFull.friction.titlePre"),
+              hi: t("sessionFull.friction.titleHi"),
+              post: t("sessionFull.friction.titlePost"),
+            }}
+            components={{ 1: <span className="text-gold italic" /> }}
+          />
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Tap what you notice. Nothing more to do than name it.
+          {t("sessionFull.friction.subtitle")}
         </p>
       </div>
 
@@ -620,9 +600,9 @@ function FrictionPhase({
               onClick={() => toggle(f.id)}
               className={`glass flex items-center justify-between rounded-2xl px-3 py-3 text-left transition-all hover-scale ${on ? "ring-1 ring-[oklch(0.82_0.14_82/0.6)]" : "opacity-70"}`}
             >
-              <span className="text-sm text-foreground">{f.label}</span>
+              <span className="text-sm text-foreground">{t(`sessionFull.frictionLabel.${f.labelKey}`)}</span>
               <span className="text-[9px] uppercase tracking-wider text-muted-foreground">
-                {f.body}
+                {t(`sessionFull.frictionBody.${f.body}`)}
               </span>
             </button>
           );
@@ -632,14 +612,14 @@ function FrictionPhase({
       <div className="glass rounded-2xl p-4">
         <div className="flex items-center justify-between">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            Anything else?
+            {t("sessionFull.friction.anythingElse")}
           </p>
           <VoiceInputButton value={note} onChange={setNote} compact />
         </div>
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="A short word for what's underneath…"
+          placeholder={t("sessionFull.friction.placeholder")}
           rows={2}
           className="mt-1 w-full resize-none bg-transparent text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
         />
@@ -649,15 +629,15 @@ function FrictionPhase({
           the note above and stays editable before continuing. */}
       <details className="glass rounded-2xl px-4 py-3">
         <summary className="flex cursor-pointer items-center justify-between text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-          <span>Describe the feeling aloud</span>
-          <span className="text-gold">+ Voice</span>
+          <span>{t("sessionFull.friction.describeAloud")}</span>
+          <span className="text-gold">{t("sessionFull.identify.voiceLabel")}</span>
         </summary>
         <div className="mt-3">
           <VoiceRecorder
             language="en-US"
             compact
             showHistory={false}
-            ariaLabel="Record what you notice in body and mind"
+            ariaLabel={t("sessionFull.friction.recordAria")}
             onTranscription={(text) =>
               setNote(note ? `${note.trim()} ${text}` : text)
             }
@@ -676,13 +656,14 @@ function PathsPhase({
   loading,
   error,
 }: {
-  pathId: Path["id"] | null;
-  onPick: (id: Path["id"]) => void;
+  pathId: PathId | null;
+  onPick: (id: PathId) => void;
   suggestions: Suggestion[] | null;
   intro: string;
   loading: boolean;
   error: string | null;
 }) {
+  const { t } = useTranslation();
   const list: { meta: Path; sug?: Suggestion }[] = suggestions
     ? suggestions
         .map((s) => {
@@ -699,15 +680,23 @@ function PathsPhase({
           className="text-2xl font-light leading-snug text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          Your <span className="text-gold italic">integration paths</span>.
+          <Trans
+            i18nKey="sessionFull.paths.titleFull"
+            defaults='{{pre}} <1>{{hi}}</1>{{post}}'
+            values={{
+              pre: t("sessionFull.paths.titlePre"),
+              hi: t("sessionFull.paths.titleHi"),
+              post: t("sessionFull.paths.titlePost"),
+            }}
+            components={{ 1: <span className="text-gold italic" /> }}
+          />
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {loading
-            ? "Listening to what you shared…"
+            ? t("sessionFull.paths.listening")
             : error
               ? error
-              : intro ||
-                "Read each slowly. Choose the one your body leans toward."}
+              : intro || t("sessionFull.paths.defaultIntro")}
         </p>
       </div>
 
@@ -730,7 +719,9 @@ function PathsPhase({
       {!loading && (
       <ul className="flex flex-col gap-3">
         {list.map(({ meta, sug }, i) => {
-          const { id, icon: Icon, title, blurb } = meta;
+          const { id, icon: Icon } = meta;
+          const title = t(`sessionFull.path.${id}.title`);
+          const blurb = t(`sessionFull.path.${id}.blurb`);
           const on = id === pathId;
           return (
             <li
@@ -803,10 +794,16 @@ function WalkPhase({
   done: boolean;
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const Icon = path.icon;
-  const steps = suggestion?.firstStep
-    ? [suggestion.firstStep, ...path.guidance]
-    : path.guidance;
+  const guidance = [
+    t(`sessionFull.path.${path.id}.g1`),
+    t(`sessionFull.path.${path.id}.g2`),
+    t(`sessionFull.path.${path.id}.g3`),
+  ];
+  const steps: string[] = suggestion?.firstStep
+    ? [suggestion.firstStep, ...guidance]
+    : guidance;
   return (
     <section className="flex flex-col gap-5">
       <div className="flex items-center gap-3">
@@ -820,12 +817,12 @@ function WalkPhase({
           />
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-[0.3em] text-gold">Your path</p>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-gold">{t("sessionFull.walk.yourPath")}</p>
           <h1
             className="text-xl font-light text-foreground"
             style={{ fontFamily: "Fraunces, serif" }}
           >
-            {suggestion?.title || path.title}
+            {suggestion?.title || t(`sessionFull.path.${path.id}.title`)}
           </h1>
         </div>
       </div>
@@ -874,12 +871,12 @@ function WalkPhase({
         {done ? (
           <>
             <Check className="h-4 w-4 text-gold" />
-            <span className="text-foreground">I walked it through</span>
+            <span className="text-foreground">{t("sessionFull.walk.walked")}</span>
           </>
         ) : (
           <>
             <Sparkles className="h-4 w-4 text-gold" />
-            <span className="text-foreground">Mark as walked</span>
+            <span className="text-foreground">{t("sessionFull.walk.markWalked")}</span>
           </>
         )}
       </button>
@@ -898,6 +895,7 @@ function ClosePhase({
   setNewStory: (v: string) => void;
   children?: ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <section className="flex flex-col gap-5">
       <div>
@@ -905,17 +903,26 @@ function ClosePhase({
           className="text-2xl font-light leading-snug text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          Close it with a <span className="text-gold italic">new sentence</span>.
+          <Trans
+            i18nKey="sessionFull.close.titleFull"
+            defaults='{{pre}} <1>{{hi}}</1>{{post}}'
+            values={{
+              pre: t("sessionFull.close.titlePre"),
+              hi: t("sessionFull.close.titleHi"),
+              post: t("sessionFull.close.titlePost"),
+            }}
+            components={{ 1: <span className="text-gold italic" /> }}
+          />
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          One or two lines. The truer story you can hold now.
+          {t("sessionFull.close.subtitle")}
         </p>
       </div>
 
       {whatIf && (
         <div className="glass rounded-2xl p-4">
           <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-            The old branch
+            {t("sessionFull.close.oldBranch")}
           </p>
           <p
             className="mt-2 text-sm leading-relaxed text-muted-foreground line-through decoration-[oklch(0.82_0.14_82/0.5)]"
@@ -935,13 +942,13 @@ function ClosePhase({
         }}
       >
         <div className="flex items-center justify-between">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-gold">The new story</p>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-gold">{t("sessionFull.close.newStory")}</p>
           <VoiceInputButton value={newStory} onChange={setNewStory} compact />
         </div>
         <textarea
           value={newStory}
           onChange={(e) => setNewStory(e.target.value)}
-          placeholder="I am allowed to begin gently. Tomorrow will meet me as I am…"
+          placeholder={t("sessionFull.close.placeholder")}
           rows={5}
           className="mt-2 w-full resize-none bg-transparent text-base leading-relaxed text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
           style={{ fontFamily: "Fraunces, serif" }}
@@ -952,15 +959,15 @@ function ClosePhase({
           editable transcript before it lands in the textarea above. */}
       <details className="glass rounded-2xl px-4 py-3">
         <summary className="flex cursor-pointer items-center justify-between text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-          <span>Speak the new story aloud</span>
-          <span className="text-gold">+ Voice</span>
+          <span>{t("sessionFull.close.speakAloud")}</span>
+          <span className="text-gold">{t("sessionFull.identify.voiceLabel")}</span>
         </summary>
         <div className="mt-3">
           <VoiceRecorder
             language="en-US"
             compact
             showHistory={false}
-            ariaLabel="Record the closing story"
+            ariaLabel={t("sessionFull.close.recordAria")}
             onTranscription={(text) =>
               setNewStory(newStory ? `${newStory.trim()} ${text}` : text)
             }
@@ -978,6 +985,7 @@ function RecapView({
   recap: { branch: Branch; bmr: number; reflection: string };
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const ctlRef = useRef<TtsController | null>(null);
   const [playState, setPlayState] = useState<"idle" | "playing" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -985,11 +993,13 @@ function RecapView({
   const narrative = useMemo(() => {
     const r = recap.reflection?.trim();
     return [
-      `You noticed ${recap.branch.title}.`,
-      r ? `You closed it with this thought: ${r}` : "You let it settle, gently.",
-      `Your metabolic rhythm today is ${recap.bmr}. It is held now. Rest well.`,
+      t("sessionFull.finish.narrNoticed", { title: recap.branch.title }),
+      r
+        ? t("sessionFull.finish.narrClosed", { thought: r })
+        : t("sessionFull.finish.narrSettled"),
+      t("sessionFull.finish.narrBmr", { bmr: recap.bmr }),
     ].join(" ");
-  }, [recap]);
+  }, [recap, t]);
 
   useEffect(() => () => ctlRef.current?.stop(), []);
 
@@ -999,7 +1009,7 @@ function RecapView({
     // (the `prefers-reduced-motion: reduce` CSS already kills the rest of
     // the app's micro-animations). Nothing here starts without a click.
     if (typeof window !== "undefined" && !("AudioContext" in window)) {
-      const msg = "This browser can't play the voice-over.";
+      const msg = t("sessionFull.finish.unsupportedBrowser");
       setErrorMsg(msg);
       setPlayState("error");
       notify.error(msg);
@@ -1014,10 +1024,10 @@ function RecapView({
       .then(() => setPlayState((s) => (s === "playing" ? "idle" : s)))
       .catch((err: unknown) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
-        const msg = err instanceof Error ? err.message : "Voice-over failed.";
+        const msg = err instanceof Error ? err.message : t("sessionFull.finish.voiceoverFailed");
         setErrorMsg(msg);
         setPlayState("error");
-        notify.error("Voice-over unavailable", msg);
+        notify.error(t("sessionFull.finish.voiceoverUnavailable"), msg);
       });
   };
   const stop = () => {
@@ -1035,17 +1045,26 @@ function RecapView({
         >
           <Check className="h-6 w-6" style={{ color: "var(--primary-foreground)" }} />
         </div>
-        <p className="text-[10px] uppercase tracking-[0.35em] text-gold">Branch metabolized</p>
+        <p className="text-[10px] uppercase tracking-[0.35em] text-gold">{t("sessionFull.finish.eyebrow")}</p>
         <h1
           className="text-2xl font-light leading-snug text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          It is <span className="text-gold italic">held now</span>.
+          <Trans
+            i18nKey="sessionFull.finish.heldFull"
+            defaults='{{pre}} <1>{{hi}}</1>{{post}}'
+            values={{
+              pre: t("sessionFull.finish.heldPre"),
+              hi: t("sessionFull.finish.heldHi"),
+              post: t("sessionFull.finish.heldPost"),
+            }}
+            components={{ 1: <span className="text-gold italic" /> }}
+          />
         </h1>
       </header>
 
       <div className="glass rounded-2xl p-4">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Saved to library</p>
+        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">{t("sessionFull.finish.savedToLibrary")}</p>
         <p
           className="mt-2 text-base leading-relaxed text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
@@ -1071,14 +1090,14 @@ function RecapView({
           boxShadow: "var(--shadow-gold)",
         }}
       >
-        <p className="text-[10px] uppercase tracking-[0.3em] text-gold">Updated BMR</p>
+        <p className="text-[10px] uppercase tracking-[0.3em] text-gold">{t("sessionFull.finish.updatedBmr")}</p>
         <p
           className="mt-1 text-5xl font-light text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
           {recap.bmr}
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">Your metabolic rhythm, today.</p>
+        <p className="mt-1 text-xs text-muted-foreground">{t("sessionFull.finish.bmrSubtitle")}</p>
       </div>
 
       <button
@@ -1086,22 +1105,22 @@ function RecapView({
         onClick={playState === "playing" ? stop : play}
         aria-label={
           playState === "playing"
-            ? "Stop closing voice-over"
+            ? t("sessionFull.finish.ariaStop")
             : playState === "error"
-              ? "Retry closing voice-over"
-              : "Play closing voice-over"
+              ? t("sessionFull.finish.ariaRetry")
+              : t("sessionFull.finish.ariaPlay")
         }
         className="glass flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm text-foreground transition-all active:scale-[0.99]"
       >
         {playState === "playing" ? (
           <>
             <Square className="h-4 w-4 text-gold" />
-            Stop voice-over
+            {t("sessionFull.finish.stopVoiceover")}
           </>
         ) : (
           <>
             <Volume2 className="h-4 w-4 text-gold" />
-            {playState === "error" ? "Try voice-over again" : "Play closing voice-over"}
+            {playState === "error" ? t("sessionFull.finish.retryVoiceover") : t("sessionFull.finish.playVoiceover")}
           </>
         )}
       </button>
@@ -1116,7 +1135,7 @@ function RecapView({
           to="/library"
           className="glass flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm text-foreground"
         >
-          Open the library
+          {t("sessionFull.finish.openLibrary")}
         </Link>
         <button
           onClick={onDone}
@@ -1127,7 +1146,7 @@ function RecapView({
             boxShadow: "var(--shadow-gold)",
           }}
         >
-          Return home
+          {t("sessionFull.finish.returnHome")}
         </button>
       </div>
     </section>

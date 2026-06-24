@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Mic,
   Loader2,
@@ -46,6 +47,7 @@ export function VoiceRecorder({
   showHistory = true,
   historyLimit = 6,
 }: VoiceRecorderProps) {
+  const { t } = useTranslation();
   const [state, setState] = useState<VoiceRecorderState>("idle");
   const [elapsed, setElapsed] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -498,7 +500,7 @@ export function VoiceRecorder({
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (err) {
       setState("error");
-      const msg = describeMicError(err);
+      const msg = describeMicError(t, err);
       setErrorMsg(msg);
       onError?.(msg);
       return;
@@ -510,7 +512,7 @@ export function VoiceRecorder({
     if (!mimeType) {
       stream.getTracks().forEach((t) => t.stop());
       setState("error");
-      const msg = "Denne nettleseren støtter ikke et passende lydformat.";
+      const msg = t("voice.trUnsupported");
       setErrorMsg(msg);
       onError?.(msg);
       return;
@@ -644,7 +646,7 @@ export function VoiceRecorder({
 
     if (blob.size < 1024) {
       setState("error");
-      const msg = "Opptaket var tomt. Hold inne lenger og prøv igjen.";
+      const msg = t("voice.errEmptyRec");
       setErrorMsg(msg);
       onError?.(msg);
       return;
@@ -673,7 +675,7 @@ export function VoiceRecorder({
       if (!mountedRef.current) return;
 
       if (!res.ok || !json.text) {
-        const msg = describeTranscribeError(res.status, json.error);
+        const msg = describeTranscribeError(t, res.status, json.error);
         setState("error");
         setErrorMsg(msg);
         onError?.(msg);
@@ -690,7 +692,7 @@ export function VoiceRecorder({
       }
     } catch (err) {
       const msg =
-        err instanceof Error ? err.message : "Nettverksfeil under transkripsjon.";
+        err instanceof Error ? err.message : t("voice.errNetwork");
       setState("error");
       setErrorMsg(msg);
       onError?.(msg);
@@ -700,7 +702,7 @@ export function VoiceRecorder({
   function acceptDraft() {
     const text = draft.trim();
     if (!text) {
-      const msg = "Teksten er tom. Spill inn på nytt eller skriv inn en tekst.";
+      const msg = t("voice.errEmptyText");
       setErrorMsg(msg);
       setState("error");
       onError?.(msg);
@@ -876,14 +878,14 @@ export function VoiceRecorder({
   // Announce speaking transitions during recording.
   useEffect(() => {
     if (state !== "recording") return;
-    announce(speaking ? "Stemme oppdaget" : "Stille — venter på stemme");
+    announce(speaking ? t("voice.announceSpeaking") : t("voice.announceSilence"));
   }, [speaking, state, announce]);
 
   // Announce low pitch-confidence fallback.
   useEffect(() => {
     if (state !== "recording") return;
     if (pitch.hz != null && smoothedStability < 0.2) {
-      announce("Lav konfidens på tonehøyde — venter på tydeligere stemme");
+      announce(t("voice.announceLowConf"));
     }
   }, [pitch.hz, smoothedStability, state, announce]);
 
@@ -895,13 +897,13 @@ export function VoiceRecorder({
     const tearsConf = emotion.tearfulness?.confidence ?? 0;
     const lowConfTears = emotion.tearfulness?.value && tearsConf < 0.5;
     if (lowConfTears) {
-      announce("Tonen er litt uklar — pust rolig, ordene dine holder");
+      announce(t("voice.announceTense"));
       return;
     }
     if (emotion.summary) {
-      announce(`Følelse: ${emotion.summary}`);
+      announce(`${t("voice.emotion")}: ${emotion.summary}`);
     } else if (emotion.primaryEmotion) {
-      announce(`Følelse oppdaget: ${emotion.primaryEmotion}`);
+      announce(`${t("voice.emotion")}: ${emotion.primaryEmotion}`);
     }
   }, [state, emotion, announce]);
 
@@ -920,7 +922,7 @@ export function VoiceRecorder({
         (window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext })
           .AudioContext ??
         (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AC) throw new Error("AudioContext ikke tilgjengelig");
+      if (!AC) throw new Error(t("voice.errAudioCtx"));
       localCtx = new AC();
       const source = localCtx.createMediaStreamSource(localStream);
       const analyser = localCtx.createAnalyser();
@@ -955,10 +957,10 @@ export function VoiceRecorder({
       setUserThreshold(threshold);
       thresholdRef.current = threshold;
       announce(
-        `Kalibrert. Bakgrunnsstøy ${(floor * 100).toFixed(1)} prosent, terskel satt til ${(threshold * 100).toFixed(1)} prosent.`,
+        t("voice.noiseMeasured", { pct: (floor * 100).toFixed(1) }),
       );
     } catch (err) {
-      const msg = describeMicError(err);
+      const msg = describeMicError(t, err);
       setErrorMsg(msg);
       onError?.(msg);
     } finally {
@@ -972,8 +974,8 @@ export function VoiceRecorder({
 
   // Memoized human label for the speaking indicator (also used by SR).
   const vadStatusLabel = useMemo(
-    () => (speaking ? "Snakker akkurat nå" : "Lytter etter stemme"),
-    [speaking],
+    () => (speaking ? t("voice.speakingNow") : t("voice.listeningForVoice")),
+    [speaking, t],
   );
 
   if (state === "unsupported") {
@@ -1011,19 +1013,19 @@ export function VoiceRecorder({
         boxShadow: isRecording ? "var(--shadow-gold)" : undefined,
       }}
       role="group"
-      aria-label={ariaLabel ?? "Stemmeopptak"}
+      aria-label={ariaLabel ?? t("voice.ariaDefault")}
       onKeyDown={onRootKeyDown}
     >
       {/* SR-only live regions: polite for status, assertive for errors. */}
       <span className="sr-only" aria-live="polite">
         {isRecording
-          ? `Tar opp — ${vadStatusLabel}, ${elapsed} sekunder`
+          ? t("voice.statusRecording", { vad: vadStatusLabel, seconds: elapsed })
           : isProcessing
-            ? "Transkriberer lyden"
+            ? t("voice.statusTranscribing")
             : isDone
-              ? "Ferdig — teksten er klar"
+              ? t("voice.statusDone")
               : isReview
-                ? "Forhåndsvis og rediger teksten før du godtar"
+                ? t("voice.statusReview")
                 : ""}
       </span>
       <span className="sr-only" role="alert" aria-live="assertive">
@@ -1052,16 +1054,16 @@ export function VoiceRecorder({
         <div
           ref={reviewRootRef}
           role="dialog"
-          aria-label="Forhåndsvis og rediger transkripsjon"
+          aria-label={t("voice.statusReview")}
           aria-modal="false"
           className="animate-fade-in flex flex-col gap-3 focus-visible:outline-none"
         >
           <div className="flex items-center justify-between">
             <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-              Forhåndsvisning
+              {t("voice.preview")}
             </p>
             <span className="text-[10px] text-muted-foreground">
-              Rediger om noe ble feil
+              {t("voice.editIfWrong")}
             </span>
           </div>
 
@@ -1082,7 +1084,7 @@ export function VoiceRecorder({
                   if (el.paused) void el.play();
                   else el.pause();
                 }}
-                aria-label={isPlaying ? "Pause avspilling" : "Spill av opptaket"}
+                aria-label={isPlaying ? t("voice.pausePlayback") : t("voice.playRecording")}
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
                 style={{
                   background:
@@ -1114,7 +1116,7 @@ export function VoiceRecorder({
           {pitchSnapshot && (
             <div
               role="group"
-              aria-label={`Stemmesammendrag: ${Math.round(pitchSnapshot.hz)} hertz, stabilitet ${Math.round(pitchSnapshot.stability * 100)} prosent`}
+              aria-label={t("voice.pitchSummaryAria", { hz: Math.round(pitchSnapshot.hz), pct: Math.round(pitchSnapshot.stability * 100) })}
               className="flex items-center justify-between gap-3 rounded-xl px-3 py-2"
               style={{
                 background: "oklch(1 0 0 / 0.03)",
@@ -1123,7 +1125,7 @@ export function VoiceRecorder({
             >
               <div className="flex flex-col">
                 <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
-                  Tonehøyde
+                  {t("voice.pitch")}
                 </span>
                 <span
                   className="text-sm text-foreground"
@@ -1131,13 +1133,13 @@ export function VoiceRecorder({
                 >
                   {Math.round(pitchSnapshot.hz)} Hz
                   <span className="ml-1.5 text-[10px] capitalize text-muted-foreground">
-                    · {pitchCategoryLabel(pitchSnapshot.category)}
+                    · {pitchCategoryLabel(t, pitchSnapshot.category)}
                   </span>
                 </span>
               </div>
               <div className="flex min-w-[120px] flex-col items-end">
                 <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
-                  Variasjon
+                  {t("voice.variation")}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span
@@ -1155,7 +1157,7 @@ export function VoiceRecorder({
                     />
                   </span>
                   <span className="text-[11px] text-foreground/80">
-                    {stabilityLabel(pitchSnapshot.stability)}
+                    {stabilityLabel(t, pitchSnapshot.stability)}
                   </span>
                 </span>
               </div>
@@ -1167,18 +1169,18 @@ export function VoiceRecorder({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             rows={4}
-            aria-label="Transkribert tekst — rediger før du godtar"
+            aria-label={t("voice.transcribedTextAria")}
             autoFocus
             className="min-h-[88px] w-full resize-y rounded-xl bg-white/5 p-3 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
             style={{
               border: "1px solid oklch(1 0 0 / 0.08)",
               fontFamily: "Fraunces, serif",
             }}
-            placeholder="Tom transkripsjon — skriv her i stedet."
+            placeholder={t("voice.emptyPlaceholder")}
           />
           {emotion && (
             <aside
-              aria-label="Følelsesinnsikt"
+              aria-label={t("voice.emotionAria")}
               className="flex flex-col gap-2 rounded-xl p-3"
               style={{
                 background:
@@ -1189,7 +1191,7 @@ export function VoiceRecorder({
               <div className="flex items-center gap-1.5">
                 <Sparkles className="h-3 w-3 text-gold/80" />
                 <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                  Følelse
+                  {t("voice.emotion")}
                 </p>
               </div>
               {emotion.primaryEmotion && (
@@ -1212,17 +1214,14 @@ export function VoiceRecorder({
               )}
               {emotion.tearfulness?.value && (
                 <p className="text-[10px] text-muted-foreground">
-                  Tegn på gråt · {Math.round((emotion.tearfulness.confidence ?? 0) * 100)}%
+                  {t("voice.tearSign", { pct: Math.round((emotion.tearfulness.confidence ?? 0) * 100) })}
                 </p>
               )}
             </aside>
           )}
           </div>
           <p className="text-[10px] text-muted-foreground">
-            Tips: <kbd className="rounded bg-white/10 px-1">⌘</kbd>/
-            <kbd className="rounded bg-white/10 px-1">Ctrl</kbd> +{" "}
-            <kbd className="rounded bg-white/10 px-1">Enter</kbd> for å godta,{" "}
-            <kbd className="rounded bg-white/10 px-1">Esc</kbd> for å avbryte.
+            {t("voice.tipAccept")}
           </p>
           <div className="flex items-center justify-end gap-2">
             <button
@@ -1235,7 +1234,7 @@ export function VoiceRecorder({
               style={{ border: "1px solid oklch(1 0 0 / 0.08)" }}
             >
               <X className="h-3.5 w-3.5" />
-              Avbryt
+              {t("voice.cancel")}
             </button>
             <button
               type="button"
@@ -1250,7 +1249,7 @@ export function VoiceRecorder({
               }}
             >
               <RotateCcw className="h-3.5 w-3.5" />
-              Ta opp på nytt
+              {t("voice.retake")}
             </button>
             <button
               type="button"
@@ -1265,7 +1264,7 @@ export function VoiceRecorder({
               }}
             >
               <Check className="h-3.5 w-3.5" />
-              Bruk teksten
+              {t("voice.useText")}
             </button>
           </div>
         </div>
@@ -1280,7 +1279,11 @@ export function VoiceRecorder({
           disabled={isProcessing}
           aria-label={
             ariaLabel ??
-            (isRecording ? "Avbryt opptak" : isProcessing ? "Behandler" : "Start opptak")
+            (isRecording
+              ? t("voice.mainCancelAria")
+              : isProcessing
+                ? t("voice.mainProcessingAria")
+                : t("voice.mainStartAria"))
           }
           className={`relative flex shrink-0 items-center justify-center rounded-full transition-all duration-300 active:scale-95 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 ${
             compact ? "h-10 w-10" : "h-12 w-12"
@@ -1343,7 +1346,7 @@ export function VoiceRecorder({
             <div className="animate-fade-in flex h-full flex-col justify-center gap-1">
               <div className="flex items-center justify-between">
                 <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                  {isDone ? "Ferdig" : isError ? "Noe gikk galt" : "Stemmeopptak"}
+                  {isDone ? t("voice.idleTitleDone") : isError ? t("voice.idleTitleError") : t("voice.idleTitleVoice")}
                 </p>
                 {showSettings && state === "idle" && (
                   <button
@@ -1351,7 +1354,7 @@ export function VoiceRecorder({
                     onClick={() => setSettingsOpen((s) => !s)}
                     aria-expanded={settingsOpen}
                     aria-controls="vr-settings"
-                    aria-label="Justér stemmedeteksjon"
+                    aria-label={t("voice.adjustAria")}
                     className="-mr-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
                   >
                     <Settings2 className="h-3.5 w-3.5" />
@@ -1363,17 +1366,17 @@ export function VoiceRecorder({
                 style={{ fontFamily: "Fraunces, serif" }}
               >
                 {isDone
-                  ? "Lyden er transkribert."
+                  ? t("voice.idleDoneMsg")
                   : isError
-                    ? (errorMsg ?? "Prøv igjen, eller skriv i stedet.")
-                    : "Trykk for å snakke. Norsk støttes."}
+                    ? (errorMsg ?? t("voice.idleErrorFallback"))
+                    : t("voice.idleTapToSpeak")}
               </p>
               {isError && (
                 <div className="mt-1 flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => void start()}
-                    aria-label="Prøv stemmeopptak på nytt"
+                    aria-label={t("voice.tryAgainAria")}
                     className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium text-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
                     style={{
                       background:
@@ -1384,7 +1387,7 @@ export function VoiceRecorder({
                     }}
                   >
                     <RotateCcw className="h-3 w-3" />
-                    Prøv igjen
+                    {t("voice.tryAgain")}
                   </button>
                   {audioUrl && enablePlayback && (
                     <button
@@ -1396,12 +1399,12 @@ export function VoiceRecorder({
                           else el.pause();
                         }
                       }}
-                      aria-label="Spill av siste opptak"
+                      aria-label={t("voice.listenLastAria")}
                       className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
                       style={{ border: "1px solid oklch(1 0 0 / 0.08)" }}
                     >
                       <Play className="h-3 w-3" />
-                      Hør på opptaket
+                      {t("voice.listenLast")}
                     </button>
                   )}
                   {audioUrl && (
@@ -1428,7 +1431,7 @@ export function VoiceRecorder({
                 >
                   <label className="flex flex-col gap-1 text-[10px] text-muted-foreground">
                     <span className="flex items-center justify-between">
-                      <span>Følsomhet (terskel)</span>
+                      <span>{t("voice.sensitivity")}</span>
                       <span className="tabular-nums text-foreground/70">
                         {userThreshold.toFixed(3)}
                       </span>
@@ -1440,11 +1443,11 @@ export function VoiceRecorder({
                       step={0.001}
                       value={userThreshold}
                       onChange={(e) => setUserThreshold(parseFloat(e.target.value))}
-                      aria-label="Stemmedeteksjon — følsomhet"
+                      aria-label={t("voice.sensitivityAria")}
                       className="accent-[oklch(0.88_0.14_82)]"
                     />
                     <span className="text-[9px] text-muted-foreground/80">
-                      Lavere = fanger opp svakere stemme.
+                      {t("voice.sensitivityHint")}
                     </span>
                   </label>
                   {/* Noise-floor calibration: samples ambient RMS for ~1.4s
@@ -1452,19 +1455,19 @@ export function VoiceRecorder({
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex min-w-0 flex-col">
                       <span className="text-[10px] text-muted-foreground">
-                        Bakgrunnsstøy
+                        {t("voice.noiseFloor")}
                       </span>
                       <span className="text-[9px] text-muted-foreground/70">
                         {noiseFloor != null
-                          ? `Målt: ${(noiseFloor * 100).toFixed(1)}%`
-                          : "Ikke kalibrert ennå"}
+                          ? t("voice.noiseMeasured", { pct: (noiseFloor * 100).toFixed(1) })
+                          : t("voice.noiseNotCalibrated")}
                       </span>
                     </div>
                     <button
                       type="button"
                       onClick={() => void calibrateNoiseFloor()}
                       disabled={calibrating}
-                      aria-label="Kalibrer bakgrunnsstøy ved å være stille i ett sekund"
+                      aria-label={t("voice.calibrateAria")}
                       className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium text-foreground transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
                       style={{
                         background:
@@ -1475,19 +1478,19 @@ export function VoiceRecorder({
                       {calibrating ? (
                         <>
                           <Loader2 className="h-3 w-3 animate-spin" />
-                          Lytter…
+                          {t("voice.calibrating")}
                         </>
                       ) : (
                         <>
                           <Settings2 className="h-3 w-3" />
-                          Kalibrer
+                          {t("voice.calibrate")}
                         </>
                       )}
                     </button>
                   </div>
                   <label className="flex flex-col gap-1 text-[10px] text-muted-foreground">
                     <span className="flex items-center justify-between">
-                      <span>Stillhet før auto-stopp</span>
+                      <span>{t("voice.silenceBefore")}</span>
                       <span className="tabular-nums text-foreground/70">
                         {(userSilenceMs / 1000).toFixed(1)}s
                       </span>
@@ -1499,7 +1502,7 @@ export function VoiceRecorder({
                       step={100}
                       value={userSilenceMs}
                       onChange={(e) => setUserSilenceMs(parseInt(e.target.value, 10))}
-                      aria-label="Stillhet før automatisk stopp, i millisekunder"
+                      aria-label={t("voice.silenceAria")}
                       className="accent-[oklch(0.72_0.13_265)]"
                     />
                   </label>
@@ -1507,14 +1510,14 @@ export function VoiceRecorder({
                       recorder always opens in the same configuration. */}
                   <div className="mt-1 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
                     <div className="flex min-w-0 flex-col">
-                      <span className="text-[10px] text-muted-foreground">Rolig modus</span>
+                      <span className="text-[10px] text-muted-foreground">{t("voice.calmMode")}</span>
                       <span className="text-[9px] text-muted-foreground/70">
-                        Demper animasjoner og bølgen.
+                        {t("voice.calmHint")}
                       </span>
                     </div>
                     <div
                       role="radiogroup"
-                      aria-label="Rolig modus"
+                      aria-label={t("voice.calmAria")}
                       className="inline-flex overflow-hidden rounded-full text-[10px]"
                       style={{ border: "1px solid oklch(1 0 0 / 0.1)" }}
                     >
@@ -1538,7 +1541,7 @@ export function VoiceRecorder({
                                 : { color: "oklch(0.7 0.02 265)" }
                             }
                           >
-                            {opt === "auto" ? "Auto" : opt === "on" ? "På" : "Av"}
+                            {opt === "auto" ? t("voice.calmAuto") : opt === "on" ? t("voice.calmOn") : t("voice.calmOff")}
                           </button>
                         );
                       })}
@@ -1546,9 +1549,9 @@ export function VoiceRecorder({
                   </div>
                   <label className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
                     <span className="flex min-w-0 flex-col">
-                      <span>Vis tonehøyde</span>
+                      <span>{t("voice.showPitch")}</span>
                       <span className="text-[9px] text-muted-foreground/70">
-                        Hz + stabilitetsmåler under opptak.
+                        {t("voice.showPitchHint")}
                       </span>
                     </span>
                     <span className="relative inline-block h-4 w-7 shrink-0">
@@ -1556,7 +1559,7 @@ export function VoiceRecorder({
                         type="checkbox"
                         checked={showPitch}
                         onChange={(e) => setShowPitch(e.target.checked)}
-                        aria-label="Vis tonehøyde under opptak"
+                        aria-label={t("voice.showPitchAria")}
                         className="peer absolute inset-0 h-full w-full cursor-pointer opacity-0"
                       />
                       <span
@@ -1637,14 +1640,14 @@ export function VoiceRecorder({
                       );
                     })}
                   </span>
-                  {speaking ? "Snakker" : "Lytter"}
+                  {speaking ? t("voice.vadSpeaking") : t("voice.vadListening")}
                 </span>
               </div>
             {/* Pitch / stability chip + supportive cue */}
             {showPitch && pitch.hz != null && (
               <div
                 role="status"
-                aria-label={`Tonehøyde ${Math.round(pitch.hz)} hertz, stabilitet ${Math.round(smoothedStability * 100)} prosent`}
+                aria-label={t("voice.pitchAria", { hz: Math.round(pitch.hz), pct: Math.round(smoothedStability * 100) })}
                 className="hidden flex-col items-end gap-0.5 sm:flex"
               >
                 <div className="flex items-center gap-1.5">
@@ -1672,11 +1675,11 @@ export function VoiceRecorder({
                     samples yet, prefer a calm waiting message over a noisy cue. */}
                 {smoothedStability < 0.2 || pitch.stability === 0 ? (
                   <span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/70">
-                    Lytter etter tydeligere stemme
+                    {t("voice.listeningClearer")}
                   </span>
-                ) : pitchCue({ hz: pitch.hz, stability: smoothedStability }) && (
+                ) : pitchCue(t, { hz: pitch.hz, stability: smoothedStability }) && (
                   <span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">
-                    {pitchCue({ hz: pitch.hz, stability: smoothedStability })}
+                    {pitchCue(t, { hz: pitch.hz, stability: smoothedStability })}
                   </span>
                 )}
               </div>
@@ -1688,14 +1691,14 @@ export function VoiceRecorder({
                     ? undefined
                     : { animation: "vr-tick 1s ease-in-out infinite" }
                 }
-                aria-label={`Tid ${elapsed} sekunder`}
+                aria-label={t("voice.timeAria", { seconds: elapsed })}
               >
                 {formatTime(elapsed)}
               </span>
               <button
                 type="button"
                 onClick={stop}
-                aria-label="Fullfør opptak"
+                aria-label={t("voice.finishRecAria")}
                 className="group relative ml-1 inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium text-foreground transition-all duration-300 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/80"
                 style={{
                   background:
@@ -1706,7 +1709,7 @@ export function VoiceRecorder({
                 }}
               >
                 <Check className="h-3.5 w-3.5" />
-                <span>Ferdig</span>
+                <span>{t("voice.done")}</span>
               </button>
             </div>
           )}
@@ -1715,7 +1718,7 @@ export function VoiceRecorder({
           {isProcessing && (
             <div className="animate-fade-in flex h-full flex-col justify-center">
               <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                Transkriberer
+                {t("voice.transcribing")}
               </p>
               <div className="mt-2 flex items-center gap-2">
                 <span className="relative inline-flex h-1 flex-1 overflow-hidden rounded-full bg-white/5">
@@ -1728,7 +1731,7 @@ export function VoiceRecorder({
                     }}
                   />
                 </span>
-                <span className="text-[10px] text-muted-foreground">Whisper lytter…</span>
+                <span className="text-[10px] text-muted-foreground">{t("voice.whisperListening")}</span>
               </div>
             </div>
           )}
@@ -1743,12 +1746,12 @@ export function VoiceRecorder({
           <Keyboard aria-hidden className="h-3 w-3" />
           <span>
             <kbd className="rounded bg-white/10 px-1 py-0.5">Esc</kbd>{" "}
-            {isRecording ? "avbryt" : "lukk"}
+            {isRecording ? t("voice.kbdEscCancel") : t("voice.kbdEscClose")}
             <span className="mx-1.5 text-foreground/30">·</span>
             <kbd className="rounded bg-white/10 px-1 py-0.5">⌘</kbd>/
             <kbd className="rounded bg-white/10 px-1 py-0.5">Ctrl</kbd>+
             <kbd className="rounded bg-white/10 px-1 py-0.5">Enter</kbd>{" "}
-            {isRecording ? "godta" : "bruk"}
+            {isRecording ? t("voice.kbdAccept") : t("voice.kbdApply")}
           </span>
         </p>
       )}
@@ -1765,7 +1768,7 @@ export function VoiceRecorder({
           >
             <span className="inline-flex items-center gap-1.5">
               <History className="h-3 w-3" />
-              Tidligere opptak ({history.length})
+              {t("voice.historyTitle", { count: history.length })}
             </span>
             <span className="text-foreground/50">{historyOpen ? "−" : "+"}</span>
           </button>
@@ -1798,9 +1801,9 @@ export function VoiceRecorder({
                       aria-label={
                         h.audioUrl
                           ? isPlayingThis
-                            ? "Pause avspilling"
-                            : "Spill av opptaket"
-                          : "Lyden er ikke lenger tilgjengelig"
+                            ? t("voice.pausePlayback")
+                            : t("voice.playRecording")
+                          : t("voice.audioUnavailable")
                       }
                       className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
                       style={{
@@ -1823,13 +1826,13 @@ export function VoiceRecorder({
                         {h.transcript}
                       </p>
                       <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] uppercase tracking-[0.15em] text-muted-foreground">
-                        <span>{formatHistoryDate(h.createdAt)}</span>
+                        <span>{formatHistoryDate(t, h.createdAt)}</span>
                         {h.emotion?.primaryEmotion && (
                           <span className="capitalize text-foreground/60">
                             · {h.emotion.primaryEmotion}
                           </span>
                         )}
-                        {!h.audioUrl && <span>· kun tekst</span>}
+                        {!h.audioUrl && <span>· {t("voice.historyTextOnly")}</span>}
                       </div>
                     </div>
                     {h.audioUrl && (
@@ -1916,11 +1919,13 @@ function roundedBar(
   ctx.fill();
 }
 
+type TFn = (key: string, opts?: Record<string, unknown>) => string;
+
 /**
- * Map a getUserMedia DOMException into actionable Norwegian guidance.
+ * Map a getUserMedia DOMException into actionable, localized guidance.
  * Each branch describes WHAT failed and WHAT to do next.
  */
-function describeMicError(err: unknown): string {
+function describeMicError(t: TFn, err: unknown): string {
   const name =
     err instanceof DOMException
       ? err.name
@@ -1930,44 +1935,41 @@ function describeMicError(err: unknown): string {
   switch (name) {
     case "NotAllowedError":
     case "SecurityError":
-      return "Mikrofontilgang ble nektet. Åpne nettleserens nettstedsinnstillinger og tillat mikrofonen, eller skriv inn teksten.";
+      return t("voice.micDenied");
     case "NotFoundError":
     case "OverconstrainedError":
-      return "Fant ingen mikrofon. Koble til en mikrofon eller velg en annen enhet.";
+      return t("voice.micNotFound");
     case "NotReadableError":
-      return "Mikrofonen er opptatt av et annet program. Lukk andre apper som bruker mikrofonen og prøv igjen.";
+      return t("voice.micBusy");
     case "AbortError":
-      return "Mikrofonen ble frakoblet før opptaket startet. Prøv igjen.";
+      return t("voice.micDisconnected");
     case "TypeError":
-      return "Stemmeopptak krever en sikker tilkobling (HTTPS). Åpne siden over HTTPS og prøv igjen.";
+      return t("voice.micInsecure");
     default:
-      return "Kunne ikke åpne mikrofonen. Prøv igjen, eller skriv teksten i stedet.";
+      return t("voice.micUnknown");
   }
 }
 
 /**
- * Map a transcribe API failure into actionable Norwegian guidance.
+ * Map a transcribe API failure into actionable, localized guidance.
  */
-function describeTranscribeError(status: number, serverMessage?: string): string {
+function describeTranscribeError(t: TFn, status: number, serverMessage?: string): string {
   if (status === 401 || status === 403) {
-    return "Transkripsjonstjenesten er ikke autorisert. Kontakt support.";
+    return t("voice.trUnauth");
   }
   if (status === 413) {
-    return "Opptaket er for langt. Prøv et kortere opptak (under 2 minutter).";
+    return t("voice.trTooLong");
   }
   if (status === 415) {
-    return "Lydformatet støttes ikke. Bytt nettleser eller skriv teksten i stedet.";
+    return t("voice.trUnsupported");
   }
   if (status === 429) {
-    return "For mange forespørsler akkurat nå. Vent et øyeblikk og prøv igjen.";
+    return t("voice.trTooMany");
   }
   if (status >= 500) {
-    return "Transkripsjonstjenesten er midlertidig nede. Prøv igjen om litt.";
+    return t("voice.trServerDown");
   }
-  return (
-    serverMessage ||
-    "Klarte ikke å transkribere opptaket. Prøv igjen eller skriv teksten i stedet."
-  );
+  return serverMessage || t("voice.trFallback");
 }
 /* ------------------------------------------------------------------ */
 /*  Pitch detection                                                   */
@@ -2068,48 +2070,39 @@ function pitchCategory(hz: number): "low" | "medium" | "high" {
   return "high";
 }
 
-/** Norwegian label for the pitch category shown in the review summary. */
-function pitchCategoryLabel(c: "low" | "medium" | "high" | "unknown"): string {
-  switch (c) {
-    case "low":
-      return "lav";
-    case "medium":
-      return "middels";
-    case "high":
-      return "høy";
-    default:
-      return "ukjent";
-  }
+/** Localized label for the pitch category shown in the review summary. */
+function pitchCategoryLabel(t: TFn, c: "low" | "medium" | "high" | "unknown"): string {
+  return t(`voice.pitchCat.${c}`);
 }
 
 /** Plain-language stability label for the review summary. */
-function stabilityLabel(stability: number): string {
-  if (stability >= 0.7) return "Stødig";
-  if (stability >= 0.4) return "Jevn";
-  if (stability >= 0.2) return "Litt ujevn";
-  return "Ustødig";
+function stabilityLabel(t: TFn, stability: number): string {
+  if (stability >= 0.7) return t("voice.stab.steady");
+  if (stability >= 0.4) return t("voice.stab.even");
+  if (stability >= 0.2) return t("voice.stab.uneven");
+  return t("voice.stab.unsteady");
 }
 
 /** Light, supportive cue derived from pitch stability + category. */
-export function pitchCue(p: { hz: number | null; stability: number }): string | null {
+export function pitchCue(t: TFn, p: { hz: number | null; stability: number }): string | null {
   if (p.hz == null) return null;
-  if (p.stability > 0.75) return "Rolig og stødig stemme";
-  if (p.stability > 0.45) return "Jevn stemme";
-  if (p.stability > 0.2) return "Litt variasjon i stemmen";
-  return "Stemmen virker litt anspent";
+  if (p.stability > 0.75) return t("voice.cue.calmSteady");
+  if (p.stability > 0.45) return t("voice.cue.even");
+  if (p.stability > 0.2) return t("voice.cue.variation");
+  return t("voice.cue.tense");
 }
 
-/** Compact relative date: "nå", "12 min", "3 t", or locale date. */
-function formatHistoryDate(ts: number): string {
+/** Compact relative date: "just now", "12 min", "3 h", or locale date. */
+function formatHistoryDate(t: TFn, ts: number): string {
   const diffMs = Date.now() - ts;
   const s = Math.floor(diffMs / 1000);
-  if (s < 30) return "nå nettopp";
-  if (s < 60) return `${s} s siden`;
+  if (s < 30) return t("voice.justNow");
+  if (s < 60) return t("voice.secondsAgo", { n: s });
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m} min siden`;
+  if (m < 60) return t("voice.minutesAgo", { n: m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} t siden`;
-  return new Date(ts).toLocaleDateString("nb-NO", {
+  if (h < 24) return t("voice.hoursAgo", { n: h });
+  return new Date(ts).toLocaleDateString(undefined, {
     day: "2-digit",
     month: "short",
   });
