@@ -512,7 +512,7 @@ export function VoiceRecorder({
     if (!mimeType) {
       stream.getTracks().forEach((t) => t.stop());
       setState("error");
-      const msg = "Denne nettleseren støtter ikke et passende lydformat.";
+      const msg = t("voice.trUnsupported");
       setErrorMsg(msg);
       onError?.(msg);
       return;
