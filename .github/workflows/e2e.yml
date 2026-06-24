@@ -41,12 +41,21 @@ jobs:
           const p = 'test-results/metrics/skeleton-timings.json';
           if (!fs.existsSync(p)) { console.log('No skeleton metrics recorded.'); process.exit(0); }
           const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-          const failures = data.filter(d => !d.pass);
-          console.log('Skeleton timings:');
+          // Group + enforce per-device so iPhone 16 and iPhone 16 Pro fail independently.
+          const byDevice = {};
           for (const d of data) {
-            console.log(' ', d.pass ? 'OK ' : 'FAIL', d.screen, d.phase, d.ms + 'ms', 'bounds', d.bounds.minMs+'-'+d.bounds.maxMs+'ms');
+            const key = d.device || 'default';
+            (byDevice[key] = byDevice[key] || []).push(d);
           }
-          if (failures.length) { console.error('Skeleton timing failures:', failures.length); process.exit(1); }
+          let failed = 0;
+          for (const [device, rows] of Object.entries(byDevice)) {
+            console.log('--- device:', device, '---');
+            for (const d of rows) {
+              console.log(' ', d.pass ? 'OK ' : 'FAIL', d.screen, d.phase, d.ms + 'ms', 'bounds', d.bounds.minMs+'-'+d.bounds.maxMs+'ms');
+              if (!d.pass) failed++;
+            }
+          }
+          if (failed) { console.error('Skeleton timing failures:', failed); process.exit(1); }
           "
       - name: Upload Playwright artifacts on failure
         if: failure()
@@ -57,6 +66,25 @@ jobs:
             playwright-report/
             test-results/
             a11y-report/
+          retention-days: 14
+      - name: Collect visual regression diffs
+        if: failure()
+        run: |
+          mkdir -p visual-diffs
+          # Playwright writes -actual / -expected / -diff PNGs next to the failing test output.
+          find test-results -type f \( -name '*-actual.png' -o -name '*-expected.png' -o -name '*-diff.png' \) -print0 \
+            | xargs -0 -I {} cp --parents {} visual-diffs/ 2>/dev/null || true
+          # Also include any library-* screenshots captured during the run for quick review.
+          find test-results -type f -name '*library*.png' -print0 \
+            | xargs -0 -I {} cp --parents {} visual-diffs/ 2>/dev/null || true
+          ls -R visual-diffs || true
+      - name: Upload visual regression diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diffs
+          path: visual-diffs/
+          if-no-files-found: ignore
           retention-days: 14
       - name: Upload skeleton timing metrics
         if: always()

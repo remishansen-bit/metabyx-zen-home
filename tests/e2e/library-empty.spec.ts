@@ -34,23 +34,32 @@ test.describe("Library — empty + offline UX", () => {
     test.skip(!ok, "Set E2E_EMAIL/E2E_PASSWORD to enable.");
   });
 
-  test("skeletons appear, persist for a sensible window, then resolve to a calm empty state", async ({ page }) => {
+  test("skeletons appear, persist for a sensible window, then resolve to a calm empty state", async ({ page }, testInfo) => {
+    const device = testInfo.project.name;
     const t0 = Date.now();
     await page.goto("/library");
     const skeleton = page.locator(OFFLINE_SELECTORS.skeleton).first();
 
     await expect(skeleton).toBeVisible({ timeout: 1_500 }).catch(() => {});
-    assertSkeletonWithin("library-empty", "library", "appear", Date.now() - t0, {
-      minMs: 0,
-      maxMs: 2_500,
-    });
+    assertSkeletonWithin(
+      "library-empty",
+      "library",
+      "appear",
+      Date.now() - t0,
+      { minMs: 0, maxMs: 2_500 },
+      device,
+    );
 
     const shownAt = Date.now();
     await expect(skeleton).toBeHidden({ timeout: SKELETON_MAX_MS + 1_000 });
-    assertSkeletonWithin("library-empty", "library", "persist", Date.now() - shownAt, {
-      minMs: SKELETON_MIN_MS,
-      maxMs: SKELETON_MAX_MS,
-    });
+    assertSkeletonWithin(
+      "library-empty",
+      "library",
+      "persist",
+      Date.now() - shownAt,
+      { minMs: SKELETON_MIN_MS, maxMs: SKELETON_MAX_MS },
+      device,
+    );
 
     const empty = page
       .getByText(/no branches yet|empty|nothing here|start by|begin|first check-?in/i)
@@ -72,6 +81,22 @@ test.describe("Library — empty + offline UX", () => {
     await expect(errorMsg).toBeVisible({ timeout: 10_000 });
     const live = await nearestLiveRegion(errorMsg);
     expect(live, "offline error should be announced via aria-live or role=alert").not.toBeNull();
+
+    // Rapid reconnect cycle must not duplicate the announcement.
+    const countLiveCopies = async (rx: RegExp) =>
+      page.locator("[aria-live], [role='status'], [role='alert']").filter({ hasText: rx }).count();
+    const beforeCycle = await countLiveCopies(OFFLINE_SELECTORS.errorText);
+    for (let i = 0; i < 3; i++) {
+      await net.setOffline(false);
+      await net.advanceTime(150);
+      await net.setOffline(true);
+      await net.advanceTime(150);
+    }
+    const afterCycle = await countLiveCopies(OFFLINE_SELECTORS.errorText);
+    expect(
+      afterCycle,
+      "rapid reconnect cycles must not duplicate live-region announcements",
+    ).toBeLessThanOrEqual(beforeCycle);
   });
 
   test("library queued actions replay in order with correct retry UI after reconnect", async ({ page }) => {
