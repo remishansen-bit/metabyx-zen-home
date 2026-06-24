@@ -111,26 +111,25 @@ function CirclesPage() {
           <Users className="h-5 w-5 text-gold" />
         </div>
         <p className="mt-3 text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
-          Shared rooms · early
+          {t("circlesFull.earlyEyebrow")}
         </p>
         <p
           className="mt-2 text-base font-light leading-relaxed text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          Small rooms where a few people metabolise life together — gentle
-          rhythms, shared check-ins, one collective pulse.
+          {t("circlesFull.earlyBody")}
         </p>
       </section>
 
       <section className="flex flex-col gap-2">
         <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-          Your circles
+          {t("circlesFull.yourCircles")}
         </p>
         {circles.length === 0 ? (
           <EmptyState
             icon={<Users className="h-5 w-5" />}
-            title="No circles yet"
-            description="Create one to gather a few people, or paste an invite code to join an existing room."
+            title={t("circlesFull.noCirclesTitle")}
+            description={t("circlesFull.noCirclesBody")}
           />
         ) : (
           circles.map((c) => (
@@ -140,7 +139,7 @@ function CirclesPage() {
               onOpen={() => navigate({ to: "/circles/$id", params: { id: c.id } })}
               onLeave={() => {
                 leaveCircle(c.id);
-                notify.info("Left circle", `You're no longer in ${c.name}.`);
+                notify.info(t("circlesFull.leftTitle"), t("circlesFull.leftBody", { name: c.name }));
               }}
             />
           ))
@@ -153,13 +152,13 @@ function CirclesPage() {
           className="flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-medium text-background"
           style={{ background: "var(--gradient-gold)" }}
         >
-          <Plus className="h-4 w-4" /> Create
+          <Plus className="h-4 w-4" /> {t("circlesFull.create")}
         </button>
         <button
           onClick={() => setOpenJoin(true)}
           className="glass flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-medium text-foreground"
         >
-          <ArrowRight className="h-4 w-4" /> Join with code
+          <ArrowRight className="h-4 w-4" /> {t("circlesFull.joinWithCode")}
         </button>
       </section>
 
