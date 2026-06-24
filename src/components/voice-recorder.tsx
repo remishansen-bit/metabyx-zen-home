@@ -1709,7 +1709,7 @@ export function VoiceRecorder({
                 }}
               >
                 <Check className="h-3.5 w-3.5" />
-                <span>Ferdig</span>
+                <span>{t("voice.done")}</span>
               </button>
             </div>
           )}
@@ -1718,7 +1718,7 @@ export function VoiceRecorder({
           {isProcessing && (
             <div className="animate-fade-in flex h-full flex-col justify-center">
               <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                Transkriberer
+                {t("voice.transcribing")}
               </p>
               <div className="mt-2 flex items-center gap-2">
                 <span className="relative inline-flex h-1 flex-1 overflow-hidden rounded-full bg-white/5">
@@ -1731,7 +1731,7 @@ export function VoiceRecorder({
                     }}
                   />
                 </span>
-                <span className="text-[10px] text-muted-foreground">Whisper lytter…</span>
+                <span className="text-[10px] text-muted-foreground">{t("voice.whisperListening")}</span>
               </div>
             </div>
           )}
