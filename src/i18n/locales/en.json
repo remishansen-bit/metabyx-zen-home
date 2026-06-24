@@ -859,5 +859,47 @@
     "secondsAgo": "{{n}}s ago",
     "minutesAgo": "{{n}} min ago",
     "hoursAgo": "{{n}}h ago"
+  },
+  "paymentBanner": {
+    "message": "Payments are in test mode in the preview.",
+    "readMore": "Read more"
+  },
+  "voiceInput": {
+    "speak": "Speak",
+    "listening": "Listening…",
+    "tryAgain": "Try again",
+    "typeInstead": "Type",
+    "unsupported": "Type instead",
+    "unsupportedTitle": "Voice input is not supported in this browser",
+    "stopAria": "Stop recording",
+    "retryAria": "Try voice input again",
+    "speakAria": "Speak text",
+    "blocked": "Microphone access is blocked. Allow it or type instead.",
+    "noSpeech": "No voice detected. Try again or type instead.",
+    "network": "Network dropped. Try once more.",
+    "generic": "Voice capture failed. Try again or type instead.",
+    "startFailed": "Could not start recording. Try again."
+  },
+  "paywallAnalytics": {
+    "eyebrow": "Paywall funnel",
+    "exportAria": "Export paywall funnel CSV",
+    "exportCsv": "CSV",
+    "reset": "reset",
+    "resetAria": "Clear paywall history",
+    "prompts": "Prompts",
+    "upgrade": "Upgrade",
+    "dropOff": "Drop-off",
+    "empty": "No paywall prompts yet in this window.",
+    "upgradeClicks": "{{n}} upgrade clicks",
+    "dismisses": "{{n}} dismisses",
+    "rowSummary": "{{up}} upgrade · {{dis}} dismiss · {{none}} no action",
+    "labelPrompt": "prompt",
+    "labelDismiss": "dismiss",
+    "labelUpgrade": "upgrade click",
+    "timeJustNow": "just now",
+    "timeMinutes": "{{n}}m ago",
+    "timeHours": "{{n}}h ago",
+    "timeDays": "{{n}}d ago",
+    "rangeAll": "All"
   }
 }

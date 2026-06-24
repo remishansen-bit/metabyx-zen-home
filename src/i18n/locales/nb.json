@@ -859,5 +859,47 @@
     "secondsAgo": "{{n}} s siden",
     "minutesAgo": "{{n}} min siden",
     "hoursAgo": "{{n}} t siden"
+  },
+  "paymentBanner": {
+    "message": "Betalinger er i testmodus i forhåndsvisningen.",
+    "readMore": "Les mer"
+  },
+  "voiceInput": {
+    "speak": "Snakk",
+    "listening": "Lytter…",
+    "tryAgain": "Prøv igjen",
+    "typeInstead": "Skriv",
+    "unsupported": "Skriv i stedet",
+    "unsupportedTitle": "Stemmegjenkjenning støttes ikke i denne nettleseren",
+    "stopAria": "Stopp opptak",
+    "retryAria": "Prøv stemmeopptak igjen",
+    "speakAria": "Snakk inn tekst",
+    "blocked": "Mikrofontilgang er blokkert. Tillat mikrofonen, eller skriv i stedet.",
+    "noSpeech": "Hørte ingen stemme. Prøv igjen, eller skriv i stedet.",
+    "network": "Mistet nettverket. Prøv en gang til.",
+    "generic": "Stemmeopptak feilet. Prøv igjen, eller skriv i stedet.",
+    "startFailed": "Kunne ikke starte opptak. Prøv igjen."
+  },
+  "paywallAnalytics": {
+    "eyebrow": "Betalingstrakt",
+    "exportAria": "Eksporter betalingstrakt som CSV",
+    "exportCsv": "CSV",
+    "reset": "nullstill",
+    "resetAria": "Tøm betalingshistorikk",
+    "prompts": "Visninger",
+    "upgrade": "Oppgrader",
+    "dropOff": "Frafall",
+    "empty": "Ingen betalingsvisninger i dette tidsrommet ennå.",
+    "upgradeClicks": "{{n}} oppgraderingsklikk",
+    "dismisses": "{{n}} avvisninger",
+    "rowSummary": "{{up}} oppgrader · {{dis}} avvis · {{none}} ingen handling",
+    "labelPrompt": "visning",
+    "labelDismiss": "avvis",
+    "labelUpgrade": "oppgrader-klikk",
+    "timeJustNow": "akkurat nå",
+    "timeMinutes": "{{n}} min siden",
+    "timeHours": "{{n}} t siden",
+    "timeDays": "{{n}} d siden",
+    "rangeAll": "Alle"
   }
 }

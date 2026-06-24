@@ -859,5 +859,47 @@
     "secondsAgo": "vor {{n}} s",
     "minutesAgo": "vor {{n}} Min",
     "hoursAgo": "vor {{n}} Std"
+  },
+  "paymentBanner": {
+    "message": "Zahlungen befinden sich in der Vorschau im Testmodus.",
+    "readMore": "Mehr erfahren"
+  },
+  "voiceInput": {
+    "speak": "Sprechen",
+    "listening": "Höre zu…",
+    "tryAgain": "Erneut",
+    "typeInstead": "Tippen",
+    "unsupported": "Stattdessen tippen",
+    "unsupportedTitle": "Spracherkennung wird in diesem Browser nicht unterstützt",
+    "stopAria": "Aufnahme stoppen",
+    "retryAria": "Spracheingabe erneut versuchen",
+    "speakAria": "Text sprechen",
+    "blocked": "Mikrofonzugriff blockiert. Erlauben oder tippen.",
+    "noSpeech": "Keine Stimme erkannt. Erneut versuchen oder tippen.",
+    "network": "Netzwerk verloren. Bitte erneut versuchen.",
+    "generic": "Sprachaufnahme fehlgeschlagen. Erneut versuchen oder tippen.",
+    "startFailed": "Aufnahme konnte nicht starten. Bitte erneut versuchen."
+  },
+  "paywallAnalytics": {
+    "eyebrow": "Paywall-Trichter",
+    "exportAria": "Paywall-Trichter als CSV exportieren",
+    "exportCsv": "CSV",
+    "reset": "zurücksetzen",
+    "resetAria": "Paywall-Verlauf löschen",
+    "prompts": "Aufrufe",
+    "upgrade": "Upgrade",
+    "dropOff": "Abbruch",
+    "empty": "Noch keine Paywall-Aufrufe in diesem Zeitraum.",
+    "upgradeClicks": "{{n}} Upgrade-Klicks",
+    "dismisses": "{{n}} Schließvorgänge",
+    "rowSummary": "{{up}} Upgrade · {{dis}} Schließen · {{none}} keine Aktion",
+    "labelPrompt": "Aufruf",
+    "labelDismiss": "schließen",
+    "labelUpgrade": "Upgrade-Klick",
+    "timeJustNow": "gerade eben",
+    "timeMinutes": "vor {{n}} Min.",
+    "timeHours": "vor {{n}} Std.",
+    "timeDays": "vor {{n}} T.",
+    "rangeAll": "Alle"
   }
 }

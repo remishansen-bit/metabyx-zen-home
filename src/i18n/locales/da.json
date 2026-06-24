@@ -859,5 +859,47 @@
     "secondsAgo": "for {{n}} s siden",
     "minutesAgo": "for {{n}} min siden",
     "hoursAgo": "for {{n}} t siden"
+  },
+  "paymentBanner": {
+    "message": "Betalinger er i testtilstand i forhåndsvisningen.",
+    "readMore": "Læs mere"
+  },
+  "voiceInput": {
+    "speak": "Tal",
+    "listening": "Lytter…",
+    "tryAgain": "Prøv igen",
+    "typeInstead": "Skriv",
+    "unsupported": "Skriv i stedet",
+    "unsupportedTitle": "Stemmegenkendelse understøttes ikke i denne browser",
+    "stopAria": "Stop optagelse",
+    "retryAria": "Prøv stemmeinput igen",
+    "speakAria": "Tal tekst",
+    "blocked": "Mikrofonadgang blokeret. Tillad den eller skriv i stedet.",
+    "noSpeech": "Ingen stemme registreret. Prøv igen eller skriv.",
+    "network": "Netværk mistet. Prøv igen.",
+    "generic": "Stemmeoptagelse mislykkedes. Prøv igen eller skriv.",
+    "startFailed": "Kunne ikke starte optagelse. Prøv igen."
+  },
+  "paywallAnalytics": {
+    "eyebrow": "Betalingsmurstragt",
+    "exportAria": "Eksporter betalingsmurstragt som CSV",
+    "exportCsv": "CSV",
+    "reset": "nulstil",
+    "resetAria": "Ryd betalingsmurshistorik",
+    "prompts": "Visninger",
+    "upgrade": "Opgrader",
+    "dropOff": "Frafald",
+    "empty": "Ingen betalingsmurvisninger i dette tidsrum endnu.",
+    "upgradeClicks": "{{n}} opgraderingsklik",
+    "dismisses": "{{n}} afvisninger",
+    "rowSummary": "{{up}} opgrader · {{dis}} afvis · {{none}} ingen handling",
+    "labelPrompt": "visning",
+    "labelDismiss": "afvis",
+    "labelUpgrade": "opgraderingsklik",
+    "timeJustNow": "lige nu",
+    "timeMinutes": "{{n}} min siden",
+    "timeHours": "{{n}} t siden",
+    "timeDays": "{{n}} d siden",
+    "rangeAll": "Alle"
   }
 }
