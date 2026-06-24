@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import {
@@ -11,10 +11,11 @@ import {
   Sparkles,
   Users,
   Brain,
+  LogOut,
 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { useMetabyx } from "@/lib/store";
-import { RequireAuth, useAuth } from "@/lib/auth";
+import { RequireAuth, useAuth, signOut } from "@/lib/auth";
 import { summarize } from "@/lib/learning";
 import { useEffect, useState } from "react";
 import { useFeatureGate } from "@/hooks/useFeatureGate";
@@ -49,6 +50,7 @@ function ProfilePage() {
   const auth = useAuth();
   const gate = useFeatureGate();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const learningAllowed = canAccess(gate.tier, "plus");
   const [insights, setInsights] = useState(() => summarize());
   useEffect(() => {
@@ -396,6 +398,32 @@ function ProfilePage() {
       </section>
       )}
       {gate.paywall}
+
+      <section className="mt-2 flex flex-col items-center gap-2">
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              await signOut();
+            } catch {
+              /* ignore — we still want to clear and redirect */
+            }
+            try {
+              window.localStorage.removeItem("metabyx:v1");
+            } catch {
+              /* ignore */
+            }
+            navigate({ to: "/auth" });
+          }}
+          className="glass inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm text-foreground transition-all hover:bg-[oklch(1_0_0/0.06)]"
+        >
+          <LogOut className="h-4 w-4 text-gold" />
+          <span>{t("profileExtras.logout")}</span>
+        </button>
+        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+          {t("profileExtras.logoutHint")}
+        </p>
+      </section>
     </PhoneFrame>
   );
 }
