@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      paywall_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          feature: string
+          id: string
+          required_tier: string
+          surface: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type?: string
+          feature: string
+          id?: string
+          required_tier: string
+          surface?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          feature?: string
+          id?: string
+          required_tier?: string
+          surface?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           archetype: string | null
