@@ -14,7 +14,12 @@ import {
   Download,
   Trash2,
   BellRing,
+  FileText,
+  Mail,
+  Scale,
+  ChevronRight,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth, refreshProfile, signOut, useAuth } from "@/lib/auth";
@@ -68,6 +73,7 @@ const DEFAULTS: Prefs = {
 };
 
 function SettingsPage() {
+  const { t } = useTranslation();
   const auth = useAuth();
   const navigate = useNavigate();
   const gate = useFeatureGate();
@@ -481,6 +487,34 @@ function SettingsPage() {
             Made with care · narrative metabolism for everyday life.
           </p>
         </div>
+      </Section>
+
+      <Section icon={Scale} title={t("legal.sectionTitle")}>
+        <LegalRow
+          to="/legal/privacy"
+          icon={ShieldCheck}
+          title={t("legal.privacy")}
+          subtitle={t("legal.privacyDesc")}
+        />
+        <LegalRow
+          to="/legal/terms"
+          icon={FileText}
+          title={t("legal.terms")}
+          subtitle={t("legal.termsDesc")}
+        />
+        <LegalRow
+          to="/legal/contact"
+          icon={Mail}
+          title={t("legal.contact")}
+          subtitle={t("legal.contactDesc")}
+        />
+        <LegalRow
+          to="/legal/data-deletion"
+          icon={Trash2}
+          title={t("legal.dataDeletion")}
+          subtitle={t("legal.dataDeletionDesc")}
+          danger
+        />
       </Section>
 
       <button
