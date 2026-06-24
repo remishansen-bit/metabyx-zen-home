@@ -4,6 +4,7 @@ import { Sunrise, Moon, Sparkles, Leaf, ChevronRight, LifeBuoy } from "lucide-re
 import { useEffect, useMemo, useState } from "react";
 import { computeBmrStats, todaysAllBranches, todaysOpenBranches, useMetabyx } from "@/lib/store";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
+import { EmptyState, ScreenTransition } from "@/components/feedback";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -150,21 +151,37 @@ function Index() {
               </span>
             </div>
 
+            <ScreenTransition phase={open.length === 0 ? (todays.length === 0 ? "fresh" : "done") : "content"}>
             {open.length === 0 ? (
-              <Link
-                to="/morning"
-                className="glass flex items-center justify-between rounded-2xl px-4 py-5"
-              >
-                <div>
-                  <p className="text-sm font-medium text-foreground">Nothing noticed yet</p>
-                  <p className="text-xs text-muted-foreground">
-                    {todays.length === 0
-                      ? "Begin with a morning check-in"
-                      : "All branches metabolized today"}
-                  </p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-gold" />
-              </Link>
+              <EmptyState
+                icon={todays.length === 0 ? <Sunrise className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+                tone={todays.length === 0 ? "neutral" : "gold"}
+                title={todays.length === 0 ? "Nothing noticed yet" : "Every branch settled"}
+                description={
+                  todays.length === 0
+                    ? "A morning check-in is a quiet place to begin the day."
+                    : "Rest well — you've metabolized everything you noticed today."
+                }
+                action={
+                  todays.length === 0 ? (
+                    <Link
+                      to="/morning"
+                      className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold"
+                      style={{ background: "var(--gradient-gold)", color: "var(--primary-foreground)", boxShadow: "var(--shadow-gold)" }}
+                    >
+                      <Sunrise className="h-3.5 w-3.5" /> Morning check-in
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/evening"
+                      className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-gold"
+                    >
+                      <Moon className="h-3.5 w-3.5" /> Evening reflection
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </Link>
+                  )
+                }
+              />
             ) : (
               <ul className="flex flex-col gap-3">
                 {open.slice(0, 4).map((b) => (
@@ -192,6 +209,7 @@ function Index() {
                 ))}
               </ul>
             )}
+            </ScreenTransition>
           </section>
 
           {/* Actions */}
