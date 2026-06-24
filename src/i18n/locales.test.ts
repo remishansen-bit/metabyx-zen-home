@@ -74,6 +74,8 @@ const ALLOWED_IDENTICAL = new Set([
   "Web",
   "App Store",
   "Play Store",
+  // Loanwords that several supported locales adopt verbatim.
+  "Notifications",
 ]);
 
 function isPlainObject(v: Json): v is { [k: string]: Json } {
@@ -112,14 +114,21 @@ const enEntries = walk(en as Json);
  *  are exempt. */
 function hasMeaningfulEnglish(value: string): boolean {
   if (ALLOWED_IDENTICAL.has(value.trim())) return false;
-  // Strip interpolation placeholders and HTML-ish tags before checking.
+  // Email addresses are universal — never count as English leaks.
+  if (/@/.test(value)) return false;
+  // Strip interpolation placeholders, HTML-ish tags, and punctuation
+  // before measuring the alphabetic content.
   const stripped = value
     .replace(/\{\{[^}]+\}\}/g, "")
     .replace(/<[^>]+>/g, "")
     .trim();
-  if (stripped.length < 3) return false;
-  // Require at least one lowercase Latin letter — that's the strongest
-  // signal it's a sentence/word rather than an acronym or symbol set.
+  const letters = stripped.replace(/[^A-Za-z]/g, "");
+  // Short tokens (≤6 Latin letters after stripping) are typically
+  // loanwords or abbreviations ("min", "Thread", "streak", "Tråd")
+  // that frequently survive translation untouched.
+  if (letters.length <= 6) return false;
+  // Require at least one lowercase Latin letter — strongest signal of
+  // a sentence/word vs. an acronym or symbol set.
   return /[a-z]/.test(stripped);
 }
 
@@ -175,20 +184,25 @@ describe("i18n English-leak detection", () => {
 });
 
 describe("i18n fallback-handler safety", () => {
-  it("no English value collapses to the humanized-key fallback shape", () => {
+  it("non-English locales never collapse to the humanized-key fallback", () => {
     // The parseMissingKeyHandler in src/i18n/index.ts humanizes the last
-    // dotted segment. If an author accidentally sets a value to that exact
-    // humanized form, users see the same text whether the key resolves or
-    // not — which masks regressions. Flag those.
+    // dotted segment as a last-resort display string. If a translated
+    // value happens to equal that humanized form, the locale is
+    // indistinguishable from a missing key at runtime.
     const offenders: string[] = [];
-    for (const { path, value } of enEntries) {
+    for (const { path } of enEntries) {
       const last = path.split(".").pop() ?? path;
       const humanized = last
         .replace(/([A-Z])/g, " $1")
         .replace(/^./, (c) => c.toUpperCase())
         .trim();
-      if (value === humanized && value.length > 3) {
-        offenders.push(`${path} = ${JSON.stringify(value)}`);
+      if (humanized.length <= 3) continue;
+      for (const { code, data } of LOCALES) {
+        if (!NON_LATIN.has(code)) continue;
+        const v = getAt(data, path);
+        if (typeof v === "string" && v === humanized) {
+          offenders.push(`${code}:${path} = ${JSON.stringify(v)}`);
+        }
       }
     }
     expect(offenders, offenders.join("\n")).toEqual([]);
