@@ -17,7 +17,6 @@ import { Route as MorningRouteImport } from './routes/morning'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as EveningRouteImport } from './routes/evening'
 import { Route as CrisisRouteImport } from './routes/crisis'
-import { Route as CirclesRouteImport } from './routes/circles'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BranchIdRouteImport } from './routes/branch.$id'
@@ -64,11 +63,6 @@ const CrisisRoute = CrisisRouteImport.update({
   path: '/crisis',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CirclesRoute = CirclesRouteImport.update({
-  id: '/circles',
-  path: '/circles',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -98,7 +92,6 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/circles': typeof CirclesRoute
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
   '/library': typeof LibraryRoute
@@ -114,7 +107,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/circles': typeof CirclesRoute
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
   '/library': typeof LibraryRoute
@@ -131,7 +123,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/circles': typeof CirclesRoute
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
   '/library': typeof LibraryRoute
@@ -149,7 +140,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
-    | '/circles'
     | '/crisis'
     | '/evening'
     | '/library'
@@ -165,7 +155,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
-    | '/circles'
     | '/crisis'
     | '/evening'
     | '/library'
@@ -181,7 +170,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/auth'
-    | '/circles'
     | '/crisis'
     | '/evening'
     | '/library'
@@ -198,7 +186,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
-  CirclesRoute: typeof CirclesRoute
   CrisisRoute: typeof CrisisRoute
   EveningRoute: typeof EveningRoute
   LibraryRoute: typeof LibraryRoute
@@ -270,13 +257,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CrisisRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/circles': {
-      id: '/circles'
-      path: '/circles'
-      fullPath: '/circles'
-      preLoaderRoute: typeof CirclesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -318,7 +298,6 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
-  CirclesRoute: CirclesRoute,
   CrisisRoute: CrisisRoute,
   EveningRoute: EveningRoute,
   LibraryRoute: LibraryRoute,
