@@ -16,6 +16,7 @@ export type SkeletonBounds = { minMs: number; maxMs: number };
 export interface SkeletonMetric {
   spec: string;
   screen: string;
+  device: string;
   phase: "appear" | "persist";
   ms: number;
   bounds: SkeletonBounds;
@@ -42,10 +43,11 @@ export function assertSkeletonWithin(
   phase: SkeletonMetric["phase"],
   ms: number,
   bounds: SkeletonBounds,
+  device: string = process.env.PW_PROJECT ?? "default",
 ) {
-  const entry = recordSkeletonMetric({ spec, screen, phase, ms, bounds });
+  const entry = recordSkeletonMetric({ spec, screen, device, phase, ms, bounds });
   expect(
     entry.pass,
-    `[${spec}] ${screen} skeleton ${phase} ${ms}ms outside [${bounds.minMs}-${bounds.maxMs}]ms`,
+    `[${spec}] ${device}/${screen} skeleton ${phase} ${ms}ms outside [${bounds.minMs}-${bounds.maxMs}]ms`,
   ).toBe(true);
 }
