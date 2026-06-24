@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Mic, MicOff, MicOff as MicOffIcon, RotateCcw, Keyboard } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 type Props = {
   value: string;
@@ -19,6 +20,7 @@ export function VoiceInputButton({
   compact = false,
   onFallbackToType,
 }: Props) {
+  const { t } = useTranslation();
   const [isListening, setIsListening] = useState(false);
   const [supported, setSupported] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,12 +77,12 @@ export function VoiceInputButton({
       const code = e?.error ?? "unknown";
       const msg =
         code === "not-allowed" || code === "service-not-allowed"
-          ? "Mikrofontilgang er blokkert. Tillat mikrofonen, eller skriv i stedet."
+          ? t("voiceInput.blocked")
           : code === "no-speech"
-            ? "Hørte ingen stemme. Prøv igjen, eller skriv i stedet."
+            ? t("voiceInput.noSpeech")
             : code === "network"
-              ? "Mistet nettverket. Prøv en gang til."
-              : "Stemmeopptak feilet. Prøv igjen, eller skriv i stedet.";
+              ? t("voiceInput.network")
+              : t("voiceInput.generic");
       setError(msg);
     };
     recognition.onend = () => setIsListening(false);
@@ -91,7 +93,7 @@ export function VoiceInputButton({
       setIsListening(true);
     } catch {
       setIsListening(false);
-      setError("Kunne ikke starte opptak. Prøv igjen.");
+      setError(t("voiceInput.startFailed"));
     }
   }
 
@@ -99,10 +101,10 @@ export function VoiceInputButton({
     return (
       <div
         className={`glass inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] text-muted-foreground ${className}`}
-        title="Stemmegjenkjenning støttes ikke i denne nettleseren"
+        title={t("voiceInput.unsupportedTitle")}
       >
         <MicOffIcon className="h-3 w-3" />
-        <span>Skriv i stedet</span>
+        <span>{t("voiceInput.unsupported")}</span>
       </div>
     );
   }
@@ -112,7 +114,7 @@ export function VoiceInputButton({
       <button
         type="button"
         onClick={toggle}
-        aria-label={isListening ? "Stopp opptak" : error ? "Prøv stemmeopptak igjen" : "Snakk inn tekst"}
+        aria-label={isListening ? t("voiceInput.stopAria") : error ? t("voiceInput.retryAria") : t("voiceInput.speakAria")}
         className={`glass inline-flex items-center gap-1.5 rounded-full transition-all active:scale-95 ${
           compact ? "px-2.5 py-1 text-[10px]" : "px-3 py-1.5 text-[11px]"
         } ${
@@ -137,17 +139,17 @@ export function VoiceInputButton({
               <span className="relative inline-flex h-2 w-2 rounded-full bg-gold" />
             </span>
             <MicOff className="h-3 w-3 text-gold" />
-            <span className="uppercase tracking-wider text-gold">Lytter…</span>
+            <span className="uppercase tracking-wider text-gold">{t("voiceInput.listening")}</span>
           </>
         ) : error ? (
           <>
             <RotateCcw className="h-3 w-3 text-foreground" />
-            <span className="uppercase tracking-wider text-foreground">Prøv igjen</span>
+            <span className="uppercase tracking-wider text-foreground">{t("voiceInput.tryAgain")}</span>
           </>
         ) : (
           <>
             <Mic className="h-3 w-3 text-foreground" />
-            <span className="uppercase tracking-wider text-foreground">Snakk</span>
+            <span className="uppercase tracking-wider text-foreground">{t("voiceInput.speak")}</span>
           </>
         )}
       </button>
@@ -162,7 +164,7 @@ export function VoiceInputButton({
               className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-foreground/80 hover:bg-white/10"
             >
               <Keyboard className="h-3 w-3" />
-              Skriv
+              {t("voiceInput.typeInstead")}
             </button>
           )}
         </div>
