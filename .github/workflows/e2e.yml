@@ -1,0 +1,44 @@
+name: E2E Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  playwright:
+    name: Playwright (headless)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install deps
+        run: bun install --frozen-lockfile
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+      - name: Build app
+        run: bun run build
+      - name: Start preview server
+        run: |
+          bun run preview --port 8080 --host 127.0.0.1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8080 > /dev/null && exit 0
+            sleep 1
+          done
+          echo "Preview server did not start" && exit 1
+      - name: Run Playwright tests
+        run: bun run e2e
+      - name: Upload Playwright artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
