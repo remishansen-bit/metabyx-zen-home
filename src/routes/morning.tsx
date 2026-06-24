@@ -7,6 +7,7 @@ import { useVoiceInput } from "@/lib/use-voice-input";
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { refineBranches } from "@/lib/checkin.functions";
 import { addBranches } from "@/lib/store";
+import { useFeatureGate } from "@/hooks/useFeatureGate";
 
 export const Route = createFileRoute("/morning")({
   head: () => ({
@@ -29,9 +30,19 @@ function MorningPage() {
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const voice = useVoiceInput((t) => setText(t));
+  const gate = useFeatureGate();
 
   async function handleRefine() {
     if (!text.trim()) return;
+    if (
+      !gate.ensure("plus", {
+        feature: "AI refinement is part of Plus",
+        description:
+          "Plus rephrases your raw words into gentle, named branches you can carry into the day.",
+      })
+    ) {
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -243,6 +254,7 @@ function MorningPage() {
         </section>
       )}
 
+      {gate.paywall}
     </PhoneFrame>
   );
 }

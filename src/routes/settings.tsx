@@ -32,6 +32,8 @@ import { summarize } from "@/lib/learning";
 import { exportSummaryPdf } from "@/lib/library-pdf";
 import type { MetabyxState } from "@/lib/store";
 import { SubscriptionCard } from "@/components/subscription-card";
+import { SubscriptionHistory } from "@/components/SubscriptionHistory";
+import { useFeatureGate } from "@/hooks/useFeatureGate";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings · METABYX" }] }),
@@ -65,6 +67,7 @@ const DEFAULTS: Prefs = {
 function SettingsPage() {
   const auth = useAuth();
   const navigate = useNavigate();
+  const gate = useFeatureGate();
   const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
@@ -155,6 +158,15 @@ function SettingsPage() {
    * leaves the device before it does.
    */
   const prepareExport = () => {
+    if (
+      !gate.ensure("plus", {
+        feature: "Data export is part of Plus",
+        description:
+          "Plus lets you download your branches, BMR history, and emotion log as JSON or PDF.",
+      })
+    ) {
+      return;
+    }
     try {
       const raw = window.localStorage.getItem("metabyx:v1") ?? "{}";
       const parsed = JSON.parse(raw) as Record<string, unknown>;
@@ -196,6 +208,15 @@ function SettingsPage() {
   };
 
   const downloadPdfSummary = () => {
+    if (
+      !gate.ensure("plus", {
+        feature: "PDF summary is part of Plus",
+        description:
+          "Plus exports a printable PDF summary with the same categories as the JSON export.",
+      })
+    ) {
+      return;
+    }
     try {
       const raw = window.localStorage.getItem("metabyx:v1") ?? "{}";
       const parsed = JSON.parse(raw) as Partial<MetabyxState>;
@@ -281,6 +302,7 @@ function SettingsPage() {
       </header>
 
       <SubscriptionCard />
+      <SubscriptionHistory />
 
       <Section icon={Bell} title="Daily reminders">
         <Toggle
@@ -521,6 +543,7 @@ function SettingsPage() {
           </p>
         </Dialog>
       )}
+      {gate.paywall}
     </PhoneFrame>
   );
 }

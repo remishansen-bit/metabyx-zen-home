@@ -21,6 +21,10 @@ import {
   useCircles,
   type Circle,
 } from "@/lib/circles";
+import { useSubscription } from "@/hooks/useSubscription";
+import { canAccess } from "@/lib/feature-access";
+import { PaywallLockedCard } from "@/components/PaywallSheet";
+import { useNavigate } from "@tanstack/react-router";
 
 /**
  * Metabolic Circles — sketch screen for shared rooms. Rooms persist to
@@ -46,6 +50,9 @@ export const Route = createFileRoute("/circles")({
 });
 
 function CirclesPage() {
+  const { tier, loading: subLoading } = useSubscription();
+  const navigate = useNavigate();
+  const allowed = canAccess(tier, "pro");
   const circles = useCircles();
   const [openCreate, setOpenCreate] = useState(false);
   const [openJoin, setOpenJoin] = useState(false);
@@ -74,6 +81,17 @@ function CirclesPage() {
         <span className="w-9" aria-hidden />
       </header>
 
+      {!subLoading && !allowed && (
+        <PaywallLockedCard
+          required="pro"
+          title="Circles are part of Pro"
+          description="Small shared rooms — invite a few people in, hold one collective pulse together."
+          onUnlock={() => navigate({ to: "/settings" })}
+        />
+      )}
+
+      {allowed && (
+      <>
       <section className="glass-strong rounded-3xl p-5 text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl glass">
           <Users className="h-5 w-5 text-gold" />
@@ -191,6 +209,8 @@ function CirclesPage() {
             className="glass mt-3 w-full rounded-2xl bg-transparent px-4 py-3 text-sm uppercase tracking-[0.2em] text-foreground outline-none placeholder:text-muted-foreground"
           />
         </SheetDialog>
+      )}
+      </>
       )}
     </PhoneFrame>
   );
