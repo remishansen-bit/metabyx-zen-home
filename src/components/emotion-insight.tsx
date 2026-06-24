@@ -1,5 +1,6 @@
 import { Heart, Sparkles, Droplet } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { VoiceEmotion } from "@/lib/emotion.functions";
 
 type Props = {
@@ -11,34 +12,45 @@ type Props = {
   phase?: 0 | 1 | 2 | 3 | 4;
 };
 
-const EMOTION_TONE: Record<
-  VoiceEmotion["primaryEmotion"],
-  { label: string; hue: string }
-> = {
-  sadness: { label: "Sadness", hue: "oklch(0.72 0.08 250)" },
-  anxiety: { label: "Anxiety", hue: "oklch(0.78 0.12 70)" },
-  anger: { label: "Anger", hue: "oklch(0.72 0.16 30)" },
-  guilt: { label: "Guilt", hue: "oklch(0.7 0.08 300)" },
-  shame: { label: "Shame", hue: "oklch(0.68 0.1 320)" },
-  fear: { label: "Fear", hue: "oklch(0.74 0.12 280)" },
-  grief: { label: "Grief", hue: "oklch(0.7 0.06 240)" },
-  hope: { label: "Hope", hue: "oklch(0.82 0.14 145)" },
-  relief: { label: "Relief", hue: "oklch(0.85 0.1 170)" },
-  tenderness: { label: "Tenderness", hue: "oklch(0.85 0.08 20)" },
-  neutral: { label: "Steady", hue: "oklch(0.8 0.02 250)" },
+const EMOTION_HUE: Record<VoiceEmotion["primaryEmotion"], string> = {
+  sadness: "oklch(0.72 0.08 250)",
+  anxiety: "oklch(0.78 0.12 70)",
+  anger: "oklch(0.72 0.16 30)",
+  guilt: "oklch(0.7 0.08 300)",
+  shame: "oklch(0.68 0.1 320)",
+  fear: "oklch(0.74 0.12 280)",
+  grief: "oklch(0.7 0.06 240)",
+  hope: "oklch(0.82 0.14 145)",
+  relief: "oklch(0.85 0.1 170)",
+  tenderness: "oklch(0.85 0.08 20)",
+  neutral: "oklch(0.8 0.02 250)",
 };
 
-const INTENSITY_LABEL: Record<VoiceEmotion["intensity"], string> = {
-  low: "soft",
-  medium: "present",
-  high: "strong",
+const EMOTION_LABEL_KEY: Record<VoiceEmotion["primaryEmotion"], string> = {
+  sadness: "emotion.emoSadness",
+  anxiety: "emotion.emoAnxiety",
+  anger: "emotion.emoAnger",
+  guilt: "emotion.emoGuilt",
+  shame: "emotion.emoShame",
+  fear: "emotion.emoFear",
+  grief: "emotion.emoGrief",
+  hope: "emotion.emoHope",
+  relief: "emotion.emoRelief",
+  tenderness: "emotion.emoTenderness",
+  neutral: "emotion.emoNeutral",
+};
+
+const INTENSITY_KEY: Record<VoiceEmotion["intensity"], string> = {
+  low: "emotion.intensitySoft",
+  medium: "emotion.intensityPresent",
+  high: "emotion.intensityStrong",
 };
 
 /**
  * Returns a phase-aware, emotion-aware supportive line. Keep it short,
  * second-person, never clinical or prescriptive.
  */
-function supportiveLine(
+function supportiveKey(
   emotion: VoiceEmotion["primaryEmotion"],
   intensity: VoiceEmotion["intensity"],
   phase: 0 | 1 | 2 | 3 | 4 = 0,
@@ -46,73 +58,59 @@ function supportiveLine(
   const isClose = phase === 4;
   const strong = intensity === "high";
   const soft = intensity === "low";
-
   if (isClose) {
     switch (emotion) {
       case "sadness":
       case "grief":
-        return strong
-          ? "La det få lov å være tungt mens du skriver — det nye blir ikke mindre sant av det."
-          : "Du trenger ikke trøste sorgen for å gå videre. Skriv det milde, sanne.";
+        return strong ? "emotion.closeStrongSad" : "emotion.closeSoftSad";
       case "anxiety":
       case "fear":
-        return strong
-          ? "Pusten først, så ordene. Den nye setningen får komme stille."
-          : "Skriv noe litt tryggere enn frykten — bare et halvt steg er nok.";
+        return strong ? "emotion.closeStrongAnx" : "emotion.closeSoftAnx";
       case "anger":
-        return "Sinnet har sagt sitt. La det nye språket være varmt, ikke pent.";
+        return "emotion.closeAnger";
       case "guilt":
       case "shame":
-        return "Du får snakke til deg selv som til noen du er glad i.";
+        return "emotion.closeGuilt";
       case "hope":
       case "relief":
-        return "Den nye historien har allerede begynt. Skriv den i din egen takt.";
+        return "emotion.closeHope";
       case "tenderness":
-        return "Hold ømheten mens du skriver. Det blir et godt sted å lande.";
+        return "emotion.closeTenderness";
       default:
-        return soft
-          ? "En rolig setning er nok. Du trenger ikke pynte på den."
-          : "Skriv det som vil hvile i deg i kveld.";
+        return soft ? "emotion.closeSoftDefault" : "emotion.closeStrongDefault";
     }
   }
-
-  // Phase 1 / Identify
   switch (emotion) {
     case "sadness":
     case "grief":
-      return strong
-        ? "Det er mye her. Du trenger ikke løse noe nå — bare se det."
-        : "Sorgen får være med. Den hører hjemme i prosessen.";
+      return strong ? "emotion.idStrongSad" : "emotion.idSoftSad";
     case "anxiety":
     case "fear":
-      return strong
-        ? "Pusten din får sette tempoet. Vi har god tid."
-        : "Det er trygt å bare navngi det — ingen krav, ingen løsning enda.";
+      return strong ? "emotion.idStrongAnx" : "emotion.idSoftAnx";
     case "anger":
-      return "Sinnet peker på noe viktig. Vi metaboliserer det sammen, sakte.";
+      return "emotion.idAnger";
     case "guilt":
     case "shame":
-      return "Du møter deg selv mildt her. Skammen får ikke siste ordet.";
+      return "emotion.idGuilt";
     case "hope":
-      return "Håpet teller også som data. Det får være med oss.";
+      return "emotion.idHope";
     case "relief":
-      return "Lettelsen sier noe sant. Merk hvor i kroppen den sitter.";
+      return "emotion.idRelief";
     case "tenderness":
-      return "Ømheten er en god kompasspil for resten av økten.";
+      return "emotion.idTenderness";
     default:
-      return soft
-        ? "Ingenting trenger å være stort. Bare merk hva som er der."
-        : "Det er bra du satte ord på det. Vi går videre i ditt tempo.";
+      return soft ? "emotion.idSoftDefault" : "emotion.idStrongDefault";
   }
 }
 
 export function EmotionInsight({ emotion, loading, error, className = "", phase = 0 }: Props) {
+  const { t } = useTranslation();
   if (!emotion && !loading && !error) return null;
 
   const supportive = useMemo(
     () =>
-      emotion ? supportiveLine(emotion.primaryEmotion, emotion.intensity, phase) : "",
-    [emotion, phase],
+      emotion ? t(supportiveKey(emotion.primaryEmotion, emotion.intensity, phase)) : "",
+    [emotion, phase, t],
   );
 
   // Word-by-word stagger for the summary line.
@@ -129,7 +127,9 @@ export function EmotionInsight({ emotion, loading, error, className = "", phase 
     return () => clearTimeout(t);
   }, [emotion]);
 
-  const tone = emotion ? EMOTION_TONE[emotion.primaryEmotion] : null;
+  const tone = emotion
+    ? { label: t(EMOTION_LABEL_KEY[emotion.primaryEmotion]), hue: EMOTION_HUE[emotion.primaryEmotion] }
+    : null;
 
   return (
     <div
@@ -160,7 +160,7 @@ export function EmotionInsight({ emotion, loading, error, className = "", phase 
 
       <div className="flex items-center justify-between">
         <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-          What I&apos;m hearing
+          {t("emotion.hearing")}
         </p>
         <Sparkles
           className="h-3.5 w-3.5 text-gold/70"
@@ -174,7 +174,7 @@ export function EmotionInsight({ emotion, loading, error, className = "", phase 
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold/60" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-gold/80" />
           </span>
-          <span>Listening between the words…</span>
+          <span>{t("emotion.listening")}</span>
         </div>
       )}
 
@@ -198,7 +198,7 @@ export function EmotionInsight({ emotion, loading, error, className = "", phase 
               {tone.label}
             </span>
             <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-              {INTENSITY_LABEL[emotion.intensity]}
+              {t(INTENSITY_KEY[emotion.intensity])}
             </span>
             {emotion.distress.cryingOrTears && emotion.distress.confidence >= 0.5 && (
               <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider"
@@ -210,7 +210,7 @@ export function EmotionInsight({ emotion, loading, error, className = "", phase 
                 }}
               >
                 <Droplet className="h-2.5 w-2.5" />
-                tears nearby
+                {t("emotion.tearsNearby")}
               </span>
             )}
           </div>

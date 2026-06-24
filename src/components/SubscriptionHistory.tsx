@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, XCircle, RefreshCw, Receipt, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { getPaddleEnvironment } from "@/lib/paddle";
@@ -17,13 +18,19 @@ type Row = {
   updated_at: string;
 };
 
-function eventLabel(row: Row): { label: string; tone: "good" | "warn" | "info" } {
-  if (row.status === "canceled") return { label: "Cancellation", tone: "warn" };
-  if (row.cancel_at_period_end) return { label: "Cancellation scheduled", tone: "warn" };
-  if (row.status === "past_due") return { label: "Payment past due", tone: "warn" };
+function eventLabel(
+  row: Row,
+  t: (key: string) => string,
+): { label: string; tone: "good" | "warn" | "info" } {
+  if (row.status === "canceled")
+    return { label: t("subscriptionHistory.evtCancellation"), tone: "warn" };
+  if (row.cancel_at_period_end)
+    return { label: t("subscriptionHistory.evtCancellationScheduled"), tone: "warn" };
+  if (row.status === "past_due")
+    return { label: t("subscriptionHistory.evtPastDue"), tone: "warn" };
   if (row.created_at === row.updated_at)
-    return { label: "Subscription started", tone: "good" };
-  return { label: "Plan updated", tone: "info" };
+    return { label: t("subscriptionHistory.evtStarted"), tone: "good" };
+  return { label: t("subscriptionHistory.evtUpdated"), tone: "info" };
 }
 
 function fmt(iso: string | null | undefined) {
@@ -41,9 +48,9 @@ function fmt(iso: string | null | undefined) {
   }
 }
 
-function planName(productId: string) {
-  if (productId === "metabyx_pro") return "Pro";
-  if (productId === "metabyx_plus") return "Plus";
+function planName(productId: string, t: (key: string) => string) {
+  if (productId === "metabyx_pro") return t("subscriptionHistory.planPro");
+  if (productId === "metabyx_plus") return t("subscriptionHistory.planPlus");
   return productId;
 }
 
@@ -54,6 +61,7 @@ function planName(productId: string) {
  * upgrade, downgrade, and cancellation landed.
  */
 export function SubscriptionHistory() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,27 +100,26 @@ export function SubscriptionHistory() {
       <div className="flex items-center gap-2">
         <Receipt className="h-3.5 w-3.5 text-gold" />
         <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-          Activity
+          {t("subscriptionHistory.activity")}
         </p>
       </div>
       <div className="glass rounded-2xl p-3">
         {loading ? (
           <div className="flex items-center justify-center gap-2 px-3 py-6 text-xs text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading activity…
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t("subscriptionHistory.loading")}
           </div>
         ) : error ? (
           <p className="px-3 py-4 text-xs text-[oklch(0.78_0.16_27)]">
-            Couldn't load activity — {error}
+            {t("subscriptionHistory.couldNotLoad", { error })}
           </p>
         ) : rows.length === 0 ? (
           <p className="px-3 py-4 text-xs text-muted-foreground">
-            No subscription events yet. Upgrades, downgrades, and cancellations
-            will show up here.
+            {t("subscriptionHistory.empty")}
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
             {rows.map((row) => {
-              const evt = eventLabel(row);
+              const evt = eventLabel(row, t);
               const Icon =
                 evt.tone === "good"
                   ? CheckCircle2
@@ -134,14 +141,14 @@ export function SubscriptionHistory() {
                   <div className="flex-1">
                     <p className="text-sm text-foreground">
                       {evt.label} ·{" "}
-                      <span className="text-gold">{planName(row.product_id)}</span>
+                      <span className="text-gold">{planName(row.product_id, t)}</span>
                     </p>
                     <p className="text-[11px] text-muted-foreground">
                       {fmt(row.updated_at)}
                     </p>
                     {row.current_period_end && (
                       <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                        period ends {fmt(row.current_period_end)}
+                        {t("subscriptionHistory.periodEnds", { date: fmt(row.current_period_end) })}
                       </p>
                     )}
                   </div>
