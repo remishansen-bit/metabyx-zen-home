@@ -19,9 +19,20 @@
 import { chromium } from "playwright";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve, join } from "node:path";
+import { existsSync } from "node:fs";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:8080";
 const OUT_ROOT = process.env.OUT_DIR ?? "/mnt/documents/appstore";
+
+/** Locate a chromium binary. Prefers Playwright's own download; falls back to
+ * a system chromium (e.g. the sandbox-bundled /chromium-NNNN/chrome-linux). */
+function findChromiumExecutable() {
+  if (process.env.CHROMIUM_PATH && existsSync(process.env.CHROMIUM_PATH)) return process.env.CHROMIUM_PATH;
+  for (const p of ["/chromium-1194/chrome-linux/chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/bin/chromium"]) {
+    if (existsSync(p)) return p;
+  }
+  return undefined;
+}
 
 /** The hero set — keep order stable; App Store cares about the first 3. */
 const SHOTS = [
@@ -63,6 +74,7 @@ async function main() {
   console.log(`Capturing METABYX screenshots from ${BASE_URL}`);
   await ensureDir(OUT_ROOT);
   const browser = await chromium.launch({ headless: true });
+
   try {
     for (const device of DEVICES) {
       const deviceDir = join(OUT_ROOT, device.name);
