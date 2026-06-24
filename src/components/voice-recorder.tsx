@@ -1054,16 +1054,16 @@ export function VoiceRecorder({
         <div
           ref={reviewRootRef}
           role="dialog"
-          aria-label="Forhåndsvis og rediger transkripsjon"
+          aria-label={t("voice.statusReview")}
           aria-modal="false"
           className="animate-fade-in flex flex-col gap-3 focus-visible:outline-none"
         >
           <div className="flex items-center justify-between">
             <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-              Forhåndsvisning
+              {t("voice.preview")}
             </p>
             <span className="text-[10px] text-muted-foreground">
-              Rediger om noe ble feil
+              {t("voice.editIfWrong")}
             </span>
           </div>
 
@@ -1084,7 +1084,7 @@ export function VoiceRecorder({
                   if (el.paused) void el.play();
                   else el.pause();
                 }}
-                aria-label={isPlaying ? "Pause avspilling" : "Spill av opptaket"}
+                aria-label={isPlaying ? t("voice.pausePlayback") : t("voice.playRecording")}
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
                 style={{
                   background:
