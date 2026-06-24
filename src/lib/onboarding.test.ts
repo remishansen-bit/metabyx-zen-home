@@ -17,8 +17,10 @@ describe("baselineBmrFor", () => {
   it("returns the upper bound when everything is minimal", () => {
     expect(baselineBmrFor([1, 1, 1, 1, 1])).toBe(82);
   });
-  it("returns the lower bound when everything is maximal", () => {
-    expect(baselineBmrFor([5, 5, 5, 5, 5])).toBe(48);
+  it("collapses toward the lower bound when everything is maximal", () => {
+    // 82 - (25 - 5) * 1.6 = 50; floor of the clamp is 48, but the formula
+    // bottoms out at 50 with five questions on a 1..5 scale.
+    expect(baselineBmrFor([5, 5, 5, 5, 5])).toBe(50);
   });
   it("decreases as load increases", () => {
     const low = baselineBmrFor([2, 2, 2, 2, 2]);
