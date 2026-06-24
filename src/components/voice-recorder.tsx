@@ -1431,7 +1431,7 @@ export function VoiceRecorder({
                 >
                   <label className="flex flex-col gap-1 text-[10px] text-muted-foreground">
                     <span className="flex items-center justify-between">
-                      <span>Følsomhet (terskel)</span>
+                      <span>{t("voice.sensitivity")}</span>
                       <span className="tabular-nums text-foreground/70">
                         {userThreshold.toFixed(3)}
                       </span>
@@ -1443,11 +1443,11 @@ export function VoiceRecorder({
                       step={0.001}
                       value={userThreshold}
                       onChange={(e) => setUserThreshold(parseFloat(e.target.value))}
-                      aria-label="Stemmedeteksjon — følsomhet"
+                      aria-label={t("voice.sensitivityAria")}
                       className="accent-[oklch(0.88_0.14_82)]"
                     />
                     <span className="text-[9px] text-muted-foreground/80">
-                      Lavere = fanger opp svakere stemme.
+                      {t("voice.sensitivityHint")}
                     </span>
                   </label>
                   {/* Noise-floor calibration: samples ambient RMS for ~1.4s
@@ -1455,19 +1455,19 @@ export function VoiceRecorder({
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex min-w-0 flex-col">
                       <span className="text-[10px] text-muted-foreground">
-                        Bakgrunnsstøy
+                        {t("voice.noiseFloor")}
                       </span>
                       <span className="text-[9px] text-muted-foreground/70">
                         {noiseFloor != null
-                          ? `Målt: ${(noiseFloor * 100).toFixed(1)}%`
-                          : "Ikke kalibrert ennå"}
+                          ? t("voice.noiseMeasured", { pct: (noiseFloor * 100).toFixed(1) })
+                          : t("voice.noiseNotCalibrated")}
                       </span>
                     </div>
                     <button
                       type="button"
                       onClick={() => void calibrateNoiseFloor()}
                       disabled={calibrating}
-                      aria-label="Kalibrer bakgrunnsstøy ved å være stille i ett sekund"
+                      aria-label={t("voice.calibrateAria")}
                       className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium text-foreground transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
                       style={{
                         background:
@@ -1478,19 +1478,19 @@ export function VoiceRecorder({
                       {calibrating ? (
                         <>
                           <Loader2 className="h-3 w-3 animate-spin" />
-                          Lytter…
+                          {t("voice.calibrating")}
                         </>
                       ) : (
                         <>
                           <Settings2 className="h-3 w-3" />
-                          Kalibrer
+                          {t("voice.calibrate")}
                         </>
                       )}
                     </button>
                   </div>
                   <label className="flex flex-col gap-1 text-[10px] text-muted-foreground">
                     <span className="flex items-center justify-between">
-                      <span>Stillhet før auto-stopp</span>
+                      <span>{t("voice.silenceBefore")}</span>
                       <span className="tabular-nums text-foreground/70">
                         {(userSilenceMs / 1000).toFixed(1)}s
                       </span>
@@ -1502,7 +1502,7 @@ export function VoiceRecorder({
                       step={100}
                       value={userSilenceMs}
                       onChange={(e) => setUserSilenceMs(parseInt(e.target.value, 10))}
-                      aria-label="Stillhet før automatisk stopp, i millisekunder"
+                      aria-label={t("voice.silenceAria")}
                       className="accent-[oklch(0.72_0.13_265)]"
                     />
                   </label>
@@ -1510,14 +1510,14 @@ export function VoiceRecorder({
                       recorder always opens in the same configuration. */}
                   <div className="mt-1 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
                     <div className="flex min-w-0 flex-col">
-                      <span className="text-[10px] text-muted-foreground">Rolig modus</span>
+                      <span className="text-[10px] text-muted-foreground">{t("voice.calmMode")}</span>
                       <span className="text-[9px] text-muted-foreground/70">
-                        Demper animasjoner og bølgen.
+                        {t("voice.calmHint")}
                       </span>
                     </div>
                     <div
                       role="radiogroup"
-                      aria-label="Rolig modus"
+                      aria-label={t("voice.calmAria")}
                       className="inline-flex overflow-hidden rounded-full text-[10px]"
                       style={{ border: "1px solid oklch(1 0 0 / 0.1)" }}
                     >
@@ -1541,7 +1541,7 @@ export function VoiceRecorder({
                                 : { color: "oklch(0.7 0.02 265)" }
                             }
                           >
-                            {opt === "auto" ? "Auto" : opt === "on" ? "På" : "Av"}
+                            {opt === "auto" ? t("voice.calmAuto") : opt === "on" ? t("voice.calmOn") : t("voice.calmOff")}
                           </button>
                         );
                       })}
@@ -1549,9 +1549,9 @@ export function VoiceRecorder({
                   </div>
                   <label className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
                     <span className="flex min-w-0 flex-col">
-                      <span>Vis tonehøyde</span>
+                      <span>{t("voice.showPitch")}</span>
                       <span className="text-[9px] text-muted-foreground/70">
-                        Hz + stabilitetsmåler under opptak.
+                        {t("voice.showPitchHint")}
                       </span>
                     </span>
                     <span className="relative inline-block h-4 w-7 shrink-0">
@@ -1559,7 +1559,7 @@ export function VoiceRecorder({
                         type="checkbox"
                         checked={showPitch}
                         onChange={(e) => setShowPitch(e.target.checked)}
-                        aria-label="Vis tonehøyde under opptak"
+                        aria-label={t("voice.showPitchAria")}
                         className="peer absolute inset-0 h-full w-full cursor-pointer opacity-0"
                       />
                       <span
