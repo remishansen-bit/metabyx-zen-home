@@ -1,6 +1,7 @@
 import { RequireAuth } from "@/lib/auth";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, LifeBuoy, Phone, Sparkles } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { VoiceInputButton } from "@/components/voice-input-button";
@@ -21,20 +22,15 @@ export const Route = createFileRoute("/crisis")({
 
 /** 4 · 7 · 8 breathing pattern (seconds), one of the gentlest paced patterns. */
 const PHASES = [
-  { label: "Breathe in", seconds: 4, scale: 1.0 },
-  { label: "Hold", seconds: 7, scale: 1.0 },
-  { label: "Breathe out", seconds: 8, scale: 0.55 },
+  { key: "phaseIn", seconds: 4, scale: 1.0 },
+  { key: "phaseHold", seconds: 7, scale: 1.0 },
+  { key: "phaseOut", seconds: 8, scale: 0.55 },
 ] as const;
 
-const GROUNDING = [
-  "5 things you can see",
-  "4 things you can touch",
-  "3 things you can hear",
-  "2 things you can smell",
-  "1 thing you can taste",
-];
+const GROUNDING_KEYS = ["g5", "g4", "g3", "g2", "g1"] as const;
 
 function CrisisPage() {
+  const { t } = useTranslation();
   const [running, setRunning] = useState(false);
   const [phaseIdx, setPhaseIdx] = useState(0);
   const [cycle, setCycle] = useState(0);
@@ -62,26 +58,26 @@ function CrisisPage() {
 
   return (
     <PhoneFrame hideTabBar>
-      <StatusBar title="CRISIS MODE" />
+      <StatusBar title={t("crisisFull.title")} />
 
       <header className="flex items-center justify-between">
         <Link
           to="/"
           className="glass flex h-10 w-10 items-center justify-center rounded-full"
-          aria-label="Back to home"
+          aria-label={t("crisisFull.back")}
         >
           <ArrowLeft className="h-4 w-4 text-foreground" />
         </Link>
         <div className="flex items-center gap-2 text-gold">
           <LifeBuoy className="h-4 w-4" />
-          <span className="text-[10px] uppercase tracking-[0.35em]">You are safe here</span>
+          <span className="text-[10px] uppercase tracking-[0.35em]">{t("crisisFull.safe")}</span>
         </div>
         <div className="h-10 w-10" />
       </header>
 
       <section className="flex flex-col items-center gap-4 pt-2">
         <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground">
-          Cycle {cycle + 1}
+          {t("crisisFull.cycle", { n: cycle + 1 })}
         </p>
         <div className="relative flex h-56 w-56 items-center justify-center">
           <div
@@ -101,10 +97,10 @@ function CrisisPage() {
                 className="text-2xl font-light text-foreground"
                 style={{ fontFamily: "Fraunces, serif" }}
               >
-                {running ? active.label : "Ready"}
+                {running ? t(`crisisFull.${active.key}`) : t("crisisFull.ready")}
               </p>
               <p className="mt-1 text-[10px] uppercase tracking-[0.3em] text-gold">
-                {running ? `${active.seconds}s` : "4 · 7 · 8"}
+                {running ? `${active.seconds}s` : t("crisisFull.pattern")}
               </p>
             </div>
           </div>
@@ -125,23 +121,23 @@ function CrisisPage() {
             boxShadow: running ? undefined : "var(--shadow-gold)",
           }}
         >
-          {running ? "Pause" : "Begin breathing"}
+          {running ? t("crisisFull.pause") : t("crisisFull.begin")}
         </button>
       </section>
 
       <section className="glass rounded-2xl p-4">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-gold" />
-          <p className="text-[10px] uppercase tracking-[0.3em] text-gold">5 · 4 · 3 · 2 · 1 grounding</p>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-gold">{t("crisisFull.groundingEyebrow")}</p>
         </div>
         <ul className="mt-3 flex flex-col gap-1.5">
-          {GROUNDING.map((g) => (
+          {GROUNDING_KEYS.map((g) => (
             <li
               key={g}
               className="text-sm leading-relaxed text-foreground"
               style={{ fontFamily: "Fraunces, serif" }}
             >
-              · {g}
+              · {t(`crisisFull.${g}`)}
             </li>
           ))}
         </ul>
@@ -150,14 +146,14 @@ function CrisisPage() {
       <section className="glass rounded-2xl p-4">
         <div className="flex items-center justify-between">
           <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-            Say or write what is here
+            {t("crisisFull.sayEyebrow")}
           </p>
           <VoiceInputButton value={note} onChange={setNote} compact />
         </div>
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Nothing needs to be solved. Just name it…"
+          placeholder={t("crisisFull.notePlaceholder")}
           rows={4}
           className="mt-2 w-full resize-none bg-transparent text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
           style={{ fontFamily: "Fraunces, serif" }}
@@ -169,11 +165,11 @@ function CrisisPage() {
         className="glass flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm text-foreground"
       >
         <Phone className="h-4 w-4 text-gold" />
-        Reach a human (Mental Helse · 116 123)
+        {t("crisisFull.helpline")}
       </a>
 
       <p className="text-center text-[10px] uppercase tracking-wider text-muted-foreground">
-        Breathing alone is enough. Stay as long as you need.
+        {t("crisisFull.footer")}
       </p>
     </PhoneFrame>
   );

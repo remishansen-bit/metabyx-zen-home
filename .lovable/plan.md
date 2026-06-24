@@ -1,50 +1,68 @@
-You picked "all" across the board, so I'll execute in three checked-in steps rather than one giant unreviewable change. Each step ends with a working app you can preview before I move on.
+# Full i18n completion — phased plan
 
-## Step 1 — Shared layout & typography system
+This work is too large for a single turn (10+ component/route files, 100+ new keys × 10 languages = 1000+ strings, plus a new test harness and Playwright spec). I'll do it in 4 sequential phases. Each phase is independently shippable; approve and I'll execute them one per turn.
 
-Goal: every screen uses the same primitives, so spacing/scroll/typography drift becomes impossible.
+## Phase 1 — String audit + key extraction (no translation yet)
 
-New files in `src/components/layout/`:
-- `PhoneFrame.tsx` — outer 100dvh container, safe-area insets, max-width capped at iPhone 16 Pro width on larger viewports.
-- `Screen.tsx` — `<Screen header={…} footer={…}>` grid: fixed header row, scrollable main, fixed footer row. Inner scroll only, frame stays put.
-- `Section.tsx` / `Stack.tsx` — vertical rhythm primitives using spacing tokens.
-- `ScreenTitle.tsx`, `ScreenSubtitle.tsx`, `Eyebrow.tsx` — typography primitives bound to tokens.
+Goal: every user-facing English string in app code is replaced by a `t("…")` call, with new keys added to `en.json` only. Other locales fall back to English (already wired) so nothing breaks.
 
-Tokens added to `src/styles.css` under `@theme`:
-- Spacing scale: `--space-screen-x` (20px), `--space-screen-y` (24px), `--space-section` (32px), `--space-stack` (12px / 16px / 24px).
-- Type scale: `--text-display`, `--text-title`, `--text-body`, `--text-caption` with matching line-heights.
-- Motion tokens: `--ease-calm`, `--dur-fast` (160ms), `--dur-base` (240ms), `--dur-slow` (400ms). All respect `prefers-reduced-motion`.
+Files in scope:
+- `src/components/voice-recorder.tsx`
+- `src/components/PaywallAnalyticsCard.tsx`
+- `src/components/PaywallSheet.tsx`
+- `src/components/subscription-card.tsx`
+- `src/components/SubscriptionHistory.tsx`
+- `src/components/PaymentTestModeBanner.tsx`
+- `src/components/emotion-insight.tsx`
+- `src/routes/session.tsx`
+- `src/routes/library.tsx`
+- `src/routes/circles.tsx`, `src/routes/circles.$id.tsx`
+- `src/routes/branch.$id.tsx`
+- `src/routes/crisis.tsx`
+- `src/routes/morning.tsx`, `src/routes/evening.tsx`
+- `src/routes/index.tsx` (any remaining)
+- `src/routes/settings.tsx` (Dialog / Toggle hardcoded labels)
+- `src/lib/feedback.ts` toast titles where author-provided
+- Auth error message strings in `src/lib/auth.tsx`
 
-Refactor pass on Home, Library, Profile/Tracker, Check-in, Reflections, Voice, Onboarding to consume `<Screen>` — no business-logic edits.
+New `en.json` namespaces: `session`, `library`, `branch`, `voice`, `paywall`, `subscription`, `morning`, `evening`, `emotion`, `dialog`.
 
-## Step 2 — Loading, empty states, animations
+Deliverable: typecheck-clean app, all keys present in `en.json`, all hardcoded strings replaced.
 
-- `src/components/feedback/Skeleton.tsx` — single shimmer primitive, respects reduced-motion. Replace ad-hoc skeletons.
-- `src/components/feedback/EmptyState.tsx` — illustration slot + title + body + primary action. Apply to Library, Check-ins, Reflections, Tracker history, Circles (locked).
-- Page transitions: `<ScreenTransition>` wrapper using framer-motion `AnimatePresence` with calm fade+rise (8px, 240ms). Disabled under `prefers-reduced-motion`.
-- Skeleton timing budget: min 120ms (no flash), graceful crossfade to content or empty state.
-- Audit and remove layout-shifting spinners; replace with skeletons that match final layout.
+## Phase 2 — Translate Phase 1 keys into 9 locales
 
-## Step 3 — App Store screenshot set
+Generate translations for every key added in Phase 1 across `nb / es / fr / de / pt / ar / sv / da / ru`, keeping the calm/supportive tone. Done as a single Python merge script per locale.
 
-Playwright script `scripts/appstore-screenshots.ts` runs against the local preview at iPhone 16 (393×852) and iPhone 16 Pro (402×874) viewports, dpr 3.
+Deliverable: 9 locale files fully cover the new keys with no English fallback.
 
-Captures 6 hero shots per device using mocked-but-realistic data (deterministic seed, no real account needed):
-1. Onboarding welcome
-2. Daily check-in (mid-flow)
-3. GCMP voice screen (active)
-4. Library (populated)
-5. Profile / Tracker (with data)
-6. Reflections
+## Phase 3 — Build-blocking missing-key + English-leak test
 
-Output saved to `/mnt/documents/appstore/<device>/NN-<name>.png` plus a combined `/mnt/documents/appstore/index.html` contact sheet for quick review. I'll attach them with `<presentation-artifact>` tags.
+Add `tests/i18n/no-missing-keys.test.ts` (Vitest) that:
+1. Loads every locale JSON.
+2. Walks `en.json` recursively and asserts every key exists in every other locale.
+3. For each non-English locale, asserts no leaf value equals the English leaf value (except whitelisted brand/proper-noun tokens like `METABYX`, `BMR`, email addresses).
+4. Spies on i18next's `missingKeyHandler` during a render-smoke and fails if invoked.
+
+Wire into `package.json` `test` script and into the existing CI workflows so it blocks PRs.
+
+Deliverable: `bunx vitest run tests/i18n` passes; intentionally breaking a key (delete one from `fr.json`) fails the run.
+
+## Phase 4 — Expand Playwright RTL Arabic spec
+
+Extend `tests/e2e/rtl-arabic.spec.ts` to:
+- Switch language to `ar` via the LanguageSelector and assert `<html dir="rtl" lang="ar">`.
+- On Home: assert translated greeting, tab-bar labels (Home/Check-in/Guided/Circles/Library/Profile in Arabic), and that the tab bar visually flows right→left (check first child's `getBoundingClientRect().x` > last child's).
+- Navigate to Settings: assert translated section titles (`Daily reminders`, `Privacy`, `Legal & support`), assert the back chevron sits on the right edge, assert the new Logout button label renders in Arabic.
+- Screenshot each assertion checkpoint into `tests/e2e/__screenshots__/rtl-ar-*.png` for review.
+
+Deliverable: spec runs green against the live preview.
 
 ## Technical notes
 
-- No business-logic or backend changes anywhere.
-- All hardcoded `px-4`, `pt-6`, ad-hoc `min-h-screen` get replaced by primitives; semantic tokens only — no raw color classes introduced.
-- Reduced-motion: every new animation gated on `useReducedMotion()` from framer-motion.
-- Existing Playwright suites (`height-focus`, `library-empty`, `library-visual`, `reduced-motion`) continue to pass; baselines refreshed via `scripts/update-visual-baselines.sh` only for screens whose layout intentionally changed.
-- I'll check in with you after Step 1 before starting Step 2, and after Step 2 before Step 3, so you can course-correct early.
+- i18n init in `src/i18n/index.ts` already has `fallbackLng: "en"` and a `parseMissingKeyHandler` that humanizes dotted keys; Phase 3's test will tighten that to also error in test mode.
+- Tone glossary (gentle / calm / second-person, no exclamation marks, no marketing language) will be reused from existing translations in the Phase 2 generation script.
+- No DB / Cloud / iOS changes in any phase.
 
-Approve and I'll start on Step 1.
+## Ask
+
+Reply "go phase 1" (or 1+2, etc.) and I'll execute. If you want me to compress Phase 1+2 into one turn for a specific subset (e.g. just voice-recorder + session + crisis), say which files and I'll batch those.

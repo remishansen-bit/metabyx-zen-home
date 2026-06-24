@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { Crown, Lock, Sparkles, X } from "lucide-react";
 import { PAYWALL_COPY, type PaywallReason } from "@/lib/feature-access";
 import { recordPaywallEvent } from "@/lib/paywall-analytics";
@@ -16,6 +17,7 @@ export function PaywallSheet({
   reason: PaywallReason | null;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   if (!reason) return null;
   const copy = PAYWALL_COPY[reason.required];
@@ -43,7 +45,7 @@ export function PaywallSheet({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`${copy.name} required`}
+      aria-label={t("paywall.requiredAria", { name: copy.name })}
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center"
       onClick={dismiss}
     >
@@ -61,7 +63,7 @@ export function PaywallSheet({
           </div>
           <button
             onClick={dismiss}
-            aria-label="Close"
+            aria-label={t("paywall.closeAria")}
             className="glass flex h-8 w-8 items-center justify-center rounded-full"
           >
             <X className="h-4 w-4 text-muted-foreground" />
@@ -83,14 +85,14 @@ export function PaywallSheet({
             onClick={dismiss}
             className="glass flex-1 rounded-2xl px-4 py-3 text-xs uppercase tracking-[0.2em] text-muted-foreground"
           >
-            Not now
+            {t("paywall.notNow")}
           </button>
           <button
             onClick={upgrade}
             className="flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium text-background"
             style={{ background: "var(--gradient-gold)" }}
           >
-            <Sparkles className="h-4 w-4" /> Upgrade
+            <Sparkles className="h-4 w-4" /> {t("paywall.upgrade")}
           </button>
         </div>
       </div>
@@ -109,6 +111,7 @@ export function PaywallLockedCard({
   description: string;
   onUnlock: () => void;
 }) {
+  const { t } = useTranslation();
   const copy = PAYWALL_COPY[required];
   useEffect(() => {
     recordPaywallEvent({
@@ -135,7 +138,7 @@ export function PaywallLockedCard({
       <div className="flex items-center gap-2">
         <Lock className="h-3.5 w-3.5 text-gold" />
         <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-          {copy.name} · locked
+          {copy.name} · {t("paywall.lockedSuffix")}
         </p>
       </div>
       <p
@@ -146,7 +149,7 @@ export function PaywallLockedCard({
       </p>
       <p className="text-xs text-muted-foreground">{description}</p>
       <span className="mt-2 inline-flex items-center gap-2 rounded-full bg-[oklch(0.82_0.14_82/0.18)] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-gold">
-        <Sparkles className="h-3 w-3" /> Unlock {required}
+        <Sparkles className="h-3 w-3" /> {t("paywall.unlock", { tier: required })}
       </span>
     </button>
   );

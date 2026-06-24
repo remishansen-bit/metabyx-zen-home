@@ -1,6 +1,7 @@
 import { RequireAuth } from "@/lib/auth";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Mic, MicOff, Sparkles, Check, Loader2 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { useVoiceInput } from "@/lib/use-voice-input";
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/morning")({
 type RefineResult = Awaited<ReturnType<typeof refineBranches>>;
 
 function MorningPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,9 +39,8 @@ function MorningPage() {
     if (!text.trim()) return;
     if (
       !gate.ensure("plus", {
-        feature: "AI refinement is part of Plus",
-        description:
-          "Plus rephrases your raw words into gentle, named branches you can carry into the day.",
+        feature: t("morning.paywallFeature"),
+        description: t("morning.paywallDesc"),
       })
     ) {
       return;
@@ -51,7 +52,7 @@ function MorningPage() {
       setResult(out);
       setSelected(new Set(out.branches.map((_, i) => i)));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setError(e instanceof Error ? e.message : t("morning.somethingWrong"));
     } finally {
       setLoading(false);
     }
@@ -67,17 +68,17 @@ function MorningPage() {
 
   return (
     <PhoneFrame>
-      <StatusBar title="MORNING" />
+      <StatusBar title={t("morning.title")} />
 
       <header className="flex items-center justify-between">
         <Link
           to="/"
           className="glass flex h-10 w-10 items-center justify-center rounded-full"
-          aria-label="Back"
+          aria-label={t("morning.back")}
         >
           <ArrowLeft className="h-4 w-4 text-foreground" />
         </Link>
-        <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Check-in</p>
+        <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{t("morning.eyebrow")}</p>
         <div className="h-10 w-10" />
       </header>
 
@@ -86,10 +87,12 @@ function MorningPage() {
           className="text-2xl font-light leading-snug text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          What <span className="text-gold italic">open branches</span> do you notice today?
+          {t("morning.headlinePrefix")}{" "}
+          <span className="text-gold italic">{t("morning.headlineHighlight")}</span>{" "}
+          {t("morning.headlineSuffix")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Speak freely. Nothing to fix yet — only to notice.
+          {t("morning.subhead")}
         </p>
       </section>
 
@@ -100,7 +103,7 @@ function MorningPage() {
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="A meeting I'm anxious about, a friend I haven't called, the run I keep postponing…"
+              placeholder={t("morning.textareaPlaceholder")}
               rows={6}
               className="w-full resize-none bg-transparent text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
             />
@@ -114,17 +117,17 @@ function MorningPage() {
                 {voice.listening ? (
                   <>
                     <MicOff className="h-3.5 w-3.5 text-gold" />
-                    <span>Listening…</span>
+                    <span>{t("morning.listening")}</span>
                   </>
                 ) : (
                   <>
                     <Mic className="h-3.5 w-3.5 text-gold" />
-                    <span>{voice.supported ? "Speak" : "Voice unavailable"}</span>
+                    <span>{voice.supported ? t("morning.speak") : t("morning.voiceUnavailable")}</span>
                   </>
                 )}
               </button>
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                {text.length} chars
+                {t("morning.chars", { count: text.length })}
               </span>
             </div>
           </div>
@@ -133,15 +136,15 @@ function MorningPage() {
               before it lands in the textarea above. */}
           <details className="glass rounded-2xl px-4 py-3">
             <summary className="flex cursor-pointer items-center justify-between text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-              <span>Speak the check-in aloud</span>
-              <span className="text-gold">+ Voice</span>
+              <span>{t("morning.voiceSummary")}</span>
+              <span className="text-gold">{t("morning.voiceAdd")}</span>
             </summary>
             <div className="mt-3">
               <VoiceRecorder
                 language="en-US"
                 compact
                 showHistory={false}
-                ariaLabel="Record the morning check-in"
+                ariaLabel={t("morning.voiceAria")}
                 onTranscription={(t) =>
                   setText(text ? `${text.trim()} ${t}` : t)
                 }
@@ -173,9 +176,9 @@ function MorningPage() {
               )}
               <div className="flex-1">
                 <p className="text-sm font-semibold">
-                  {loading ? "Refining branches…" : "Refine with METABYX"}
+                  {loading ? t("morning.refining") : t("morning.refine")}
                 </p>
-                <p className="text-xs opacity-80">AI distills what's truly there</p>
+                <p className="text-xs opacity-80">{t("morning.refineHint")}</p>
               </div>
             </div>
           </button>
@@ -185,7 +188,7 @@ function MorningPage() {
         {result && (
         <section className="flex flex-col gap-4">
           <div className="glass rounded-2xl p-4">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-gold">Reflection</p>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-gold">{t("morning.reflectionEyebrow")}</p>
             <p
               className="mt-2 text-sm leading-relaxed text-foreground"
               style={{ fontFamily: "Fraunces, serif" }}
@@ -196,7 +199,7 @@ function MorningPage() {
 
           <div className="flex flex-col gap-2">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">
-              Tap to keep · {selected.size} of {result.branches.length}
+              {t("morning.tapToKeep", { selected: selected.size, total: result.branches.length })}
             </p>
             <ul className="flex flex-col gap-2">
               {result.branches.map((b, i) => {
@@ -242,7 +245,7 @@ function MorningPage() {
               color: "var(--primary-foreground)",
             }}
           >
-            Plant these branches · update BMR
+            {t("morning.save")}
           </button>
           <button
             onClick={() => {
@@ -251,7 +254,7 @@ function MorningPage() {
             }}
             className="glass rounded-2xl px-5 py-3 text-xs text-muted-foreground"
           >
-            Start over
+            {t("morning.startOver")}
           </button>
         </section>
         )}
