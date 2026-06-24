@@ -1013,19 +1013,19 @@ export function VoiceRecorder({
         boxShadow: isRecording ? "var(--shadow-gold)" : undefined,
       }}
       role="group"
-      aria-label={ariaLabel ?? "Stemmeopptak"}
+      aria-label={ariaLabel ?? t("voice.ariaDefault")}
       onKeyDown={onRootKeyDown}
     >
       {/* SR-only live regions: polite for status, assertive for errors. */}
       <span className="sr-only" aria-live="polite">
         {isRecording
-          ? `Tar opp — ${vadStatusLabel}, ${elapsed} sekunder`
+          ? t("voice.statusRecording", { vad: vadStatusLabel, seconds: elapsed })
           : isProcessing
-            ? "Transkriberer lyden"
+            ? t("voice.statusTranscribing")
             : isDone
-              ? "Ferdig — teksten er klar"
+              ? t("voice.statusDone")
               : isReview
-                ? "Forhåndsvis og rediger teksten før du godtar"
+                ? t("voice.statusReview")
                 : ""}
       </span>
       <span className="sr-only" role="alert" aria-live="assertive">
