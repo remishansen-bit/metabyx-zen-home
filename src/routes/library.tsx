@@ -6,6 +6,7 @@ import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { useMetabyx, importMetabyxJson, type Branch } from "@/lib/store";
 import { exportLibraryPdf } from "@/lib/library-pdf";
 import { notify } from "@/lib/feedback";
+import { useFeatureGate } from "@/hooks/useFeatureGate";
 
 export const Route = createFileRoute("/library")({
   head: () => ({
