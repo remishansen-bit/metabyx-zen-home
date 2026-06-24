@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import { installFakeSpeechRecognition, signInIfPossible } from "./_helpers";
 
 /**
@@ -46,11 +47,61 @@ async function expectFocusOrderAdvances(page: Page, presses = 5) {
   expect(seen.size, "Tab key should reach multiple focusable elements").toBeGreaterThan(1);
 }
 
+/** Walk the tab order and assert each focused element has a non-empty
+ *  focus-visible outline / ring / box-shadow — i.e. keyboard users see
+ *  where they are. Returns the tag list for debugging. */
+async function expectVisibleFocusStyles(page: Page, presses = 8) {
+  const order: string[] = [];
+  for (let i = 0; i < presses; i++) {
+    await page.keyboard.press("Tab");
+    const info = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || el === document.body) return null;
+      const s = window.getComputedStyle(el);
+      const hasRing =
+        (s.outlineStyle !== "none" && parseFloat(s.outlineWidth) > 0) ||
+        s.boxShadow !== "none" ||
+        parseFloat(s.borderWidth || "0") > 0;
+      return {
+        tag: el.tagName,
+        label: el.getAttribute("aria-label") ?? el.textContent?.slice(0, 20) ?? "",
+        hasRing,
+      };
+    });
+    if (!info) continue;
+    order.push(`${info.tag}:${info.label}`);
+    expect(
+      info.hasRing,
+      `focused ${info.tag} "${info.label}" has no visible focus indicator`,
+    ).toBe(true);
+  }
+  expect(new Set(order).size, "Tab order should advance through distinct elements").toBeGreaterThan(1);
+  return order;
+}
+
+/** Run axe-core and fail on serious/critical violations. We exclude
+ *  decorative blur layers and known third-party widgets via selector. */
+async function runAxe(page: Page) {
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .disableRules(["color-contrast"]) // glass UI is intentionally low-contrast in places
+    .analyze();
+  const serious = results.violations.filter(
+    (v) => v.impact === "serious" || v.impact === "critical",
+  );
+  expect(
+    serious,
+    `axe violations:\n${serious.map((v) => `${v.id}: ${v.help}`).join("\n")}`,
+  ).toEqual([]);
+}
+
 test.describe("Accessibility — onboarding", () => {
   test("welcome step exposes labelled controls and a tabbable Begin button", async ({ page }) => {
     await page.goto("/onboarding");
     await expectInteractiveHasName(page);
     await expectFocusOrderAdvances(page);
+    await expectVisibleFocusStyles(page);
+    await runAxe(page);
   });
 });
 
@@ -64,12 +115,16 @@ test.describe("Accessibility — check-in (morning)", () => {
     await page.goto("/morning");
     await expectInteractiveHasName(page);
     await expectFocusOrderAdvances(page);
+    await expectVisibleFocusStyles(page);
+    await runAxe(page);
   });
 
   test("evening reflection screen interactive elements are named", async ({ page }) => {
     await page.goto("/evening");
     await expectInteractiveHasName(page);
     await expectFocusOrderAdvances(page);
+    await expectVisibleFocusStyles(page);
+    await runAxe(page);
   });
 });
 
@@ -87,5 +142,6 @@ test.describe("Accessibility — voice input", () => {
       const text = (await mic.textContent()) ?? "";
       expect((name ?? "").length + text.trim().length).toBeGreaterThan(0);
     }
+    await runAxe(page);
   });
 });
