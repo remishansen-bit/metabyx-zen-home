@@ -3,6 +3,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, CheckCircle2, Leaf, Sparkles, Calendar, Tag, Share2, Check } from "lucide-react";
 import { useState } from "react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
+import { Screen, Section } from "@/components/layout/Screen";
 import { useMetabyx } from "@/lib/store";
 import { notify } from "@/lib/feedback";
 
@@ -17,10 +18,14 @@ export const Route = createFileRoute("/branch/$id")({
   notFoundComponent: () => (
     <PhoneFrame>
       <StatusBar title="BRANCH" />
-      <p className="text-sm text-muted-foreground">This branch is no longer in your library.</p>
-      <Link to="/library" className="text-xs text-gold underline">
-        Back to library
-      </Link>
+      <Screen>
+        <p className="text-sm text-muted-foreground">
+          This branch is no longer in your library.
+        </p>
+        <Link to="/library" className="text-xs text-gold underline">
+          Back to library
+        </Link>
+      </Screen>
     </PhoneFrame>
   ),
 });
