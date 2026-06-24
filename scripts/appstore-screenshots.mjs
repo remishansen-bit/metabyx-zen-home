@@ -24,6 +24,12 @@ import { existsSync } from "node:fs";
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:8080";
 const OUT_ROOT = process.env.OUT_DIR ?? "/mnt/documents/appstore";
 
+/** When running inside the Lovable sandbox these env vars carry a pre-minted
+ * Supabase session that lets RequireAuth-gated routes render. Outside the
+ * sandbox the script still works for public routes (auth, onboarding). */
+const SUPABASE_STORAGE_KEY = process.env.LOVABLE_BROWSER_SUPABASE_STORAGE_KEY;
+const SUPABASE_SESSION_JSON = process.env.LOVABLE_BROWSER_SUPABASE_SESSION_JSON;
+
 /** Locate a chromium binary. Prefers Playwright's own download; falls back to
  * a system chromium (e.g. the sandbox-bundled /chromium-NNNN/chrome-linux). */
 function findChromiumExecutable() {
@@ -95,6 +101,14 @@ async function main() {
         } catch { /* private mode etc — ignore */ }
       }, SEED_PAYLOAD);
       const page = await context.newPage();
+      // Land on the origin first so localStorage writes target the right host.
+      await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
+      if (SUPABASE_STORAGE_KEY && SUPABASE_SESSION_JSON) {
+        await page.evaluate(
+          ({ key, value }) => { try { window.localStorage.setItem(key, value); } catch { /* ignore */ } },
+          { key: SUPABASE_STORAGE_KEY, value: SUPABASE_SESSION_JSON },
+        );
+      }
       for (const shot of SHOTS) {
         const url = new URL(shot.path, BASE_URL).toString();
         process.stdout.write(`  ${device.name}  ${shot.slug.padEnd(14)} ${url}\n`);
