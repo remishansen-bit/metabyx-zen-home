@@ -646,7 +646,7 @@ export function VoiceRecorder({
 
     if (blob.size < 1024) {
       setState("error");
-      const msg = "Opptaket var tomt. Hold inne lenger og prøv igjen.";
+      const msg = t("voice.errEmptyRec");
       setErrorMsg(msg);
       onError?.(msg);
       return;
@@ -675,7 +675,7 @@ export function VoiceRecorder({
       if (!mountedRef.current) return;
 
       if (!res.ok || !json.text) {
-        const msg = describeTranscribeError(res.status, json.error);
+        const msg = describeTranscribeError(t, res.status, json.error);
         setState("error");
         setErrorMsg(msg);
         onError?.(msg);
@@ -692,7 +692,7 @@ export function VoiceRecorder({
       }
     } catch (err) {
       const msg =
-        err instanceof Error ? err.message : "Nettverksfeil under transkripsjon.";
+        err instanceof Error ? err.message : t("voice.errNetwork");
       setState("error");
       setErrorMsg(msg);
       onError?.(msg);
@@ -702,7 +702,7 @@ export function VoiceRecorder({
   function acceptDraft() {
     const text = draft.trim();
     if (!text) {
-      const msg = "Teksten er tom. Spill inn på nytt eller skriv inn en tekst.";
+      const msg = t("voice.errEmptyText");
       setErrorMsg(msg);
       setState("error");
       onError?.(msg);
@@ -878,14 +878,14 @@ export function VoiceRecorder({
   // Announce speaking transitions during recording.
   useEffect(() => {
     if (state !== "recording") return;
-    announce(speaking ? "Stemme oppdaget" : "Stille — venter på stemme");
+    announce(speaking ? t("voice.announceSpeaking") : t("voice.announceSilence"));
   }, [speaking, state, announce]);
 
   // Announce low pitch-confidence fallback.
   useEffect(() => {
     if (state !== "recording") return;
     if (pitch.hz != null && smoothedStability < 0.2) {
-      announce("Lav konfidens på tonehøyde — venter på tydeligere stemme");
+      announce(t("voice.announceLowConf"));
     }
   }, [pitch.hz, smoothedStability, state, announce]);
 
@@ -897,13 +897,13 @@ export function VoiceRecorder({
     const tearsConf = emotion.tearfulness?.confidence ?? 0;
     const lowConfTears = emotion.tearfulness?.value && tearsConf < 0.5;
     if (lowConfTears) {
-      announce("Tonen er litt uklar — pust rolig, ordene dine holder");
+      announce(t("voice.announceTense"));
       return;
     }
     if (emotion.summary) {
-      announce(`Følelse: ${emotion.summary}`);
+      announce(`${t("voice.emotion")}: ${emotion.summary}`);
     } else if (emotion.primaryEmotion) {
-      announce(`Følelse oppdaget: ${emotion.primaryEmotion}`);
+      announce(`${t("voice.emotion")}: ${emotion.primaryEmotion}`);
     }
   }, [state, emotion, announce]);
 
@@ -922,7 +922,7 @@ export function VoiceRecorder({
         (window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext })
           .AudioContext ??
         (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AC) throw new Error("AudioContext ikke tilgjengelig");
+      if (!AC) throw new Error(t("voice.errAudioCtx"));
       localCtx = new AC();
       const source = localCtx.createMediaStreamSource(localStream);
       const analyser = localCtx.createAnalyser();
@@ -957,10 +957,10 @@ export function VoiceRecorder({
       setUserThreshold(threshold);
       thresholdRef.current = threshold;
       announce(
-        `Kalibrert. Bakgrunnsstøy ${(floor * 100).toFixed(1)} prosent, terskel satt til ${(threshold * 100).toFixed(1)} prosent.`,
+        t("voice.noiseMeasured", { pct: (floor * 100).toFixed(1) }),
       );
     } catch (err) {
-      const msg = describeMicError(err);
+      const msg = describeMicError(t, err);
       setErrorMsg(msg);
       onError?.(msg);
     } finally {
@@ -974,8 +974,8 @@ export function VoiceRecorder({
 
   // Memoized human label for the speaking indicator (also used by SR).
   const vadStatusLabel = useMemo(
-    () => (speaking ? "Snakker akkurat nå" : "Lytter etter stemme"),
-    [speaking],
+    () => (speaking ? t("voice.speakingNow") : t("voice.listeningForVoice")),
+    [speaking, t],
   );
 
   if (state === "unsupported") {
