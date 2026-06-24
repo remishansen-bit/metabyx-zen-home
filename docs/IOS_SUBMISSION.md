@@ -32,12 +32,28 @@ just `bun run build && bunx cap sync ios`.
 
 ## 3. App icons & splash screen
 
-1. Place `resources/icon.png` (1024×1024) and `resources/splash.png`
-   (2732×2732, artwork inside ~1200×1200 safe area).
-2. `bunx @capacitor/assets generate --ios` writes every required size
-   into `ios/App/App/Assets.xcassets/`.
-3. Splash background is `#0F0A22` (METABYX deep indigo) — set in
-   `capacitor.config.ts`.
+1. Place `resources/icon.png` (1024×1024, no transparency, no rounded corners — iOS masks it) and `resources/splash.png` (2732×2732, artwork inside the centered ~1200×1200 safe area).
+2. Generate every required size:
+   ```bash
+   bun run ios:assets
+   ```
+   Writes icons + launch images into `ios/App/App/Assets.xcassets/`.
+3. Splash background is `#0F0A22` (METABYX deep indigo) — declared in `capacitor.config.ts` under `plugins.SplashScreen` and `ios.backgroundColor`. The splash auto-hides after 1.2s.
+
+## 3b. iOS permissions (Info.plist)
+
+Add the following keys to `ios/App/App/Info.plist` after `cap add ios`. App Store review rejects builds that prompt for these without a description string:
+
+```xml
+<key>NSMicrophoneUsageDescription</key>
+<string>METABYX uses the microphone to transcribe your spoken check-ins.</string>
+<key>NSSpeechRecognitionUsageDescription</key>
+<string>METABYX transcribes your voice locally and via our secure API to turn spoken check-ins into text.</string>
+<key>ITSAppUsesNonExemptEncryption</key>
+<false/>
+```
+
+Camera, contacts, location, and HealthKit are NOT used — do not add their keys.
 
 ## 4. Versioning
 
@@ -121,6 +137,32 @@ Apple requires the **6.7" display** set (iPhone 15/16 Pro Max,
   *"METABYX uses the microphone to transcribe your check-ins."*
 - Export compliance: HTTPS only → answer "uses encryption / exempt".
 - Privacy Policy URL is **required** in App Store Connect.
+
+## 8. End-to-end build smoke test
+
+Run before every TestFlight upload:
+
+```bash
+bun install
+bun run build               # web bundle
+bunx cap sync ios           # copy dist/ + plugins into Xcode project
+bunx cap doctor             # verifies plugin + native versions match
+open ios/App/App.xcworkspace
+# In Xcode: Product → Build, then Product → Archive.
+```
+
+If `cap sync` warns about a plugin version mismatch, run
+`bun add @capacitor/core@latest @capacitor/ios@latest` and re-sync.
+
+## Quick command cheatsheet
+
+| Task | Command |
+| --- | --- |
+| One-time iOS project scaffolding | `bun run ios:add` |
+| Generate icons + splash from `resources/` | `bun run ios:assets` |
+| Rebuild web + sync into Xcode | `bun run ios:sync` |
+| Open Xcode workspace | `bun run ios:open` |
+| App Store screenshots (empty + populated) | `bun run appstore:screenshots` |
 
 ## Future: native rewrite (Expo / React Native)
 

@@ -16,7 +16,8 @@
     "appstore:screenshots": "node scripts/appstore-screenshots.mjs",
     "ios:sync": "bun run build && bunx cap sync ios",
     "ios:open": "bunx cap open ios",
-    "ios:add": "bunx cap add ios"
+    "ios:add": "bunx cap add ios",
+    "ios:assets": "bunx @capacitor/assets generate --ios"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.51",
@@ -80,9 +81,11 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.1",
     "@capacitor/core": "^8.4.1",
     "@capacitor/ios": "^8.4.1",
+    "@capacitor/splash-screen": "^8.0.1",
     "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "2.5.3",
     "@playwright/test": "^1.61.0",

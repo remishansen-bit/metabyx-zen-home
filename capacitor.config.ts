@@ -24,6 +24,15 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: "https",
   },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 1200,
+      launchAutoHide: true,
+      backgroundColor: "#0F0A22",
+      showSpinner: false,
+      iosSpinnerStyle: "small",
+    },
+  },
 };
 
 export default config;

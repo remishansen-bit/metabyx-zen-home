@@ -10,6 +10,7 @@ import {
   Plus,
   AlertCircle,
   ExternalLink,
+  Clock,
 } from "lucide-react";
 import { notify } from "@/lib/feedback";
 import {
@@ -18,6 +19,8 @@ import {
   revokeShareLink,
   rotateShareLink,
   shareUrl,
+  formatExpiresIn,
+  isShareLinkExpired,
   type ShareKind,
   type ShareLink,
 } from "@/lib/share-links";
@@ -152,6 +155,8 @@ function LinkRow({
 }) {
   const url = shareUrl(link.token);
   const revoked = !!link.revoked_at;
+  const expired = isShareLinkExpired(link);
+  const expiresLabel = formatExpiresIn(link.expires_at);
   return (
     <li className="glass rounded-2xl p-3">
       <div className="flex items-center justify-between gap-2">
@@ -168,6 +173,8 @@ function LinkRow({
             {link.kind} ·{" "}
             {revoked ? (
               <span className="text-rose-300">revoked</span>
+            ) : expired ? (
+              <span className="text-rose-300">expired</span>
             ) : (
               <a
                 href={url}
@@ -179,6 +186,13 @@ function LinkRow({
               </a>
             )}
           </p>
+          {!revoked && expiresLabel && (
+            <p
+              className={`mt-0.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] ${expired ? "text-rose-300" : "text-muted-foreground/70"}`}
+            >
+              <Clock className="h-3 w-3" /> {expiresLabel}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-1">
           {!revoked && (
