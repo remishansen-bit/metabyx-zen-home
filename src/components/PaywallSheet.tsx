@@ -111,7 +111,15 @@ export function PaywallLockedCard({
   const copy = PAYWALL_COPY[required];
   return (
     <button
-      onClick={onUnlock}
+      onClick={() => {
+        recordPaywallEvent({
+          required,
+          feature: title,
+          type: "upgrade_clicked",
+          surface: "locked_card",
+        });
+        onUnlock();
+      }}
       className="glass-strong flex w-full flex-col items-start gap-2 rounded-3xl p-5 text-left transition-all active:scale-[0.99]"
     >
       <div className="flex items-center gap-2">
