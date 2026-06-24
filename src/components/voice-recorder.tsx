@@ -1116,7 +1116,7 @@ export function VoiceRecorder({
           {pitchSnapshot && (
             <div
               role="group"
-              aria-label={`Stemmesammendrag: ${Math.round(pitchSnapshot.hz)} hertz, stabilitet ${Math.round(pitchSnapshot.stability * 100)} prosent`}
+              aria-label={t("voice.pitchSummaryAria", { hz: Math.round(pitchSnapshot.hz), pct: Math.round(pitchSnapshot.stability * 100) })}
               className="flex items-center justify-between gap-3 rounded-xl px-3 py-2"
               style={{
                 background: "oklch(1 0 0 / 0.03)",
@@ -1125,7 +1125,7 @@ export function VoiceRecorder({
             >
               <div className="flex flex-col">
                 <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
-                  Tonehøyde
+                  {t("voice.pitch")}
                 </span>
                 <span
                   className="text-sm text-foreground"
@@ -1133,13 +1133,13 @@ export function VoiceRecorder({
                 >
                   {Math.round(pitchSnapshot.hz)} Hz
                   <span className="ml-1.5 text-[10px] capitalize text-muted-foreground">
-                    · {pitchCategoryLabel(pitchSnapshot.category)}
+                    · {pitchCategoryLabel(t, pitchSnapshot.category)}
                   </span>
                 </span>
               </div>
               <div className="flex min-w-[120px] flex-col items-end">
                 <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
-                  Variasjon
+                  {t("voice.variation")}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span
@@ -1157,7 +1157,7 @@ export function VoiceRecorder({
                     />
                   </span>
                   <span className="text-[11px] text-foreground/80">
-                    {stabilityLabel(pitchSnapshot.stability)}
+                    {stabilityLabel(t, pitchSnapshot.stability)}
                   </span>
                 </span>
               </div>
@@ -1169,18 +1169,18 @@ export function VoiceRecorder({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             rows={4}
-            aria-label="Transkribert tekst — rediger før du godtar"
+            aria-label={t("voice.transcribedTextAria")}
             autoFocus
             className="min-h-[88px] w-full resize-y rounded-xl bg-white/5 p-3 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
             style={{
               border: "1px solid oklch(1 0 0 / 0.08)",
               fontFamily: "Fraunces, serif",
             }}
-            placeholder="Tom transkripsjon — skriv her i stedet."
+            placeholder={t("voice.emptyPlaceholder")}
           />
           {emotion && (
             <aside
-              aria-label="Følelsesinnsikt"
+              aria-label={t("voice.emotionAria")}
               className="flex flex-col gap-2 rounded-xl p-3"
               style={{
                 background:
@@ -1191,7 +1191,7 @@ export function VoiceRecorder({
               <div className="flex items-center gap-1.5">
                 <Sparkles className="h-3 w-3 text-gold/80" />
                 <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                  Følelse
+                  {t("voice.emotion")}
                 </p>
               </div>
               {emotion.primaryEmotion && (
@@ -1214,17 +1214,14 @@ export function VoiceRecorder({
               )}
               {emotion.tearfulness?.value && (
                 <p className="text-[10px] text-muted-foreground">
-                  Tegn på gråt · {Math.round((emotion.tearfulness.confidence ?? 0) * 100)}%
+                  {t("voice.tearSign", { pct: Math.round((emotion.tearfulness.confidence ?? 0) * 100) })}
                 </p>
               )}
             </aside>
           )}
           </div>
           <p className="text-[10px] text-muted-foreground">
-            Tips: <kbd className="rounded bg-white/10 px-1">⌘</kbd>/
-            <kbd className="rounded bg-white/10 px-1">Ctrl</kbd> +{" "}
-            <kbd className="rounded bg-white/10 px-1">Enter</kbd> for å godta,{" "}
-            <kbd className="rounded bg-white/10 px-1">Esc</kbd> for å avbryte.
+            {t("voice.tipAccept")}
           </p>
           <div className="flex items-center justify-end gap-2">
             <button
@@ -1237,7 +1234,7 @@ export function VoiceRecorder({
               style={{ border: "1px solid oklch(1 0 0 / 0.08)" }}
             >
               <X className="h-3.5 w-3.5" />
-              Avbryt
+              {t("voice.cancel")}
             </button>
             <button
               type="button"
@@ -1252,7 +1249,7 @@ export function VoiceRecorder({
               }}
             >
               <RotateCcw className="h-3.5 w-3.5" />
-              Ta opp på nytt
+              {t("voice.retake")}
             </button>
             <button
               type="button"
@@ -1267,7 +1264,7 @@ export function VoiceRecorder({
               }}
             >
               <Check className="h-3.5 w-3.5" />
-              Bruk teksten
+              {t("voice.useText")}
             </button>
           </div>
         </div>
