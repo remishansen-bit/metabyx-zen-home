@@ -1673,9 +1673,9 @@ export function VoiceRecorder({
                   <span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/70">
                     Lytter etter tydeligere stemme
                   </span>
-                ) : pitchCue({ hz: pitch.hz, stability: smoothedStability }) && (
+                ) : pitchCue(t, { hz: pitch.hz, stability: smoothedStability }) && (
                   <span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">
-                    {pitchCue({ hz: pitch.hz, stability: smoothedStability })}
+                    {pitchCue(t, { hz: pitch.hz, stability: smoothedStability })}
                   </span>
                 )}
               </div>
