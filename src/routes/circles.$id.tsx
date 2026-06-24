@@ -174,7 +174,7 @@ function CircleDetailPage() {
     setLastFailedDraft(null);
     const trimmed = body.trim();
     if (!trimmed) {
-      setPostError("Add a few words first.");
+      setPostError(t("circleThread.addWordsFirst"));
       return;
     }
     const optimistic: CirclePost = {
@@ -183,7 +183,7 @@ function CircleDetailPage() {
       body: trimmed,
       kind,
       authorId: authorId || "local",
-      authorName: anonymous ? "Anonymous" : displayName,
+      authorName: anonymous ? t("circleThread.anonymous") : displayName,
       anonymous,
       shareProgress: shareProgress && prefs.allowProgressVisibility,
       progress:
@@ -208,11 +208,11 @@ function CircleDetailPage() {
       });
       setBody("");
       notify.saved(
-        "Posted",
-        anonymous ? "Shared anonymously." : "Shared with the circle.",
+        t("circleThread.postedTitle"),
+        anonymous ? t("circleThread.postedAnon") : t("circleThread.postedToCircle"),
       );
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Couldn't post.";
+      const msg = err instanceof Error ? err.message : t("circleThread.couldNotPostShort");
       setPostError(msg);
       setLastFailedDraft({
         body: trimmed,
@@ -221,8 +221,8 @@ function CircleDetailPage() {
         shareProgress: shareProgress && prefs.allowProgressVisibility,
       });
       notify.error(
-        "Couldn't post",
-        err instanceof Error ? err.message : "Try again.",
+        t("circleThread.couldNotPost"),
+        err instanceof Error ? err.message : t("circleThread.tryAgain"),
       );
     } finally {
       // Drop the optimistic placeholder either way — the store-backed list
@@ -249,11 +249,11 @@ function CircleDetailPage() {
     try {
       await new Promise((r) => setTimeout(r, 50));
       editPost(post.id, authorId || "local", next);
-      notify.saved("Updated", "Post edited.");
+      notify.saved(t("circleThread.updatedTitle"), t("circleThread.postEdited"));
     } catch (err) {
       notify.error(
-        "Couldn't edit",
-        err instanceof Error ? err.message : "Try again.",
+        t("circleThread.couldNotEdit"),
+        err instanceof Error ? err.message : t("circleThread.tryAgain"),
       );
       throw err;
     } finally {
@@ -269,11 +269,11 @@ function CircleDetailPage() {
     try {
       await new Promise((r) => setTimeout(r, 50));
       deletePost(post.id, authorId || "local");
-      notify.info("Deleted", "Post removed.");
+      notify.info(t("circleThread.deletedTitle"), t("circleThread.postRemoved"));
     } catch (err) {
       notify.error(
-        "Couldn't delete",
-        err instanceof Error ? err.message : "Try again.",
+        t("circleThread.couldNotDelete"),
+        err instanceof Error ? err.message : t("circleThread.tryAgain"),
       );
     } finally {
       setBusyIds((s) => {
