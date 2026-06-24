@@ -213,6 +213,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_share_link_views: { Args: never; Returns: undefined }
       get_share_link: {
         Args: { p_token: string }
         Returns: {
