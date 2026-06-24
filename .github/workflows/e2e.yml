@@ -33,6 +33,21 @@ jobs:
           echo "Preview server did not start" && exit 1
       - name: Run Playwright tests
         run: bun run e2e
+      - name: Check skeleton timing budgets
+        if: always()
+        run: |
+          node -e "
+          const fs = require('fs');
+          const p = 'test-results/metrics/skeleton-timings.json';
+          if (!fs.existsSync(p)) { console.log('No skeleton metrics recorded.'); process.exit(0); }
+          const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+          const failures = data.filter(d => !d.pass);
+          console.log('Skeleton timings:');
+          for (const d of data) {
+            console.log(' ', d.pass ? 'OK ' : 'FAIL', d.screen, d.phase, d.ms + 'ms', 'bounds', d.bounds.minMs+'-'+d.bounds.maxMs+'ms');
+          }
+          if (failures.length) { console.error('Skeleton timing failures:', failures.length); process.exit(1); }
+          "
       - name: Upload Playwright artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -42,6 +57,14 @@ jobs:
             playwright-report/
             test-results/
             a11y-report/
+          retention-days: 14
+      - name: Upload skeleton timing metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: skeleton-timings
+          path: test-results/metrics/
+          if-no-files-found: ignore
           retention-days: 14
       - name: Upload a11y HTML report
         if: always()
