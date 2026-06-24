@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Sparkles,
   Lightbulb,
@@ -37,6 +38,7 @@ export const Route = createFileRoute("/s/$token")({
 });
 
 function ShareView() {
+  const { t } = useTranslation();
   const { token } = Route.useParams();
   const [state, setState] = useState<
     | { status: "loading" }
@@ -67,20 +69,20 @@ function ShareView() {
 
   return (
     <PhoneFrame>
-      <StatusBar title="SHARED" />
+      <StatusBar title={t("share.title")} />
       <header className="flex items-center justify-between">
         <Link
           to="/"
           className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-foreground"
         >
-          ← METABYX
+          {t("share.viewerHeaderBack")}
         </Link>
         <span aria-hidden className="w-12" />
       </header>
 
       {state.status === "loading" && (
         <div className="glass flex items-center justify-center gap-2 rounded-3xl p-8 text-xs text-muted-foreground">
-          <Loader2 className="h-3 w-3 animate-spin" /> Loading…
+          <Loader2 className="h-3 w-3 animate-spin" /> {t("share.viewerLoading")}
         </div>
       )}
       {state.status === "missing" && (
@@ -89,11 +91,10 @@ function ShareView() {
             className="text-lg font-light text-foreground"
             style={{ fontFamily: "Fraunces, serif" }}
           >
-            This link isn't active.
+            {t("share.viewerNotActiveTitle")}
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
-            It may have been revoked or rotated to a fresh URL. Ask the
-            person who shared it for a new link.
+            {t("share.viewerNotActiveBody")}
           </p>
         </div>
       )}
@@ -108,6 +109,7 @@ function ShareView() {
 }
 
 function SharedCard({ link }: { link: PublicShareLink }) {
+  const { t } = useTranslation();
   const Icon = link.kind === "reflection" ? Sparkles : Lightbulb;
   const expiresLabel = useExpiresInLabel(link.expires_at);
   const expired = isShareLinkExpired({
@@ -125,10 +127,10 @@ function SharedCard({ link }: { link: PublicShareLink }) {
           className="text-lg font-light text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          This link has expired.
+          {t("share.viewerExpiredTitle")}
         </p>
         <p className="mt-2 text-xs text-muted-foreground">
-          Ask the person who shared it for a fresh link.
+          {t("share.viewerExpiredBody")}
         </p>
       </div>
     );
@@ -138,7 +140,7 @@ function SharedCard({ link }: { link: PublicShareLink }) {
     <article className="glass-strong rounded-3xl p-5" data-testid="share-active">
       <div className="flex items-center justify-between">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-[oklch(0.82_0.14_82/0.18)] px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-gold">
-          <Icon className="h-3 w-3" /> {link.kind}
+          <Icon className="h-3 w-3" /> {t(`share.kind${link.kind === "reflection" ? "Reflection" : "Insight"}`)}
         </span>
         <span className="flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
           {link.anonymous && <EyeOff className="h-3 w-3" />} {link.author_label}
@@ -163,13 +165,13 @@ function SharedCard({ link }: { link: PublicShareLink }) {
           )}
           {typeof link.snapshot?.streak === "number" && link.snapshot.streak > 0 && (
             <span className="inline-flex items-center gap-1 rounded-full bg-[oklch(0.82_0.14_82/0.12)] px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-gold">
-              <Flame className="h-3 w-3" /> {link.snapshot.streak}d streak
+              <Flame className="h-3 w-3" /> {t("share.streakSuffix", { count: link.snapshot.streak })}
             </span>
           )}
         </div>
       )}
       <p className="mt-5 text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-        Shared from METABYX
+        {t("share.viewerFooter")}
       </p>
       {link.expires_at && (
         <p
@@ -177,7 +179,7 @@ function SharedCard({ link }: { link: PublicShareLink }) {
           className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.3em] text-muted-foreground/70"
         >
           <Clock className="h-3 w-3" />
-          {expiresLabel ?? `Expires ${new Date(link.expires_at).toLocaleDateString()}`}
+          {expiresLabel ?? t("share.viewerExpiresOn", { date: new Date(link.expires_at).toLocaleDateString() })}
         </p>
       )}
     </article>

@@ -16,12 +16,17 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MorningRouteImport } from './routes/morning'
 import { Route as LibraryRouteImport } from './routes/library'
+import { Route as LegalRouteImport } from './routes/legal'
 import { Route as EveningRouteImport } from './routes/evening'
 import { Route as CrisisRouteImport } from './routes/crisis'
 import { Route as CirclesRouteImport } from './routes/circles'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as STokenRouteImport } from './routes/s.$token'
+import { Route as LegalTermsRouteImport } from './routes/legal.terms'
+import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
+import { Route as LegalDataDeletionRouteImport } from './routes/legal.data-deletion'
+import { Route as LegalContactRouteImport } from './routes/legal.contact'
 import { Route as CirclesIdRouteImport } from './routes/circles.$id'
 import { Route as BranchIdRouteImport } from './routes/branch.$id'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
@@ -63,6 +68,11 @@ const LibraryRoute = LibraryRouteImport.update({
   path: '/library',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EveningRoute = EveningRouteImport.update({
   id: '/evening',
   path: '/evening',
@@ -92,6 +102,26 @@ const STokenRoute = STokenRouteImport.update({
   id: '/s/$token',
   path: '/s/$token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const LegalTermsRoute = LegalTermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => LegalRoute,
+} as any)
+const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => LegalRoute,
+} as any)
+const LegalDataDeletionRoute = LegalDataDeletionRouteImport.update({
+  id: '/data-deletion',
+  path: '/data-deletion',
+  getParentRoute: () => LegalRoute,
+} as any)
+const LegalContactRoute = LegalContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => LegalRoute,
 } as any)
 const CirclesIdRoute = CirclesIdRouteImport.update({
   id: '/$id',
@@ -126,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/circles': typeof CirclesRouteWithChildren
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
+  '/legal': typeof LegalRouteWithChildren
   '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
   '/onboarding': typeof OnboardingRoute
@@ -137,6 +168,10 @@ export interface FileRoutesByFullPath {
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
   '/circles/$id': typeof CirclesIdRoute
+  '/legal/contact': typeof LegalContactRoute
+  '/legal/data-deletion': typeof LegalDataDeletionRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/s/$token': typeof STokenRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -146,6 +181,7 @@ export interface FileRoutesByTo {
   '/circles': typeof CirclesRouteWithChildren
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
+  '/legal': typeof LegalRouteWithChildren
   '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
   '/onboarding': typeof OnboardingRoute
@@ -157,6 +193,10 @@ export interface FileRoutesByTo {
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
   '/circles/$id': typeof CirclesIdRoute
+  '/legal/contact': typeof LegalContactRoute
+  '/legal/data-deletion': typeof LegalDataDeletionRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/s/$token': typeof STokenRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -167,6 +207,7 @@ export interface FileRoutesById {
   '/circles': typeof CirclesRouteWithChildren
   '/crisis': typeof CrisisRoute
   '/evening': typeof EveningRoute
+  '/legal': typeof LegalRouteWithChildren
   '/library': typeof LibraryRoute
   '/morning': typeof MorningRoute
   '/onboarding': typeof OnboardingRoute
@@ -178,6 +219,10 @@ export interface FileRoutesById {
   '/api/tts': typeof ApiTtsRoute
   '/branch/$id': typeof BranchIdRoute
   '/circles/$id': typeof CirclesIdRoute
+  '/legal/contact': typeof LegalContactRoute
+  '/legal/data-deletion': typeof LegalDataDeletionRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/s/$token': typeof STokenRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -189,6 +234,7 @@ export interface FileRouteTypes {
     | '/circles'
     | '/crisis'
     | '/evening'
+    | '/legal'
     | '/library'
     | '/morning'
     | '/onboarding'
@@ -200,6 +246,10 @@ export interface FileRouteTypes {
     | '/api/tts'
     | '/branch/$id'
     | '/circles/$id'
+    | '/legal/contact'
+    | '/legal/data-deletion'
+    | '/legal/privacy'
+    | '/legal/terms'
     | '/s/$token'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -209,6 +259,7 @@ export interface FileRouteTypes {
     | '/circles'
     | '/crisis'
     | '/evening'
+    | '/legal'
     | '/library'
     | '/morning'
     | '/onboarding'
@@ -220,6 +271,10 @@ export interface FileRouteTypes {
     | '/api/tts'
     | '/branch/$id'
     | '/circles/$id'
+    | '/legal/contact'
+    | '/legal/data-deletion'
+    | '/legal/privacy'
+    | '/legal/terms'
     | '/s/$token'
     | '/api/public/payments/webhook'
   id:
@@ -229,6 +284,7 @@ export interface FileRouteTypes {
     | '/circles'
     | '/crisis'
     | '/evening'
+    | '/legal'
     | '/library'
     | '/morning'
     | '/onboarding'
@@ -240,6 +296,10 @@ export interface FileRouteTypes {
     | '/api/tts'
     | '/branch/$id'
     | '/circles/$id'
+    | '/legal/contact'
+    | '/legal/data-deletion'
+    | '/legal/privacy'
+    | '/legal/terms'
     | '/s/$token'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
@@ -250,6 +310,7 @@ export interface RootRouteChildren {
   CirclesRoute: typeof CirclesRouteWithChildren
   CrisisRoute: typeof CrisisRoute
   EveningRoute: typeof EveningRoute
+  LegalRoute: typeof LegalRouteWithChildren
   LibraryRoute: typeof LibraryRoute
   MorningRoute: typeof MorningRoute
   OnboardingRoute: typeof OnboardingRoute
@@ -315,6 +376,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LibraryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/evening': {
       id: '/evening'
       path: '/evening'
@@ -356,6 +424,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/s/$token'
       preLoaderRoute: typeof STokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/legal/terms': {
+      id: '/legal/terms'
+      path: '/terms'
+      fullPath: '/legal/terms'
+      preLoaderRoute: typeof LegalTermsRouteImport
+      parentRoute: typeof LegalRoute
+    }
+    '/legal/privacy': {
+      id: '/legal/privacy'
+      path: '/privacy'
+      fullPath: '/legal/privacy'
+      preLoaderRoute: typeof LegalPrivacyRouteImport
+      parentRoute: typeof LegalRoute
+    }
+    '/legal/data-deletion': {
+      id: '/legal/data-deletion'
+      path: '/data-deletion'
+      fullPath: '/legal/data-deletion'
+      preLoaderRoute: typeof LegalDataDeletionRouteImport
+      parentRoute: typeof LegalRoute
+    }
+    '/legal/contact': {
+      id: '/legal/contact'
+      path: '/contact'
+      fullPath: '/legal/contact'
+      preLoaderRoute: typeof LegalContactRouteImport
+      parentRoute: typeof LegalRoute
     }
     '/circles/$id': {
       id: '/circles/$id'
@@ -406,12 +502,29 @@ const CirclesRouteChildren: CirclesRouteChildren = {
 const CirclesRouteWithChildren =
   CirclesRoute._addFileChildren(CirclesRouteChildren)
 
+interface LegalRouteChildren {
+  LegalContactRoute: typeof LegalContactRoute
+  LegalDataDeletionRoute: typeof LegalDataDeletionRoute
+  LegalPrivacyRoute: typeof LegalPrivacyRoute
+  LegalTermsRoute: typeof LegalTermsRoute
+}
+
+const LegalRouteChildren: LegalRouteChildren = {
+  LegalContactRoute: LegalContactRoute,
+  LegalDataDeletionRoute: LegalDataDeletionRoute,
+  LegalPrivacyRoute: LegalPrivacyRoute,
+  LegalTermsRoute: LegalTermsRoute,
+}
+
+const LegalRouteWithChildren = LegalRoute._addFileChildren(LegalRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   CirclesRoute: CirclesRouteWithChildren,
   CrisisRoute: CrisisRoute,
   EveningRoute: EveningRoute,
+  LegalRoute: LegalRouteWithChildren,
   LibraryRoute: LibraryRoute,
   MorningRoute: MorningRoute,
   OnboardingRoute: OnboardingRoute,

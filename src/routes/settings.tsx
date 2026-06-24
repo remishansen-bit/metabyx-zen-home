@@ -14,7 +14,12 @@ import {
   Download,
   Trash2,
   BellRing,
+  FileText,
+  Mail,
+  Scale,
+  ChevronRight,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth, refreshProfile, signOut, useAuth } from "@/lib/auth";
@@ -68,6 +73,7 @@ const DEFAULTS: Prefs = {
 };
 
 function SettingsPage() {
+  const { t } = useTranslation();
   const auth = useAuth();
   const navigate = useNavigate();
   const gate = useFeatureGate();
@@ -483,6 +489,34 @@ function SettingsPage() {
         </div>
       </Section>
 
+      <Section icon={Scale} title={t("legal.sectionTitle")}>
+        <LegalRow
+          to="/legal/privacy"
+          icon={ShieldCheck}
+          title={t("legal.privacy")}
+          subtitle={t("legal.privacyDesc")}
+        />
+        <LegalRow
+          to="/legal/terms"
+          icon={FileText}
+          title={t("legal.terms")}
+          subtitle={t("legal.termsDesc")}
+        />
+        <LegalRow
+          to="/legal/contact"
+          icon={Mail}
+          title={t("legal.contact")}
+          subtitle={t("legal.contactDesc")}
+        />
+        <LegalRow
+          to="/legal/data-deletion"
+          icon={Trash2}
+          title={t("legal.dataDeletion")}
+          subtitle={t("legal.dataDeletionDesc")}
+          danger
+        />
+      </Section>
+
       <button
         onClick={async () => {
           await signOut();
@@ -639,6 +673,51 @@ function Section({
       </div>
       <div className="flex flex-col gap-2">{children}</div>
     </section>
+  );
+}
+
+function LegalRow({
+  to,
+  icon: Icon,
+  title,
+  subtitle,
+  danger,
+}: {
+  to: "/legal/privacy" | "/legal/terms" | "/legal/contact" | "/legal/data-deletion";
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle: string;
+  danger?: boolean;
+}) {
+  return (
+    <Link
+      to={to}
+      className="glass flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all hover:bg-[oklch(1_0_0/0.06)]"
+    >
+      <div
+        className="flex h-9 w-9 items-center justify-center rounded-xl"
+        style={{
+          background: danger
+            ? "oklch(0.62 0.2 27 / 0.12)"
+            : "oklch(0.82 0.14 82 / 0.12)",
+          border: danger
+            ? "1px solid oklch(0.62 0.2 27 / 0.28)"
+            : "1px solid oklch(0.82 0.14 82 / 0.22)",
+        }}
+      >
+        <Icon
+          className="h-4 w-4"
+          {...(danger
+            ? { style: { color: "oklch(0.78 0.16 27)" } }
+            : {})}
+        />
+      </div>
+      <div className="flex-1">
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground">{subtitle}</p>
+      </div>
+      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+    </Link>
   );
 }
 
