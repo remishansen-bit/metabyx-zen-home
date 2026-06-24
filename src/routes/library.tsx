@@ -36,6 +36,7 @@ const dayLabel = (t: number) => {
 
 function LibraryPage() {
   const state = useMetabyx();
+  const gate = useFeatureGate();
   const [query, setQuery] = useState("");
   // Debounce keeps filtering snappy and the live-region calm on long lists —
   // we don't recompute (or announce a new result count) until typing settles.
@@ -107,6 +108,15 @@ function LibraryPage() {
           <button
             type="button"
             onClick={() => {
+              if (
+                !gate.ensure("plus", {
+                  feature: "Library export is part of Plus",
+                  description:
+                    "Plus lets you download the full library as JSON or PDF — Free keeps the last 14 days on-device only.",
+                })
+              ) {
+                return;
+              }
               try {
                 exportLibrary(state);
                 notify.saved("Library exported", "JSON download started.");
@@ -126,6 +136,15 @@ function LibraryPage() {
           <button
             type="button"
             onClick={async () => {
+              if (
+                !gate.ensure("plus", {
+                  feature: "PDF export is part of Plus",
+                  description:
+                    "Plus generates a printable PDF of your branches, BMR history, and emotion log.",
+                })
+              ) {
+                return;
+              }
               const id = notify.loading("Preparing PDF…");
               try {
                 await exportLibraryPdf(state);
