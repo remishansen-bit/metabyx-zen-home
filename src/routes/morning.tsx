@@ -254,6 +254,7 @@ function MorningPage() {
         </section>
       )}
 
+      {gate.paywall}
     </PhoneFrame>
   );
 }
