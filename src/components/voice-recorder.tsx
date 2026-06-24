@@ -2066,48 +2066,39 @@ function pitchCategory(hz: number): "low" | "medium" | "high" {
   return "high";
 }
 
-/** Norwegian label for the pitch category shown in the review summary. */
-function pitchCategoryLabel(c: "low" | "medium" | "high" | "unknown"): string {
-  switch (c) {
-    case "low":
-      return "lav";
-    case "medium":
-      return "middels";
-    case "high":
-      return "høy";
-    default:
-      return "ukjent";
-  }
+/** Localized label for the pitch category shown in the review summary. */
+function pitchCategoryLabel(t: TFn, c: "low" | "medium" | "high" | "unknown"): string {
+  return t(`voice.pitchCat.${c}`);
 }
 
 /** Plain-language stability label for the review summary. */
-function stabilityLabel(stability: number): string {
-  if (stability >= 0.7) return "Stødig";
-  if (stability >= 0.4) return "Jevn";
-  if (stability >= 0.2) return "Litt ujevn";
-  return "Ustødig";
+function stabilityLabel(t: TFn, stability: number): string {
+  if (stability >= 0.7) return t("voice.stab.steady");
+  if (stability >= 0.4) return t("voice.stab.even");
+  if (stability >= 0.2) return t("voice.stab.uneven");
+  return t("voice.stab.unsteady");
 }
 
 /** Light, supportive cue derived from pitch stability + category. */
-export function pitchCue(p: { hz: number | null; stability: number }): string | null {
+export function pitchCue(t: TFn, p: { hz: number | null; stability: number }): string | null {
   if (p.hz == null) return null;
-  if (p.stability > 0.75) return "Rolig og stødig stemme";
-  if (p.stability > 0.45) return "Jevn stemme";
-  if (p.stability > 0.2) return "Litt variasjon i stemmen";
-  return "Stemmen virker litt anspent";
+  if (p.stability > 0.75) return t("voice.cue.calmSteady");
+  if (p.stability > 0.45) return t("voice.cue.even");
+  if (p.stability > 0.2) return t("voice.cue.variation");
+  return t("voice.cue.tense");
 }
 
-/** Compact relative date: "nå", "12 min", "3 t", or locale date. */
-function formatHistoryDate(ts: number): string {
+/** Compact relative date: "just now", "12 min", "3 h", or locale date. */
+function formatHistoryDate(t: TFn, ts: number): string {
   const diffMs = Date.now() - ts;
   const s = Math.floor(diffMs / 1000);
-  if (s < 30) return "nå nettopp";
-  if (s < 60) return `${s} s siden`;
+  if (s < 30) return t("voice.justNow");
+  if (s < 60) return t("voice.secondsAgo", { n: s });
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m} min siden`;
+  if (m < 60) return t("voice.minutesAgo", { n: m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} t siden`;
-  return new Date(ts).toLocaleDateString("nb-NO", {
+  if (h < 24) return t("voice.hoursAgo", { n: h });
+  return new Date(ts).toLocaleDateString(undefined, {
     day: "2-digit",
     month: "short",
   });
