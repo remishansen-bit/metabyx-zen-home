@@ -73,7 +73,8 @@ async function ensureDir(p) { await mkdir(p, { recursive: true }); }
 async function main() {
   console.log(`Capturing METABYX screenshots from ${BASE_URL}`);
   await ensureDir(OUT_ROOT);
-  const browser = await chromium.launch({ headless: true });
+  const executablePath = findChromiumExecutable();
+  const browser = await chromium.launch({ headless: true, executablePath });
 
   try {
     for (const device of DEVICES) {
