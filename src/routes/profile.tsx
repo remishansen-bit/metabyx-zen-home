@@ -9,10 +9,14 @@ import {
   Flame,
   Target,
   Sparkles,
+  Users,
+  Brain,
 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { useMetabyx } from "@/lib/store";
 import { RequireAuth, useAuth } from "@/lib/auth";
+import { summarize } from "@/lib/learning";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -39,6 +43,13 @@ const DAYS = 14;
 function ProfilePage() {
   const state = useMetabyx();
   const auth = useAuth();
+  const [insights, setInsights] = useState(() => summarize());
+  useEffect(() => {
+    const sync = () => setInsights(summarize());
+    sync();
+    window.addEventListener("metabyx:learning:change", sync);
+    return () => window.removeEventListener("metabyx:learning:change", sync);
+  }, []);
   const displayName =
     auth.profile?.display_name ?? auth.user?.email?.split("@")[0] ?? "Friend";
   const archetype = auth.profile?.archetype;
