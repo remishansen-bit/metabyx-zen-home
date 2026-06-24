@@ -14,12 +14,28 @@ export type Circle = {
   visibility: "private" | "public";
   hint: string;
   joinCode?: string;
+  /** Epoch ms when the invite code was minted. Codes expire after CODE_TTL_MS. */
+  codeCreatedAt?: number;
   joinedAt: number;
   source: "preview" | "created" | "joined";
 };
 
 const KEY = "metabyx:circles:v1";
 const EVENT = "metabyx:circles:change";
+const THROTTLE_KEY = "metabyx:circles:throttle:v1";
+
+/** Invite codes are valid for 7 days from mint. */
+export const CODE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+/** Throttle: at most JOIN_LIMIT failed/successful attempts per JOIN_WINDOW_MS. */
+export const JOIN_WINDOW_MS = 60 * 1000;
+export const JOIN_LIMIT = 5;
+
+/**
+ * Generic, opaque error for every invalid-code path — never reveal whether
+ * a code maps to a real (private) circle or not. Enumeration of private
+ * rooms is the threat we're closing here.
+ */
+const INVALID_CODE_MESSAGE = "That invite code isn't valid or has expired.";
 
 const SEED: Circle[] = [
   {
@@ -87,6 +103,7 @@ export function createCircle(name: string, visibility: "private" | "public"): Ci
     (typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID()
       : `c-${Date.now()}`) as string;
+  const now = Date.now();
   const circle: Circle = {
     id,
     name: name.trim() || "Untitled circle",
@@ -95,33 +112,122 @@ export function createCircle(name: string, visibility: "private" | "public"): Ci
     visibility,
     hint: "Your room. Invite a few people in with the code below.",
     joinCode: randomCode(),
-    joinedAt: Date.now(),
+    codeCreatedAt: now,
+    joinedAt: now,
     source: "created",
   };
   write([circle, ...read()]);
   return circle;
 }
 
-export function joinByCode(code: string): Circle {
+/** Strict invite-code shape: 4 chars - 4 chars, alnum, uppercase. */
+const CODE_RE = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+
+export function isValidCodeShape(code: string): boolean {
+  return CODE_RE.test(code.trim().toUpperCase());
+}
+
+export function rotateJoinCode(id: string): Circle | null {
+  const circles = read();
+  const idx = circles.findIndex((c) => c.id === id && c.source === "created");
+  if (idx === -1) return null;
+  const next: Circle = {
+    ...circles[idx],
+    joinCode: randomCode(),
+    codeCreatedAt: Date.now(),
+  };
+  const out = [...circles];
+  out[idx] = next;
+  write(out);
+  return next;
+}
+
+type ThrottleState = { attempts: number[] };
+
+function readThrottle(): ThrottleState {
+  if (typeof window === "undefined") return { attempts: [] };
+  try {
+    const raw = window.localStorage.getItem(THROTTLE_KEY);
+    if (!raw) return { attempts: [] };
+    const parsed = JSON.parse(raw) as ThrottleState;
+    return { attempts: Array.isArray(parsed.attempts) ? parsed.attempts : [] };
+  } catch {
+    return { attempts: [] };
+  }
+}
+
+function recordAttempt(now: number) {
+  if (typeof window === "undefined") return;
+  const state = readThrottle();
+  const recent = state.attempts.filter((t) => now - t < JOIN_WINDOW_MS);
+  recent.push(now);
+  window.localStorage.setItem(
+    THROTTLE_KEY,
+    JSON.stringify({ attempts: recent } satisfies ThrottleState),
+  );
+}
+
+export function joinAttemptsRemaining(now: number = Date.now()): number {
+  const state = readThrottle();
+  const recent = state.attempts.filter((t) => now - t < JOIN_WINDOW_MS);
+  return Math.max(0, JOIN_LIMIT - recent.length);
+}
+
+export function resetJoinThrottle() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(THROTTLE_KEY);
+}
+
+function codeExpired(circle: Circle, now: number): boolean {
+  if (!circle.codeCreatedAt) return false; // seeds / placeholder rooms never expire locally
+  return now - circle.codeCreatedAt > CODE_TTL_MS;
+}
+
+/**
+ * Join a circle by its invite code. Throws a single generic error for every
+ * failure mode (bad shape, throttled, not found, expired) so callers can't
+ * enumerate private rooms by probing codes. Idempotent: rejoining an
+ * already-joined circle returns the same row.
+ */
+export function joinByCode(code: string, now: number = Date.now()): Circle {
+  // Throttle first — even shape-invalid attempts count, so a brute-force
+  // scanner can't bypass the rate limit by sending garbage codes.
+  if (joinAttemptsRemaining(now) <= 0) {
+    throw new Error("Too many join attempts. Wait a minute and try again.");
+  }
+  recordAttempt(now);
+
   const cleaned = code.trim().toUpperCase();
-  if (cleaned.length < 4) throw new Error("That code looks too short.");
-  const existing = read().find((c) => c.joinCode === cleaned);
-  if (existing) return existing;
+  if (!isValidCodeShape(cleaned)) {
+    throw new Error(INVALID_CODE_MESSAGE);
+  }
+
+  const all = read();
+  const match = all.find((c) => c.joinCode === cleaned);
+  if (match) {
+    if (codeExpired(match, now)) {
+      throw new Error(INVALID_CODE_MESSAGE);
+    }
+    // Idempotent rejoin — same row.
+    return match;
+  }
+
   const circle: Circle = {
     id:
       (typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
-        : `c-${Date.now()}`) as string,
+        : `c-${now}`) as string,
     name: `Circle ${cleaned}`,
     members: 2,
     pulse: 70,
     visibility: "private",
     hint: "Joined by code — waiting on the others to check in.",
     joinCode: cleaned,
-    joinedAt: Date.now(),
+    codeCreatedAt: now,
+    joinedAt: now,
     source: "joined",
   };
-  write([circle, ...read()]);
+  write([circle, ...all]);
   return circle;
 }
 
