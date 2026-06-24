@@ -11,6 +11,7 @@ import {
   X,
   Copy,
   MessageCircle,
+  RotateCw,
 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { RequireAuth } from "@/lib/auth";
@@ -288,6 +289,22 @@ function CircleRow({
             className="mt-1 inline-flex cursor-pointer items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-gold hover:underline"
           >
             <Copy className="h-3 w-3" /> {circle.joinCode}
+          </span>
+        )}
+        {circle.source === "created" && circle.joinCode && (
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              const next = rotateJoinCode(circle.id);
+              if (next?.joinCode) {
+                notify.saved("Code rotated", `New invite: ${next.joinCode}`);
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            className="ml-2 mt-1 inline-flex cursor-pointer items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
+          >
+            <RotateCw className="h-3 w-3" /> rotate
           </span>
         )}
         <span className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
