@@ -5,6 +5,7 @@
  * respects the toggles and times configured in Settings.
  */
 import { notify } from "@/lib/feedback";
+import { recordReminder } from "@/lib/learning";
 
 export type ReminderPrefs = {
   notifications: boolean;
@@ -71,6 +72,7 @@ export function scheduleReminders(prefs: ReminderPrefs) {
     const arm = () => {
       morningTimer = setTimeout(() => {
         fireNotification("Morning check-in", "A gentle moment to name what's circling.");
+        recordReminder("morning", "fired");
         arm();
       }, nextFireAt(prefs.morningTime));
     };
@@ -81,6 +83,7 @@ export function scheduleReminders(prefs: ReminderPrefs) {
     const arm = () => {
       eveningTimer = setTimeout(() => {
         fireNotification("Evening integration", "Close the loops you can. Rest with the rest.");
+        recordReminder("evening", "fired");
         arm();
       }, nextFireAt(prefs.eveningTime));
     };
