@@ -8,10 +8,12 @@ import {
   Flame,
   Loader2,
   AlertCircle,
+  Clock,
 } from "lucide-react";
 import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import {
   fetchPublicShareLink,
+  formatExpiresIn,
   type PublicShareLink,
 } from "@/lib/share-links";
 
@@ -144,8 +146,9 @@ function SharedCard({ link }: { link: PublicShareLink }) {
         Shared from METABYX
       </p>
       {link.expires_at && (
-        <p className="mt-1 text-[10px] uppercase tracking-[0.3em] text-muted-foreground/70">
-          Expires {new Date(link.expires_at).toLocaleDateString()}
+        <p className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.3em] text-muted-foreground/70">
+          <Clock className="h-3 w-3" />
+          {formatExpiresIn(link.expires_at) ?? `Expires ${new Date(link.expires_at).toLocaleDateString()}`}
         </p>
       )}
     </article>
