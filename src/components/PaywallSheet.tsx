@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Crown, Lock, Sparkles, X } from "lucide-react";
 import { PAYWALL_COPY, type PaywallReason } from "@/lib/feature-access";
@@ -109,6 +110,15 @@ export function PaywallLockedCard({
   onUnlock: () => void;
 }) {
   const copy = PAYWALL_COPY[required];
+  useEffect(() => {
+    recordPaywallEvent({
+      required,
+      feature: title,
+      type: "impression",
+      surface: "locked_card",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [required, title]);
   return (
     <button
       onClick={() => {
