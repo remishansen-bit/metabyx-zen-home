@@ -158,6 +158,15 @@ function SettingsPage() {
    * leaves the device before it does.
    */
   const prepareExport = () => {
+    if (
+      !gate.ensure("plus", {
+        feature: "Data export is part of Plus",
+        description:
+          "Plus lets you download your branches, BMR history, and emotion log as JSON or PDF.",
+      })
+    ) {
+      return;
+    }
     try {
       const raw = window.localStorage.getItem("metabyx:v1") ?? "{}";
       const parsed = JSON.parse(raw) as Record<string, unknown>;
@@ -199,6 +208,15 @@ function SettingsPage() {
   };
 
   const downloadPdfSummary = () => {
+    if (
+      !gate.ensure("plus", {
+        feature: "PDF summary is part of Plus",
+        description:
+          "Plus exports a printable PDF summary with the same categories as the JSON export.",
+      })
+    ) {
+      return;
+    }
     try {
       const raw = window.localStorage.getItem("metabyx:v1") ?? "{}";
       const parsed = JSON.parse(raw) as Partial<MetabyxState>;
