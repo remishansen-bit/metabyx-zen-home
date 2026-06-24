@@ -434,12 +434,13 @@ function SessionPage() {
 }
 
 function PhaseProgress({ phase }: { phase: Phase }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-1.5">
-      {PHASES.map((label, i) => {
+      {PHASE_KEYS.map((key, i) => {
         const active = i <= phase;
         return (
-          <div key={label} className="flex-1">
+          <div key={key} className="flex-1" aria-label={t(`sessionFull.phase.${key}`)}>
             <div
               className="h-1 rounded-full transition-all duration-700"
               style={{
