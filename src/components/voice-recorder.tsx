@@ -47,6 +47,7 @@ export function VoiceRecorder({
   showHistory = true,
   historyLimit = 6,
 }: VoiceRecorderProps) {
+  const { t } = useTranslation();
   const [state, setState] = useState<VoiceRecorderState>("idle");
   const [elapsed, setElapsed] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
