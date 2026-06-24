@@ -24,6 +24,8 @@ import {
   notificationPermission,
   requestNotificationPermission,
   scheduleReminders,
+  nextFireAt,
+  formatRelative,
 } from "@/lib/reminders";
 
 export const Route = createFileRoute("/settings")({
@@ -64,9 +66,35 @@ function SettingsPage() {
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">(
     "default",
   );
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [exportPreview, setExportPreview] = useState<null | {
+    categories: { key: string; label: string; count: number }[];
+    download: () => void;
+  }>(null);
 
   useEffect(() => {
     setPermission(notificationPermission());
+    // Browsers expose permission changes via the Permissions API. Listen so
+    // a user who flips the OS-level toggle while Settings is open sees the
+    // UI update without a refresh.
+    if (typeof navigator === "undefined" || !("permissions" in navigator)) return;
+    let status: PermissionStatus | null = null;
+    let cancelled = false;
+    navigator.permissions
+      .query({ name: "notifications" as PermissionName })
+      .then((s) => {
+        if (cancelled) return;
+        status = s;
+        const sync = () => setPermission(notificationPermission());
+        s.addEventListener("change", sync);
+      })
+      .catch(() => {
+        /* Safari / older browsers: no-op, we'll poll on next mount */
+      });
+    return () => {
+      cancelled = true;
+      if (status) status.onchange = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -115,42 +143,88 @@ function SettingsPage() {
     }
   };
 
-  const exportDeviceData = () => {
+  /**
+   * Build a categorized preview of what's about to be exported, then hand
+   * the user a "download" button. Two-step so they can see exactly what
+   * leaves the device before it does.
+   */
+  const prepareExport = () => {
     try {
       const raw = window.localStorage.getItem("metabyx:v1") ?? "{}";
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const branches = Array.isArray(parsed.branches) ? parsed.branches : [];
+      const history = Array.isArray(parsed.bmrHistory) ? parsed.bmrHistory : [];
+      const emotions = Array.isArray(parsed.emotionEvents) ? parsed.emotionEvents : [];
+      const categories = [
+        { key: "branches", label: "Branches & reflections", count: branches.length },
+        { key: "bmrHistory", label: "BMR history points", count: history.length },
+        { key: "emotionEvents", label: "Emotion events", count: emotions.length },
+        { key: "preferences", label: "Account preferences", count: 1 },
+      ];
       const payload = {
         app: "metabyx",
         version: 1,
         exportedAt: new Date().toISOString(),
-        ...JSON.parse(raw),
+        archetype: auth.profile?.archetype ?? null,
+        baseline_bmr: auth.profile?.baseline_bmr ?? null,
+        preferences: prefs,
+        ...parsed,
       };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `metabyx-library-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      notify.saved("Export ready", "Your device data was downloaded as JSON.");
+      const download = () => {
+        const blob = new Blob([JSON.stringify(payload, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `metabyx-export-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        notify.saved("Export ready", "Your data was downloaded as JSON.");
+        setExportPreview(null);
+      };
+      setExportPreview({ categories, download });
     } catch (err) {
       notify.error("Couldn't export", err instanceof Error ? err.message : "Please try again.");
     }
   };
 
-  const deleteDeviceData = () => {
-    if (typeof window === "undefined") return;
-    const confirmed = window.confirm(
-      "Delete all branches and BMR history on this device? This cannot be undone.",
-    );
-    if (!confirmed) return;
+  const performDelete = () => {
     try {
       window.localStorage.removeItem("metabyx:v1");
       window.dispatchEvent(new Event("metabyx:change"));
       notify.saved("Cleared", "All on-device data has been deleted.");
     } catch (err) {
       notify.error("Couldn't delete", err instanceof Error ? err.message : "Please try again.");
+    } finally {
+      setConfirmDelete(false);
     }
   };
+
+  const sendTestReminder = async () => {
+    if (typeof window === "undefined") return;
+    if ("Notification" in window && Notification.permission === "granted") {
+      try {
+        new Notification("Test reminder", {
+          body: "This is how a gentle nudge will arrive.",
+          icon: "/favicon.ico",
+          tag: "metabyx-test",
+        });
+        notify.info("Test sent", "Check your notification tray.");
+        return;
+      } catch {
+        /* fall through */
+      }
+    }
+    notify.info("Test reminder", "This is how a gentle nudge will arrive.");
+  };
+
+  const morningHint = prefs.morningReminder
+    ? `${prefs.morningTime} · ${formatRelative(nextFireAt(prefs.morningTime))}`
+    : "off";
+  const eveningHint = prefs.eveningReminder
+    ? `${prefs.eveningTime} · ${formatRelative(nextFireAt(prefs.eveningTime))}`
+    : "off";
 
   return (
     <PhoneFrame hideTabBar>
@@ -180,7 +254,7 @@ function SettingsPage() {
         <Toggle
           icon={Sunrise}
           label="Morning check-in"
-          hint={prefs.morningTime}
+          hint={morningHint}
           value={prefs.morningReminder}
           onChange={(v) => update({ morningReminder: v })}
         />
@@ -193,7 +267,7 @@ function SettingsPage() {
         <Toggle
           icon={Moon}
           label="Evening integration"
-          hint={prefs.eveningTime}
+          hint={eveningHint}
           value={prefs.eveningReminder}
           onChange={(v) => update({ eveningReminder: v })}
         />
@@ -203,6 +277,12 @@ function SettingsPage() {
           onChange={(v) => update({ eveningTime: v })}
           disabled={!prefs.eveningReminder}
         />
+        <button
+          onClick={sendTestReminder}
+          className="glass flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-xs uppercase tracking-[0.2em] text-muted-foreground transition-all hover:bg-[oklch(1_0_0/0.06)]"
+        >
+          <BellRing className="h-3.5 w-3.5 text-gold" /> Send a test reminder
+        </button>
       </Section>
 
       <Section icon={Sparkles} title="AI refinement">
@@ -273,7 +353,7 @@ function SettingsPage() {
           </ul>
         </div>
         <button
-          onClick={exportDeviceData}
+          onClick={prepareExport}
           className="glass flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all hover:bg-[oklch(1_0_0/0.06)]"
         >
           <div
@@ -287,11 +367,13 @@ function SettingsPage() {
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-foreground">Export device data</p>
-            <p className="text-xs text-muted-foreground">Download a JSON snapshot</p>
+            <p className="text-xs text-muted-foreground">
+              Preview what's included, then download a JSON snapshot
+            </p>
           </div>
         </button>
         <button
-          onClick={deleteDeviceData}
+          onClick={() => setConfirmDelete(true)}
           className="glass flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all hover:bg-[oklch(1_0_0/0.06)]"
         >
           <div
@@ -336,7 +418,126 @@ function SettingsPage() {
           syncing…
         </p>
       )}
+
+      {exportPreview && (
+        <Dialog
+          title="Ready to export"
+          onClose={() => setExportPreview(null)}
+          actionLabel="Download JSON"
+          actionIcon={Download}
+          onAction={exportPreview.download}
+        >
+          <p className="text-xs text-muted-foreground">
+            This download is human-readable JSON. Here's exactly what it includes:
+          </p>
+          <ul className="mt-3 flex flex-col gap-1.5 text-sm">
+            {exportPreview.categories.map((c) => (
+              <li
+                key={c.key}
+                className="flex items-center justify-between rounded-xl bg-[oklch(1_0_0/0.04)] px-3 py-2"
+              >
+                <span className="text-foreground">{c.label}</span>
+                <span className="text-xs uppercase tracking-[0.2em] text-gold">
+                  {c.count} {c.count === 1 ? "item" : "items"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Dialog>
+      )}
+
+      {confirmDelete && (
+        <Dialog
+          title="Delete on-device data?"
+          onClose={() => setConfirmDelete(false)}
+          actionLabel="Delete everything"
+          actionIcon={Trash2}
+          danger
+          onAction={performDelete}
+        >
+          <p className="text-xs text-muted-foreground">
+            This permanently removes the following from this device:
+          </p>
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-foreground">
+            <li>All branches and their reflections</li>
+            <li>Your BMR history and trend</li>
+            <li>Your local emotion event log</li>
+          </ul>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Your account, archetype, and preferences stay safe in the cloud.
+            This cannot be undone.
+          </p>
+        </Dialog>
+      )}
     </PhoneFrame>
+  );
+}
+
+function Dialog({
+  title,
+  children,
+  onClose,
+  onAction,
+  actionLabel,
+  actionIcon: ActionIcon,
+  danger,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+  onAction: () => void;
+  actionLabel: string;
+  actionIcon: React.ComponentType<{ className?: string }>;
+  danger?: boolean;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="glass-strong w-full max-w-sm rounded-3xl p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2
+          className="text-lg font-light text-foreground"
+          style={{ fontFamily: "Fraunces, serif" }}
+        >
+          {title}
+        </h2>
+        <div className="mt-3">{children}</div>
+        <div className="mt-5 flex items-center gap-2">
+          <button
+            onClick={onClose}
+            className="glass flex-1 rounded-2xl px-4 py-3 text-xs uppercase tracking-[0.2em] text-muted-foreground"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onAction}
+            className="flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium text-background"
+            style={{
+              background: danger
+                ? "oklch(0.62 0.2 27)"
+                : "var(--gradient-gold)",
+            }}
+          >
+            <ActionIcon className="h-4 w-4" /> {actionLabel}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

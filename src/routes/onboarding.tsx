@@ -5,6 +5,13 @@ import { PhoneFrame, StatusBar } from "@/components/phone-frame";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth, refreshProfile, useAuth } from "@/lib/auth";
 import { notify } from "@/lib/feedback";
+import {
+  ARCHETYPES,
+  ONBOARDING_QUESTIONS as QUESTIONS,
+  archetypeAreaFor,
+  baselineBmrFor,
+  type Area,
+} from "@/lib/onboarding";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: "Welcome · METABYX" }] }),
@@ -14,24 +21,6 @@ export const Route = createFileRoute("/onboarding")({
     </RequireAuth>
   ),
 });
-
-type Area = "mind" | "body" | "relationship" | "work" | "spirit";
-
-const QUESTIONS: { area: Area; prompt: string }[] = [
-  { area: "mind", prompt: "How often do 'what if' loops circle in your mind?" },
-  { area: "body", prompt: "How often does tension settle into your body?" },
-  { area: "relationship", prompt: "How often do unspoken things linger between you and others?" },
-  { area: "work", prompt: "How often do open loops at work pull at your attention?" },
-  { area: "spirit", prompt: "How often do you feel cut off from a deeper sense of meaning?" },
-];
-
-const ARCHETYPES: Record<Area, { name: string; tagline: string }> = {
-  mind: { name: "The Reflector", tagline: "You metabolise through naming the loops." },
-  body: { name: "The Embodied", tagline: "Your body is where the truth lands first." },
-  relationship: { name: "The Connector", tagline: "You integrate by being seen." },
-  work: { name: "The Builder", tagline: "You move when the open loops are closed." },
-  spirit: { name: "The Seeker", tagline: "You return to centre through meaning." },
-};
 
 function OnboardingFlow() {
   const auth = useAuth();
@@ -48,14 +37,9 @@ function OnboardingFlow() {
   const total = QUESTIONS.length + 2; // welcome + questions + summary
   const progress = (step / (total - 1)) * 100;
 
-  const archetypeArea: Area = ((): Area => {
-    let topI = 0;
-    for (let i = 1; i < answers.length; i++) if (answers[i] > answers[topI]) topI = i;
-    return QUESTIONS[topI].area;
-  })();
+  const archetypeArea: Area = archetypeAreaFor(answers);
   const archetype = ARCHETYPES[archetypeArea];
-  const totalLoad = answers.reduce((a, b) => a + b, 0);
-  const baselineBmr = Math.max(48, Math.min(82, Math.round(82 - (totalLoad - QUESTIONS.length) * 1.6)));
+  const baselineBmr = baselineBmrFor(answers);
 
   const finish = async () => {
     if (!auth.user) return;
