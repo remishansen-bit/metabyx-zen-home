@@ -567,6 +567,7 @@ function FrictionPhase({
   note: string;
   setNote: (v: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <section className="flex flex-col gap-5">
       <div>
@@ -574,10 +575,19 @@ function FrictionPhase({
           className="text-2xl font-light leading-snug text-foreground"
           style={{ fontFamily: "Fraunces, serif" }}
         >
-          How does it <span className="text-gold italic">land</span> in body and mind?
+          <Trans
+            i18nKey="sessionFull.friction.titleFull"
+            defaults='{{pre}} <1>{{hi}}</1> {{post}}'
+            values={{
+              pre: t("sessionFull.friction.titlePre"),
+              hi: t("sessionFull.friction.titleHi"),
+              post: t("sessionFull.friction.titlePost"),
+            }}
+            components={{ 1: <span className="text-gold italic" /> }}
+          />
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Tap what you notice. Nothing more to do than name it.
+          {t("sessionFull.friction.subtitle")}
         </p>
       </div>
 
@@ -590,9 +600,9 @@ function FrictionPhase({
               onClick={() => toggle(f.id)}
               className={`glass flex items-center justify-between rounded-2xl px-3 py-3 text-left transition-all hover-scale ${on ? "ring-1 ring-[oklch(0.82_0.14_82/0.6)]" : "opacity-70"}`}
             >
-              <span className="text-sm text-foreground">{f.label}</span>
+              <span className="text-sm text-foreground">{t(`sessionFull.frictionLabel.${f.labelKey}`)}</span>
               <span className="text-[9px] uppercase tracking-wider text-muted-foreground">
-                {f.body}
+                {t(`sessionFull.frictionBody.${f.body}`)}
               </span>
             </button>
           );
@@ -602,14 +612,14 @@ function FrictionPhase({
       <div className="glass rounded-2xl p-4">
         <div className="flex items-center justify-between">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            Anything else?
+            {t("sessionFull.friction.anythingElse")}
           </p>
           <VoiceInputButton value={note} onChange={setNote} compact />
         </div>
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="A short word for what's underneath…"
+          placeholder={t("sessionFull.friction.placeholder")}
           rows={2}
           className="mt-1 w-full resize-none bg-transparent text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
         />
@@ -619,15 +629,15 @@ function FrictionPhase({
           the note above and stays editable before continuing. */}
       <details className="glass rounded-2xl px-4 py-3">
         <summary className="flex cursor-pointer items-center justify-between text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-          <span>Describe the feeling aloud</span>
-          <span className="text-gold">+ Voice</span>
+          <span>{t("sessionFull.friction.describeAloud")}</span>
+          <span className="text-gold">{t("sessionFull.identify.voiceLabel")}</span>
         </summary>
         <div className="mt-3">
           <VoiceRecorder
             language="en-US"
             compact
             showHistory={false}
-            ariaLabel="Record what you notice in body and mind"
+            ariaLabel={t("sessionFull.friction.recordAria")}
             onTranscription={(text) =>
               setNote(note ? `${note.trim()} ${text}` : text)
             }
