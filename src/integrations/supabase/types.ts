@@ -83,6 +83,59 @@ export type Database = {
         }
         Relationships: []
       }
+      share_links: {
+        Row: {
+          anonymous: boolean
+          body: string
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["share_link_kind"]
+          revoked_at: string | null
+          rotated_from: string | null
+          snapshot: Json
+          title: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          anonymous?: boolean
+          body: string
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["share_link_kind"]
+          revoked_at?: string | null
+          rotated_from?: string | null
+          snapshot?: Json
+          title: string
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          anonymous?: boolean
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["share_link_kind"]
+          revoked_at?: string | null
+          rotated_from?: string | null
+          snapshot?: Json
+          title?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "share_links_rotated_from_fkey"
+            columns: ["rotated_from"]
+            isOneToOne: false
+            referencedRelation: "share_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
@@ -136,13 +189,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_share_link: {
+        Args: { p_token: string }
+        Returns: {
+          anonymous: boolean
+          author_label: string
+          body: string
+          created_at: string
+          kind: Database["public"]["Enums"]["share_link_kind"]
+          snapshot: Json
+          title: string
+          token: string
+        }[]
+      }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
       }
     }
     Enums: {
-      [_ in never]: never
+      share_link_kind: "reflection" | "insight"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -269,6 +335,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      share_link_kind: ["reflection", "insight"],
+    },
   },
 } as const
