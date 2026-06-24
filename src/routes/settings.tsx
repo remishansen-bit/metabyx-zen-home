@@ -27,6 +27,9 @@ import {
   nextFireAt,
   formatRelative,
 } from "@/lib/reminders";
+import { recordPrefChange } from "@/lib/learning";
+import { exportSummaryPdf } from "@/lib/library-pdf";
+import type { MetabyxState } from "@/lib/store";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings · METABYX" }] }),
@@ -109,6 +112,7 @@ function SettingsPage() {
   const update = async (next: Partial<Prefs>) => {
     const merged = { ...prefs, ...next };
     setPrefs(merged);
+    for (const [k, v] of Object.entries(next)) recordPrefChange(k, v);
     if (next.theme) applyTheme(next.theme as ThemeName);
     scheduleReminders(merged);
     if (!auth.user) return;
@@ -184,6 +188,29 @@ function SettingsPage() {
         setExportPreview(null);
       };
       setExportPreview({ categories, download });
+    } catch (err) {
+      notify.error("Couldn't export", err instanceof Error ? err.message : "Please try again.");
+    }
+  };
+
+  const downloadPdfSummary = () => {
+    try {
+      const raw = window.localStorage.getItem("metabyx:v1") ?? "{}";
+      const parsed = JSON.parse(raw) as Partial<MetabyxState>;
+      exportSummaryPdf(
+        {
+          branches: parsed.branches ?? [],
+          bmrHistory: parsed.bmrHistory ?? [],
+          emotionEvents: parsed.emotionEvents ?? [],
+          lastBmr: parsed.lastBmr ?? 0,
+        },
+        {
+          archetype: auth.profile?.archetype,
+          baselineBmr: auth.profile?.baseline_bmr,
+          preferences: prefs,
+        },
+      );
+      notify.saved("PDF ready", "Your summary was downloaded.");
     } catch (err) {
       notify.error("Couldn't export", err instanceof Error ? err.message : "Please try again.");
     }
