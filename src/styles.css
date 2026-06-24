@@ -273,8 +273,10 @@
 }
 @media (min-width: 640px) {
   .phone-shell {
-    /* Desktop: real iPhone 15 Pro-ish height, never larger than the viewport */
-    height: min(844px, calc(100dvh - 4rem));
+    /* Desktop: real iPhone 16 Pro height (874px), never larger than the viewport.
+     * Width caps at 402px to match iPhone 16 Pro CSS pixels. */
+    height: min(874px, calc(100dvh - 4rem));
+    max-width: 402px;
     min-height: 0;
     box-shadow:
       0 60px 120px -40px oklch(0 0 0 / 0.7),
