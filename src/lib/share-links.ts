@@ -115,9 +115,8 @@ export type PublicShareLink = {
 };
 
 export async function fetchPublicShareLink(token: string): Promise<PublicShareLink | null> {
-  const { data, error } = await supabase.rpc("get_share_link", { p_token: token });
-  if (error) throw error;
-  const row = Array.isArray(data) ? data[0] : data;
+  const { fetchPublicShareLinkFn } = await import("./share-links.functions");
+  const row = await fetchPublicShareLinkFn({ data: { token } });
   if (!row) return null;
   return {
     ...row,
